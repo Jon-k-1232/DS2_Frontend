@@ -1,0 +1,27 @@
+version: '3.9'
+
+networks:
+   ds2_network:
+      external: true
+
+services:
+   ds2_frontend:
+      container_name: DS2-Frontend
+      # image: marine1232/ds2-frontend:latest
+      build:
+         context: .
+         dockerfile: Dockerfile
+      environment:
+         - TZ=America/Phoenix
+      env_file:
+         - .env
+      volumes:
+         - './:/app'
+         - '/app/node_modules'
+      ports:
+         - '3003:3000' # Map port 3003 on the host to port 3000 on the container
+      stdin_open: true
+      tty: true
+      restart: always
+      networks:
+         - ds2_network
