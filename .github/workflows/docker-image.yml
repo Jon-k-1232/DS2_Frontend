@@ -105,6 +105,19 @@ jobs:
          - name: Print PATH
            run: echo $PATH
 
+         - name: Create .env file
+           run: |
+              echo "NODE_ENV=${{ secrets.NODE_ENV }}" > .env
+              echo "DATABASE_USER=${{ secrets.DATABASE_USER }}" >> .env
+              echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> .env
+              echo "API_TOKEN=${{ secrets.API_TOKEN }}" >> .env
+              echo "JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}" >> .env
+              echo "NODE_PORT_PROD=${{ secrets.NODE_PORT_PROD }}" >> .env
+              echo "DB_PROD_HOST=${{ secrets.DB_PROD_HOST }}" >> .env
+              echo "FRONT_END_URL_PROD=${{ secrets.FRONT_END_URL_PROD }}" >> .env
+              echo "PRODUCTION_PDF_SAVE_LOCATION=${{ secrets.PRODUCTION_PDF_SAVE_LOCATION }}" >> .env
+              echo "HOST_IP_PROD=${{ secrets.HOST_IP_PROD }}" >> .env
+
          - name: Login to Docker Hub
            run: |
               echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
