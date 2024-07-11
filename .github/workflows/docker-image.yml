@@ -67,20 +67,12 @@ jobs:
               username: ${{ secrets.DOCKER_USERNAME }}
               password: ${{ secrets.DOCKER_PASSWORD }}
 
-         - name: Set environment variables for backend
+         - name: Set environment variables for frontend
            run: |
-              echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
-              echo "DATABASE_USER=${{ secrets.DATABASE_USER }}" >> .env
-              echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> .env
-              echo "API_TOKEN=${{ secrets.API_TOKEN }}" >> .env
-              echo "JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}" >> .env
-              echo "NODE_PORT_PROD=${{ secrets.NODE_PORT_PROD }}" >> .env
-              echo "DB_PROD_HOST=${{ secrets.DB_PROD_HOST }}" >> .env
-              echo "FRONT_END_URL_PROD=${{ secrets.FRONT_END_URL_PROD }}" >> .env
-              echo "PRODUCTION_PDF_SAVE_LOCATION=${{ secrets.PRODUCTION_PDF_SAVE_LOCATION }}" >> .env
-              echo "HOST_IP_PROD=${{ secrets.HOST_IP_PROD }}" >> .env
+              echo "REACT_APP_ENV=${{ secrets.REACT_APP_ENV }}" >> .env
+              echo "REACT_APP_API_PROD_ENDPOINT=${{ secrets.REACT_APP_API_PROD_ENDPOINT }}" >> .env
 
-         - name: Build and push Docker images for backend
+         - name: Build and push Docker images for frontend
            run: |
               docker build -t ${{ env.DOCKER_USERNAME }}/${{ env.APP_NAME }}:latest .
               docker tag ${{ env.DOCKER_USERNAME }}/${{ env.APP_NAME }}:latest ${{ env.DOCKER_USERNAME }}/${{ env.APP_NAME }}:${{ steps.get_version.outputs.current_version }}
@@ -105,18 +97,13 @@ jobs:
          - name: Print PATH
            run: echo $PATH
 
-         - name: Create .env file
+         - name: Create .env file for frontend
            run: |
-              echo "NODE_ENV=${{ secrets.NODE_ENV }}" > .env
-              echo "DATABASE_USER=${{ secrets.DATABASE_USER }}" >> .env
-              echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> .env
-              echo "API_TOKEN=${{ secrets.API_TOKEN }}" >> .env
-              echo "JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}" >> .env
-              echo "NODE_PORT_PROD=${{ secrets.NODE_PORT_PROD }}" >> .env
-              echo "DB_PROD_HOST=${{ secrets.DB_PROD_HOST }}" >> .env
-              echo "FRONT_END_URL_PROD=${{ secrets.FRONT_END_URL_PROD }}" >> .env
-              echo "PRODUCTION_PDF_SAVE_LOCATION=${{ secrets.PRODUCTION_PDF_SAVE_LOCATION }}" >> .env
-              echo "HOST_IP_PROD=${{ secrets.HOST_IP_PROD }}" >> .env
+              echo "REACT_APP_ENV=${{ secrets.REACT_APP_ENV }}" > .env
+              echo "REACT_APP_API_PROD_ENDPOINT=${{ secrets.REACT_APP_API_PROD_ENDPOINT }}" >> .env
+
+         - name: Debug .env file for frontend
+           run: cat .env
 
          - name: Login to Docker Hub
            run: |
