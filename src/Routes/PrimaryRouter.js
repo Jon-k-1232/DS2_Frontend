@@ -12,7 +12,7 @@ import InvoiceRoutes from './GroupedRoutes/InvoiceRoutes/InvoiceRoutes';
 import AccountRoutes from './GroupedRoutes/AccountRoutes/AccountRoutes';
 import JobRoutes from './GroupedRoutes/JobRoutes/JobRoutes';
 import { context } from '../App';
-import { getInitialAppData, fetchSingleUser } from '../Services/ApiCalls/FetchCalls';
+import { getInitialAppData, fetchSingleUser, fetchAppVersion } from '../Services/ApiCalls/FetchCalls';
 import ManagerAndAdminProtectedAccessRoute from './ManagerAndAdminProtectedAccess';
 
 // loaders
@@ -27,6 +27,15 @@ export default function Router() {
 
    const [pageTitle, setPageTitle] = useState('');
    const [customerData, setCustomerData] = useState({});
+   const [appVersion, setAppVersion] = useState('Loading...');
+
+   useEffect(() => {
+      const fetchVersion = async () => {
+         const fetchedAppVersion = await fetchAppVersion();
+         setAppVersion(fetchedAppVersion);
+      };
+      fetchVersion();
+   }, []);
 
    useEffect(() => {
       // With every route check if token is still good or not.
@@ -70,7 +79,7 @@ export default function Router() {
    return (
       <Routes>
          <Route element={<LogoOnlyLayout />}>
-            <Route exact path='/login' element={<Login />} />
+            <Route exact path='/login' element={<Login appVersion={appVersion} />} />
             <Route path='/' element={<Navigate to='/login' />} />
             <Route path='404' element={<NotFound />} />
             <Route path='*' element={<Navigate to='/404' />} />

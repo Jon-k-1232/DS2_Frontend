@@ -17,7 +17,8 @@ const SectionStyle = styled(Card)(({ theme }) => ({
    display: 'flex',
    flexDirection: 'column',
    justifyContent: 'center',
-   margin: theme.spacing(2, 0, 2, 2)
+   margin: theme.spacing(2, 0, 2, 2),
+   position: 'relative'
 }));
 
 const ContentStyle = styled('div')(({ theme }) => ({
@@ -30,9 +31,16 @@ const ContentStyle = styled('div')(({ theme }) => ({
    padding: theme.spacing(12, 0)
 }));
 
+const BottomTypography = styled(Typography)(({ theme }) => ({
+   position: 'absolute',
+   bottom: theme.spacing(1),
+   left: '15px',
+   fontSize: '0.75rem'
+}));
+
 // ----------------------------------------------------------------------
 
-export default function Login() {
+export default function Login({ appVersion }) {
    return (
       <RootStyle title='DS | 2'>
          <AuthLayout />
@@ -42,6 +50,9 @@ export default function Login() {
                <Typography variant='h3' sx={{ px: 5, mt: 10, mb: 5 }}>
                   Hi, Welcome Back
                </Typography>
+               <BottomTypography variant='body2' sx={{ mb: 1 }}>
+                  v {appVersion}
+               </BottomTypography>
             </SectionStyle>
          </MHidden>
 

@@ -236,3 +236,11 @@ export const fetchAllEmployeeTransactionsBetweenDates = async (startDate, endDat
       return [];
    }
 };
+
+export const fetchAppVersion = async () =>
+   fetch('/version.txt')
+      .then(response => response.text())
+      .catch(error => {
+         console.error('Error fetching version:', error);
+         return 'Unknown';
+      });
