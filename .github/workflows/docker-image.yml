@@ -95,7 +95,7 @@ jobs:
            uses: actions/checkout@v2
 
          - name: Set PATH for Docker
-           run: echo "::add-path::/usr/local/bin"
+           run: echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
 
          - name: Print PATH
            run: echo $PATH
