@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
 import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageNavigationHeader';
 import DeleteTimeOrCharge from '../../../Pages/Transactions/TransactionForms/DeleteTransaction/DeleteTimeOrCharge';
-import EditTransaction from '../../../Pages/Transactions/TransactionForms/EditTransaction/EditTransaction';
+// import EditTransaction from '../../../Pages/Transactions/TransactionForms/EditTransaction/EditTransaction';
 import { fetchSingleTransaction } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
@@ -41,7 +41,9 @@ export default function TransactionSubRoutes({ customerData, setCustomerData }) 
                   </ErrorBoundary>
                }
             />
-            {/* <Route
+            {/* 
+             Edit Transaction is not implemented yet. 
+            <Route
                path='editTransaction'
                element={
                   <ErrorBoundary fallbackComponent='/transactions/customerTransactions'>

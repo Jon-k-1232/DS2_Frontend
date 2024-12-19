@@ -23,25 +23,64 @@ const ServerStatus = () => {
    }, []);
 
    return (
-      <Box style={{ padding: '20px', backgroundColor: '#1c2536', color: '#637381', display: 'flex', alignItems: 'center' }}>
-         <Box style={{ display: 'flex', flexDirection: 'column' }}>
-            <Typography variant='caption' style={{ padding: '3px 5px' }}>
-               File System Connected:
-            </Typography>
-            <Typography variant='caption' style={{ padding: '3px 5px' }}>
-               Server Health:
-            </Typography>
-            <Typography variant='caption' style={{ padding: '3px 5px' }}>
-               Database Health:
-            </Typography>
-         </Box>
+      <Box style={{ padding: '20px', backgroundColor: '#1c2536', color: '#637381' }}>
+         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+               <tr>
+                  <td style={{ padding: '3px 5px' }}>
+                     <Typography variant='caption'>File System Connected:</Typography>
+                  </td>
+                  <td style={{ padding: '3px 5px', display: 'flex', alignItems: 'center' }}>
+                     <CircleIcon
+                        fontSize='small'
+                        style={{
+                           color: serverHealth?.fileSystem?.message === 'UP' ? '#00AB55' : '#fd2828',
+                           marginTop: '5px'
+                        }}
+                     />
+                  </td>
+               </tr>
+               <tr>
+                  <td style={{ padding: '3px 5px' }}>
+                     <Typography variant='caption'>Server Health:</Typography>
+                  </td>
+                  <td style={{ padding: '3px 5px', display: 'flex', alignItems: 'center' }}>
+                     <CircleIcon
+                        fontSize='small'
+                        style={{
+                           color: serverHealth?.cpu?.message === 'UP' ? '#00AB55' : '#fd2828',
+                           marginTop: '5px'
+                        }}
+                     />
+                  </td>
+               </tr>
+               <tr>
+                  <td style={{ padding: '3px 5px' }}>
+                     <Typography variant='caption'>Database Health:</Typography>
+                  </td>
+                  <td style={{ padding: '3px 5px', display: 'flex', alignItems: 'center' }}>
+                     <CircleIcon
+                        fontSize='small'
+                        style={{
+                           color: serverHealth?.database?.message === 'UP' ? '#00AB55' : '#fd2828',
+                           marginTop: '5px'
+                        }}
+                     />
+                  </td>
+               </tr>
 
-         <Box style={{ display: 'flex', flexDirection: 'column' }}>
-            <CircleIcon fontSize='small' style={{ paddingBottom: '2px', color: serverHealth?.fileSystem?.message === 'UP' ? '#00AB55' : '#fd2828' }} />
-            <CircleIcon fontSize='small' style={{ paddingBottom: '2px', color: serverHealth?.cpu?.message === 'UP' ? '#00AB55' : '#fd2828' }} />
-            <CircleIcon fontSize='small' style={{ paddingTop: '2px', color: serverHealth?.database?.message === 'UP' ? '#00AB55' : '#fd2828' }} />
-         </Box>
+               <tr>
+                  <td style={{ padding: '3px 5px' }}>
+                     <Typography variant='caption'>Backend Environment:</Typography>
+                  </td>
+                  <td style={{ padding: '3px 5px' }}>
+                     <Typography variant='caption'>{(serverHealth?.backendEnvironmentName || '').toUpperCase()}</Typography>
+                  </td>
+               </tr>
+            </tbody>
+         </table>
       </Box>
    );
 };
+
 export default ServerStatus;

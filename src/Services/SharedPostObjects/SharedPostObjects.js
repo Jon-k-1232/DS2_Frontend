@@ -35,17 +35,21 @@ const formBaseObject = (selectedItems, loggedInUser, extraProperties) => {
    };
 };
 
-export const formObjectForTransactionPost = (selectedItems, loggedInUser) =>
-   formBaseObject(selectedItems, loggedInUser, {
-      selectedGeneralWorkDescriptionID: selectedItems?.selectedGeneralWorkDescription?.general_work_description_id || null,
-      customerJobID: selectedItems.selectedJob.customer_job_id,
-      loggedForUserID: selectedItems.selectedTeamMember.user_id,
-      transactionDate: dayjs(selectedItems.selectedDate).format(),
-      totalTransaction: (selectedItems.quantity * selectedItems.unitCost).toFixed(2),
-      selectedRetainerID: selectedItems?.selectedRetainer?.retainer_id || null,
-      transactionType: selectedItems?.initialState?.transactionType || selectedItems?.transactionType,
-      quantity: selectedItems?.initialState?.quantity || selectedItems?.quantity
+export const formObjectForTransactionPost = (selectedItems, loggedInUser) => {
+   // Exclude initialState from selectedItems. removed initialState from selectedItems, not needed for 'time'
+   const { initialState, ...filteredItems } = selectedItems;
+
+   return formBaseObject(filteredItems, loggedInUser, {
+      selectedGeneralWorkDescriptionID: filteredItems?.selectedGeneralWorkDescription?.general_work_description_id || null,
+      customerJobID: filteredItems.selectedJob?.customer_job_id,
+      loggedForUserID: filteredItems.selectedTeamMember?.user_id,
+      transactionDate: dayjs(filteredItems.selectedDate).format(),
+      totalTransaction: (filteredItems.quantity * filteredItems.unitCost).toFixed(2),
+      selectedRetainerID: filteredItems?.selectedRetainer?.retainer_id || null,
+      transactionType: filteredItems?.transactionType,
+      quantity: filteredItems?.quantity
    });
+};
 
 export const formObjectForPaymentPost = (selectedItems, loggedInUser) =>
    formBaseObject(selectedItems, loggedInUser, {

@@ -44,7 +44,10 @@ export default function PaymentSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
-            {/* <Route
+            {/* 
+            Edit is not implemented yet
+
+            <Route
           path='editPayment'
           element={
             <ErrorBoundary fallbackComponent='/transactions/customerPayments'>

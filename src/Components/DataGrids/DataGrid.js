@@ -16,10 +16,14 @@ const DataGridTable = ({
    arrayOfButtons,
    title,
    dialogSize,
-   hideGridTools
+   hideGridTools,
+   enableColumnsOnClick = [],
+   pageSize = 5
 }) => {
    const navigate = useNavigate();
    const { rows, columns } = tableData;
+
+   const matchingField = (array, field) => array.find(column => column.field === field);
 
    const gridProps = {
       density: 'compact',
@@ -37,18 +41,39 @@ const DataGridTable = ({
          enableSingleRowClick && !routeToPass && setSingleSelectedRow(rowData.row);
          enableSingleRowClick && routeToPass && navigate(routeToPass, { state: { rowData: rowData.row } });
       },
-      // Stops checkbox from selecting when clicking on the row, checkbox must be specifically selected
-      onCellClick: (z, e) => {
-         if (!rowSelectionOnly) e.stopPropagation();
+      onCellClick: (cellParams, event) => {
+         if (!rowSelectionOnly) {
+            event.stopPropagation(); // Prevent row selection on cell click
+         }
+         const { row, field, value } = cellParams;
+         // Execute column click logic only if enableColumnsOnClick is set
+         if (enableColumnsOnClick.length && matchingField(enableColumnsOnClick, field)) {
+            const routeTo = matchingField(enableColumnsOnClick, field).route;
+            const columnData = {
+               ...row,
+               columnName: field,
+               columnValue: value
+            };
+            navigate(routeTo, { state: { rowData: columnData } });
+         }
       },
-      pageSize: 25,
-      getRowId: row => row.id
+      pageSize,
+      getRowId: row => row.id,
+      getCellClassName: params => (matchingField(enableColumnsOnClick, params.field) || enableSingleRowClick ? 'clickable-column' : '')
    };
 
    const dynamicColumns = rows && columns && getDynamicColumnWidths(rows, columns);
 
    return (
-      <Box sx={{ height: passedHeight ? passedHeight : 680, width: 1 }}>
+      <Box
+         sx={{
+            height: passedHeight ? passedHeight : 680,
+            width: 1,
+            '.MuiDataGrid-cell.clickable-column:hover': {
+               cursor: 'pointer'
+            }
+         }}
+      >
          <DataGrid rows={rows ? rows : []} columns={columns ? dynamicColumns : []} {...gridProps} />
       </Box>
    );

@@ -153,3 +153,27 @@ export const postWorkDescription = async (data, accountID, userID, token) => {
       throw error;
    }
 };
+
+export const manuallyRunTimeTrackers = async (accountID, userID, token) => {
+   const url = `${config.API_ENDPOINT}/timesheets/runManualJob/${accountID}/${userID}`;
+   try {
+      const response = await axios.post(
+         url,
+         {}, // Empty body
+         {
+            headers: {
+               Authorization: `Bearer ${token}`,
+               'Content-Type': 'application/json'
+            }
+         }
+      );
+      return { status: response.status, data: response.data, error: null };
+   } catch (error) {
+      // Gracefully return error details
+      return {
+         status: error.response?.status || 500,
+         data: error.response?.data || { message: 'Network error occurred' },
+         error: true
+      };
+   }
+};

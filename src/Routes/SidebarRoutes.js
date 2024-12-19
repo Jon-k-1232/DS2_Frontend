@@ -56,6 +56,11 @@ export const sidebarRoutes = [
             title: 'Write Offs',
             path: '/transactions/customerWriteOffs',
             icon: getIcon(clockFill)
+         },
+         {
+            title: 'Pending Employee Transactions',
+            path: '/transactions/employeeTimeTrackerTransactions',
+            icon: getIcon(clockFill)
          }
       ]
    },

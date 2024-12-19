@@ -6,7 +6,6 @@ import palette from '../../../Theme/palette';
 
 export default function RetainersGrid({ customerData, setCustomerData }) {
    if (!customerData || !customerData.accountRetainersList || !customerData.accountRetainersList.activeRetainerData) {
-      // You can render a loading indicator or an empty state here
       return <div>Loading...</div>;
    }
 

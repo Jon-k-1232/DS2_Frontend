@@ -41,7 +41,10 @@ export default function RetainerSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
-            {/* <Route
+            {/* 
+            Edit Retainer is not implemented yet
+            
+            <Route
           path='editRetainer'
           element={
             <ErrorBoundary fallbackComponent='/transactions/customerRetainers'>

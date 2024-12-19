@@ -244,3 +244,69 @@ export const fetchAppVersion = async () =>
          console.error('Error fetching version:', error);
          return 'Unknown';
       });
+
+export const fetchInvalidTimesheets = async (accountID, userID, token, page = 1, limit = 10) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getInvalidTimesheets/${accountID}/${userID}`, {
+         headers: headers(token),
+         params: { page, limit }
+      });
+
+      const { invalidTimesheets, pagination } = response.data;
+      return { invalidTimesheets, pagination };
+   } catch (error) {
+      console.error('Error fetching invalid timesheets:', error);
+      return { invalidTimesheets: [], pagination: {} };
+   }
+};
+
+export const fetchOutstandingTimesheetCounts = async (accountID, userID) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/countsByEmployee/${accountID}/${userID}`, headers());
+      const outstandingTimesheetCounts = response.data;
+      return outstandingTimesheetCounts;
+   } catch (error) {
+      console.error('Error fetching outstanding timesheet counts:', error);
+      return [];
+   }
+};
+
+export const fetchOutstandingEmployeeEntriesByID = async (accountID, userID, selectedUserID, token, page = 1, limit = 10) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getTimesheetEntriesByUserID/${selectedUserID}/${accountID}/${userID}`, {
+         headers: { Authorization: `Bearer ${token}` },
+         params: { page, limit }
+      });
+
+      if (response.status === 200 && response.data) {
+         // Safely return the data
+         return response.data;
+      } else {
+         console.warn('Unexpected API response:', response);
+         return { grid: { rows: [], columns: [] }, pagination: {} };
+      }
+   } catch (error) {
+      console.error('Error fetching outstanding employee entries:', error.message);
+      return { grid: { rows: [], columns: [] }, pagination: {} };
+   }
+};
+
+export const fetchOutstandingEmployeeErrorsByID = async (accountID, userID, selectedUserID, token, page = 1, limit = 10, filterQuery = '') => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getTimesheetErrorsByUserID/${selectedUserID}/${accountID}/${userID}`, {
+         headers: { Authorization: `Bearer ${token}` },
+         params: { page, limit, filterQuery }
+      });
+
+      if (response.status === 200 && response.data) {
+         // Safely return the data
+         return response.data;
+      } else {
+         console.warn('Unexpected API response:', response);
+         return { grid: { rows: [], columns: [] }, pagination: {} };
+      }
+   } catch (error) {
+      console.error('Error fetching outstanding employee errors:', error.message);
+      return { grid: { rows: [], columns: [] }, pagination: {} };
+   }
+};

@@ -41,7 +41,10 @@ export default function WriteOffSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
-            {/* <Route
+            {/* 
+            Edit is not implemented yet
+            
+            <Route
           path='editWriteOff'
           element={
             <ErrorBoundary fallbackComponent='/transactions/customerWriteOffs'>
