@@ -6,7 +6,8 @@ const headers = memoryToken => {
    const token = memoryToken || TokenService.getAuthToken();
    return {
       headers: {
-         Authorization: `Bearer ${token}`
+         Authorization: `Bearer ${token}`,
+         'Content-Type': 'application/json'
       }
    };
 };
@@ -157,16 +158,7 @@ export const postWorkDescription = async (data, accountID, userID, token) => {
 export const manuallyRunTimeTrackers = async (accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/timesheets/runManualJob/${accountID}/${userID}`;
    try {
-      const response = await axios.post(
-         url,
-         {}, // Empty body
-         {
-            headers: {
-               Authorization: `Bearer ${token}`,
-               'Content-Type': 'application/json'
-            }
-         }
-      );
+      const response = await axios.post(url, {}, headers(token));
       return { status: response.status, data: response.data, error: null };
    } catch (error) {
       // Gracefully return error details
@@ -175,5 +167,16 @@ export const manuallyRunTimeTrackers = async (accountID, userID, token) => {
          data: error.response?.data || { message: 'Network error occurred' },
          error: true
       };
+   }
+};
+
+export const postUserTimeEntryToTransactions = async (data, accountID, userID, token) => {
+   const url = `${config.API_ENDPOINT}/timesheets/moveToTransactions/${accountID}/${userID}`;
+   try {
+      const response = await axios.post(url, { entry: data }, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error while posting time entry to transactions:', error);
+      throw error;
    }
 };

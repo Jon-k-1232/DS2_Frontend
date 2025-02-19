@@ -1,20 +1,20 @@
-import { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Box, TextField, Autocomplete } from '@mui/material';
 import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import AutoCompleteWithDialog from '../../../../../Components/Dialogs/AutoCompleteWithDialog';
 import NewJob from '../../../../Jobs/JobForms/AddJob/NewJob';
 import NewCustomer from '../../../../Customer/CustomerForms/AddCustomer/NewCustomer';
-import AutoCompleteWithDialog from '../../../../../Components/Dialogs/AutoCompleteWithDialog';
 import { getCustomerJobsList } from '../../../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../../../App';
 import './Transactions.css';
 import SplitOptionLabel from '../../../../../Components/SplitOptionLabel';
 
-export default function InitialSelectionOptions({ customerData, selectedItems, setSelectedItems, customerProfileData, setCustomerData, initialState, page, children }) {
-   // Destructure state variables from the props
+export default function InitialSelectionOptions({ customerData, selectedItems, setSelectedItems, customerProfileData, setCustomerData, initialState, passedSelectedDate, page, children }) {
+   // Combine data from various sources
    const combinedData = { ...customerData, ...selectedItems, ...customerProfileData };
-   const { selectedDate, selectedCustomer, selectedJob, selectedTeamMember, selectedInvoice } = combinedData;
+   const { selectedCustomer, selectedJob, selectedTeamMember, selectedDate, selectedInvoice } = combinedData;
 
    const activeCustomers = combinedData.customersList?.activeCustomerData?.activeCustomers || [];
    const activeUsers = combinedData.teamMembersList?.activeUserData?.activeUsers || [];
@@ -24,11 +24,71 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
 
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
+   const [customerJobs, setCustomerJobs] = useState([]);
    const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
    const [jobDialogOpen, setJobDialogOpen] = useState(false);
-   const [customerJobs, setCustomerJobs] = useState([]);
 
-   // Fetch jobs based on the selected customer
+   // Local date state to mirror parent's selectedDate
+   const [dateValue, setDateValue] = useState(dayjs());
+
+   // Whenever parent updates selectedDate (like on load), sync local state
+   useEffect(() => {
+      if (selectedDate) {
+         setDateValue(selectedDate);
+      } else {
+         setDateValue(dayjs());
+      }
+   }, [selectedDate]);
+
+   // If there's a passedSelectedDate, we can also sync that to the parent once
+   useEffect(() => {
+      if (passedSelectedDate) {
+         setSelectedItems(prev => ({
+            ...prev,
+            selectedDate: dayjs(passedSelectedDate)
+         }));
+      }
+      // eslint-disable-next-line
+   }, [passedSelectedDate]);
+
+   // Called when user changes the date/time
+   const handleDateChange = newDate => {
+      setDateValue(newDate);
+      setSelectedItems(prev => ({
+         ...prev,
+         selectedDate: dayjs(newDate)
+      }));
+   };
+
+   // Called when user selects a new Customer, Invoice, Job, TeamMember, etc.
+   const handleAutocompleteChange = (key, value) => {
+      // If the user picks a new customer, only reset specific fields if desired.
+      // For instance, reset 'selectedJob', but keep 'minutes', 'selectedDate', etc.
+      if (key === 'selectedCustomer') {
+         setSelectedItems(prev => ({
+            ...prev,
+            [key]: value,
+            selectedJob: null
+            // preserve everything else
+         }));
+         return;
+      }
+
+      // If the user picks a new invoice, reset the job (optional)
+      if (key === 'selectedInvoice') {
+         setSelectedItems(prev => ({
+            ...prev,
+            [key]: value,
+            selectedJob: null
+         }));
+         return;
+      }
+
+      // Otherwise, just set the chosen field
+      setSelectedItems(prev => ({ ...prev, [key]: value }));
+   };
+
+   // Fetch jobs when a customer is selected
    useEffect(() => {
       if (selectedCustomer) {
          const fetchJobs = async () => {
@@ -38,26 +98,17 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
          };
          fetchJobs();
       }
-      // eslint-disable-next-line
-   }, [selectedCustomer, jobDialogOpen]);
-
-   const handleAutocompleteChange = (key, value) => {
-      // The reset is needed on payments in case user selects customer, then invoice, then changes mind and selects a different customer. selectedDate included so the date doesnt change on each update of field.
-      if (key === 'selectedCustomer' && initialState) setSelectedItems({ ...selectedItems, selectedDate, initialState });
-      if (key === 'selectedInvoice') setSelectedItems({ ...selectedItems, selectedJob: null });
-      setSelectedItems(prevItems => ({ ...prevItems, [key]: value }));
-   };
+   }, [selectedCustomer, jobDialogOpen, accountID, userID, token]);
 
    const jobAutoCompleteProps = {
       autoCompleteLabel: 'Select Job',
       autoCompleteOptionsList: customerJobs,
       onChangeKey: 'selectedJob',
-      // 'job_description' is needed for edit transaction, replaced 'display_name'
       optionLabelProperty: 'job_description',
       valueTestProperty: 'customer_job_id',
       addedOptionLabel: 'Add New Job',
       selectedOption: selectedJob,
-      handleAutocompleteChange: handleAutocompleteChange
+      handleAutocompleteChange
    };
 
    const customerAutoCompleteProps = {
@@ -68,18 +119,13 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
       valueTestProperty: 'customer_id',
       addedOptionLabel: 'Add New Customer',
       selectedOption: selectedCustomer,
-      handleAutocompleteChange: handleAutocompleteChange
+      handleAutocompleteChange
    };
 
-   /**
-    * Finds the most recent invoice out of a group of invoice records
-    * @returns
-    */
+   // Logic to find the most recent invoices
    const findCustomerInvoices = () => {
-      // Group invoices
       const invoiceGroups = customerInvoiceData.reduce((acc, invoice) => {
          const identifier = invoice.parent_invoice_id || invoice.customer_invoice_id;
-
          if (!acc[identifier]) {
             acc[identifier] = [];
          }
@@ -87,69 +133,59 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
          return acc;
       }, {});
 
-      // Get most recent invoice for each group
-      const mostRecentInvoices = Object.values(invoiceGroups).map(group => {
-         return group.reduce((mostRecent, invoice) => {
-            if (!mostRecent || dayjs(invoice.created_at).isAfter(dayjs(mostRecent.created_at))) {
-               return invoice;
-            }
-            return mostRecent;
-         }, null);
-      });
+      const mostRecentInvoices = Object.values(invoiceGroups).map(group =>
+         group.reduce((mostRecent, invoice) => (!mostRecent || dayjs(invoice.created_at).isAfter(dayjs(mostRecent.created_at)) ? invoice : mostRecent))
+      );
 
-      // Filter out groups where the most recent invoice has remaining_balance_on_invoice <= 0
-      const filteredInvoices = mostRecentInvoices.filter(invoice => invoice.remaining_balance_on_invoice > 0);
-
-      return filteredInvoices;
+      return mostRecentInvoices.filter(inv => inv.remaining_balance_on_invoice > 0);
    };
 
-   /**
-    * Finds all jobs associated with the selected invoice
-    * @returns
-    */
+   // Logic to find jobs associated with the selected invoice
    const findInvoiceJobs = () => {
       if (!selectedInvoice) return [];
       const { customer_invoice_id, parent_invoice_id } = selectedInvoice;
-      // Find all transactions associated with the invoice and return the job IDs, no duplicates to be returned.
+
       const invoiceJobIDs = customerTransactionData.reduce((prev, curr) => {
          if (parent_invoice_id && curr.customer_invoice_id === parent_invoice_id && !prev.includes(curr.customer_job_id)) {
             prev.push(curr.customer_job_id);
          } else if (!parent_invoice_id && curr.customer_invoice_id === customer_invoice_id && !prev.includes(curr.customer_job_id)) {
             prev.push(curr.customer_job_id);
          }
-
          return prev;
       }, []);
-
       return customerJobData.filter(job => invoiceJobIDs.includes(job.customer_job_id));
    };
 
    return (
       <>
          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            {/* Use local dateValue for DateTimePicker */}
             <DateTimePicker
                sx={{ width: 350 }}
                className='myDatePicker'
                required
                label='Select Transaction Date'
-               value={selectedDate || dayjs()}
-               onChange={newValue => handleAutocompleteChange('selectedDate', dayjs(newValue))}
+               value={dateValue}
+               onChange={handleDateChange}
                slotProps={{ textField: { variant: 'outlined' } }}
             />
 
             <AutoCompleteWithDialog dialogTitle='New Customer' dialogOpen={customerDialogOpen} setDialogOpen={setCustomerDialogOpen} autoCompleteProps={customerAutoCompleteProps}>
-               <NewCustomer />
+               {/* NewCustomer is the child form for adding a new customer */}
+               <NewCustomer customerData={customerData} setCustomerData={setCustomerData} />
             </AutoCompleteWithDialog>
 
+            {/* Optionally show the job autocomplete if it's not certain pages */}
             {page !== 'Retainer' && page !== 'WriteOff' && page !== 'Payment' && (
                <AutoCompleteWithDialog dialogTitle='New Job' dialogOpen={jobDialogOpen} setDialogOpen={setJobDialogOpen} autoCompleteProps={jobAutoCompleteProps}>
                   <NewJob customerData={customerData} setCustomerData={data => setCustomerData(data)} />
                </AutoCompleteWithDialog>
             )}
 
-            {/* In process of cleaning up this component, will be passing components as children. */}
+            {/* Render children passed to this component */}
             {children}
 
+            {/* If page === 'Payment', show invoice & job pickers for payments */}
             {page === 'Payment' && (
                <Box>
                   <Autocomplete
@@ -179,13 +215,14 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
                            {...params}
                            label='(Optional) Select Job for Invoice Payment'
                            variant='standard'
-                           helperText='Optionally select a job on the selected invoice to make a job specific payment'
+                           helperText='Optionally select a job on the selected invoice to make a job-specific payment'
                         />
                      )}
                   />
                </Box>
             )}
 
+            {/* Team Member */}
             <Box>
                <Autocomplete
                   size='small'
@@ -193,7 +230,6 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
                   value={selectedTeamMember}
                   onChange={(event, value) => handleAutocompleteChange('selectedTeamMember', value)}
                   getOptionLabel={option => option.user_name || option.display_name || ''}
-                  // isOptionEqualToValue={(option, value) => option.user_id === value.user_id}
                   options={activeUsers || []}
                   renderInput={params => <TextField {...params} label='Select Team Member' variant='standard' />}
                />

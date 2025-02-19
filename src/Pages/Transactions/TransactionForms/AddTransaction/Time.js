@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button, Typography, Alert, Box } from '@mui/material';
 import dayjs from 'dayjs';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
@@ -8,6 +8,9 @@ import { postTransaction } from '../../../../Services/ApiCalls/PostCalls';
 import { context } from '../../../../App';
 import InformationDialog from '../../../../Components/Dialogs/InformationDialog';
 import RetainerSelection from './FormSubComponents/RetainerSelection';
+
+// Import your shared populateState function
+import { populateState } from './FormSubComponents/SharedTransactionsFunctions';
 
 const initialState = {
    selectedCustomer: null,
@@ -21,22 +24,32 @@ const initialState = {
    unitCost: 0,
    quantity: 1,
    transactionType: 'Time',
-   selectedRetainer: null
+   selectedRetainer: null,
+   minutes: '',
+   timesheetEntryID: null
 };
 
-export default function Time({ customerData, setCustomerData }) {
+export default function Time({ customerData, setCustomerData, passedTransactionData = {}, passedPostCall = postTransaction, onSuccess }) {
    const { loggedInUser } = useContext(context);
-   const { accountID, userID } = useContext(context).loggedInUser;
+   const { accountID, userID } = loggedInUser;
 
    const [postStatus, setPostStatus] = useState(null);
    const [selectedItems, setSelectedItems] = useState(initialState);
+
    // Destructure selectedItems
    const { unitCost, quantity } = selectedItems;
 
+   useEffect(() => {
+      // Only run once on mount
+      const newState = populateState(passedTransactionData, customerData, initialState);
+      setSelectedItems(newState);
+      // eslint-disable-next-line
+   }, []);
+
    const handleSubmit = async () => {
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser);
-      const postedItem = await postTransaction(dataToPost, accountID, userID);
-
+      const postedItem = await passedPostCall(dataToPost, accountID, userID);
+      console.log('hit');
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
@@ -49,12 +62,15 @@ export default function Time({ customerData, setCustomerData }) {
             accountJobsList: postedItem.accountJobsList,
             paymentsList: postedItem.paymentsList
          });
+         if (onSuccess) {
+            onSuccess();
+         }
       }
    };
 
    return (
       <>
-         <InformationDialog dialogText={dialogText} dialogTitle='Time Transaction Help' toolTipText={'Info'} buttonLocation={{ position: 'absolute', top: '1em', right: '1em', cursor: 'pointer' }} />
+         <InformationDialog dialogText={dialogText} dialogTitle='Time Transaction Help' toolTipText='Info' buttonLocation={{ position: 'absolute', top: '1em', right: '1em', cursor: 'pointer' }} />
 
          <InitialSelectionOptions
             customerData={customerData}

@@ -4,7 +4,7 @@ import { context } from '../../../App';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
 import { fetchOutstandingEmployeeEntriesByID } from '../../../Services/ApiCalls/FetchCalls';
 
-export default function EmployeeEntryGrid({ selectedUserID, selectedColumnName }) {
+export default function EmployeeEntryGrid({ selectedUserID, setSelectedRowDataForTransaction, refreshKey }) {
    const [entriesGrid, setEntriesGrid] = useState({ rows: [], columns: [], totalCount: 0 });
    const [loading, setLoading] = useState(true);
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -36,7 +36,7 @@ export default function EmployeeEntryGrid({ selectedUserID, selectedColumnName }
          fetchPageData(page + 1, pageSize, filters);
       }
       // eslint-disable-next-line
-   }, [selectedUserID, paginationModel, filters]);
+   }, [selectedUserID, paginationModel, filters, refreshKey]);
 
    // Handle filtering
    const handleFilterChange = filterModel => {
@@ -61,6 +61,8 @@ export default function EmployeeEntryGrid({ selectedUserID, selectedColumnName }
                scrollOnPagination={true}
                fetchPageData={fetchPageData}
                onFilterModelChange={handleFilterChange}
+               enableSingleRowClick={true}
+               setSingleSelectedRow={setSelectedRowDataForTransaction}
             />
          )}
       </Stack>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Stack, Button, Alert, Box } from '@mui/material';
 import NameForm from './FormSubComponents/NameForm';
 import AddressForm from './FormSubComponents/AddressForm';
@@ -8,7 +8,6 @@ import { formObjectForCustomerPost } from '../../../../Services/SharedPostObject
 import { postNewCustomer } from '../../../../Services/ApiCalls/PostCalls';
 import AddressTypeSelections from './FormSubComponents/AddressTypeSelections';
 import RecurringCustomerForm from './FormSubComponents/RecurringCustomerForm';
-import { useContext } from 'react';
 import { context } from '../../../../App';
 import dayjs from 'dayjs';
 
@@ -38,7 +37,6 @@ const initialState = {
 
 export default function NewCustomer({ customerData, setCustomerData }) {
    const {
-      loggedInUser,
       loggedInUser: { accountID, userID }
    } = useContext(context);
 
@@ -54,13 +52,17 @@ export default function NewCustomer({ customerData, setCustomerData }) {
    );
 
    const handleSubmit = async () => {
-      const dataToPost = formObjectForCustomerPost(selectedItems, loggedInUser);
+      // Build the object for a new customer
+      const dataToPost = formObjectForCustomerPost(selectedItems);
       const postedItem = await postNewCustomer(dataToPost, accountID, userID);
 
       setPostStatus(postedItem);
+
       if (postedItem.status === 200) {
          setTimeout(() => setPostStatus(null), 2000);
+         // Reset the form
          setSelectedItems(initialState);
+         // Update parent data so newly added customers appear in the list
          setCustomerData({
             ...customerData,
             customersList: postedItem.customersList,
@@ -78,6 +80,7 @@ export default function NewCustomer({ customerData, setCustomerData }) {
             {createForm(AddressForm)}
             {createForm(CustomerSettings)}
             {isCustomerRecurring && createForm(RecurringCustomerForm)}
+
             <Box style={{ textAlign: 'center' }}>
                <Button onClick={handleSubmit}>Submit</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}

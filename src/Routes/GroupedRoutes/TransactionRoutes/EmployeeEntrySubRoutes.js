@@ -7,9 +7,11 @@ import EmployeeErrorGrid from '../../../Pages/Transactions/TransactionGrids/Empl
 import { context } from '../../../App';
 import { useRowData } from '../../../Routes/useRowData';
 import ButtonWithLoader from '../../../Components/ButtonWithLoader';
-import { manuallyRunTimeTrackers } from '../../../Services/ApiCalls/PostCalls';
+import { manuallyRunTimeTrackers, postUserTimeEntryToTransactions } from '../../../Services/ApiCalls/PostCalls';
+import Time from '../../../Pages/Transactions/TransactionForms/AddTransaction/Time';
+import GeneralDialog from '../../../Components/Dialogs/GeneralDialog';
 
-export default function EmployeeTimeTrackerSubRoutes() {
+export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomerData }) {
    const navigate = useNavigate();
    const location = useLocation();
    const { accountID, userID, token } = useContext(context).loggedInUser;
@@ -18,10 +20,10 @@ export default function EmployeeTimeTrackerSubRoutes() {
    const [selectedUserID, setSelectedUserID] = useState(null);
    const [refreshTrackerStatusKey, setRefreshTrackerStatusKey] = useState(new Date());
    const [loading, setLoading] = useState(false);
-   const [errorMessage, setErrorMessage] = useState('');
-   const [successMessage, setSuccessMessage] = useState('');
-   const [openSnackbar, setOpenSnackbar] = useState(false);
+   const [snackbar, setSnackbar] = useState({ message: '', severity: 'info' });
    const [selectedColumnName, setSelectedColumnName] = useState(null);
+   const [selectedRowDataForTransaction, setSelectedRowDataForTransaction] = useState({});
+   const [openDialog, setOpenDialog] = useState(false);
 
    const { rowData: contextRowData } = useRowData();
 
@@ -32,65 +34,76 @@ export default function EmployeeTimeTrackerSubRoutes() {
       } else {
          navigate('/transactions/employeeTimeTrackerTransactions');
       }
-      // eslint-disable-next-line
-   }, [rowData, contextRowData, location.state, navigate]);
+   }, [rowData, contextRowData, navigate]);
 
    const processTimeTrackersManually = async () => {
       setLoading(true);
-      setErrorMessage('');
-      setSuccessMessage('');
+      setSnackbar({ message: '', severity: 'info' });
       const response = await manuallyRunTimeTrackers(accountID, userID, token);
 
       if (response.status === 200 && !response.error) {
-         setSuccessMessage(response.data.message || 'Timesheets processed successfully!');
-         setOpenSnackbar(true);
+         setSnackbar({ message: response.data.message || 'Timesheets processed successfully!', severity: 'success' });
          setRefreshTrackerStatusKey(new Date());
       } else {
-         console.error('Error Response:', response.data.message);
-         setErrorMessage(response.data.message || 'An unknown error occurred');
-         setOpenSnackbar(true);
+         setSnackbar({ message: response.data.message || 'An unknown error occurred', severity: 'error' });
       }
       setLoading(false);
    };
 
    const handleCloseSnackbar = (_, reason) => {
       if (reason === 'clickaway') return;
-      setOpenSnackbar(false);
+      setSnackbar({ message: '', severity: 'info' });
+   };
+
+   const handleRowSelection = rowData => {
+      setSelectedRowDataForTransaction(rowData);
+      setOpenDialog(true);
+   };
+
+   const handleCloseDialog = () => {
+      setOpenDialog(false);
+      setSelectedRowDataForTransaction({});
    };
 
    return (
       <Stack spacing={3}>
-         {/* Button Component */}
-         <Box style={styles.button}>
-            <ButtonWithLoader buttonText='Manually Run Timesheets' onClick={processTimeTrackersManually} loading={loading} errorMessage={errorMessage} />
+         <Box sx={{ alignSelf: 'self-end' }}>
+            <ButtonWithLoader buttonText='Manually Run Timesheets' onClick={processTimeTrackersManually} loading={loading} />
          </Box>
 
-         {/* Upper Grid */}
          <TimeTrackerStatusGrid refreshTrackerStatusKey={refreshTrackerStatusKey} />
 
-         <Divider style={styles.divider} />
+         <Divider sx={{ marginTop: '20px' }} />
 
-         {/* Lower Grid */}
+         {openDialog && (
+            <GeneralDialog dialogSize='xs' buttonText='Add Time' openDialogWindow={openDialog} onClose={handleCloseDialog}>
+               <Time
+                  customerData={customerData}
+                  setCustomerData={setCustomerData}
+                  passedTransactionData={selectedRowDataForTransaction}
+                  passedPostCall={postUserTimeEntryToTransactions}
+                  onSuccess={() => setRefreshTrackerStatusKey(new Date())}
+               />
+            </GeneralDialog>
+         )}
+
          <Routes>
-            {selectedColumnName === 'timesheet_count' && <Route path='/employeeEntries' element={<EmployeeEntryGrid selectedUserID={selectedUserID} />} />}
+            {selectedColumnName === 'timesheet_count' && (
+               <Route
+                  path='/employeeEntries'
+                  element={<EmployeeEntryGrid selectedUserID={selectedUserID} setSelectedRowDataForTransaction={handleRowSelection} refreshKey={refreshTrackerStatusKey} />}
+               />
+            )}
             {selectedColumnName === 'error_count' && <Route path='/employeeErrors' element={<EmployeeErrorGrid selectedUserID={selectedUserID} />} />}
          </Routes>
 
-         {/* Success/Error Snackbar */}
-         <Snackbar open={openSnackbar} autoHideDuration={8000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-            <Alert onClose={handleCloseSnackbar} severity={successMessage ? 'success' : 'error'} sx={{ width: '100%' }}>
-               {successMessage || errorMessage}
-            </Alert>
-         </Snackbar>
+         {snackbar.message && (
+            <Snackbar open={!!snackbar.message} autoHideDuration={8000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+               <Alert onClose={handleCloseSnackbar} severity={snackbar.severity || 'info'} sx={{ width: '100%' }}>
+                  {snackbar.message}
+               </Alert>
+            </Snackbar>
+         )}
       </Stack>
    );
 }
-
-const styles = {
-   button: {
-      alignSelf: 'self-end'
-   },
-   divider: {
-      marginTop: '20px'
-   }
-};
