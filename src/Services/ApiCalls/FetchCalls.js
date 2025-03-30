@@ -11,8 +11,8 @@ const headers = memoryToken => {
    };
 };
 
-console.log(config.API_ENDPOINT);
-console.log(config.REACT_APP_ENV);
+// console.log(config.API_ENDPOINT);
+// console.log(config.REACT_APP_ENV);
 
 export const fetchServerHealth = async (accountID, userID, token) => {
    try {
