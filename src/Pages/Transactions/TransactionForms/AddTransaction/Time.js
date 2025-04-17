@@ -49,7 +49,6 @@ export default function Time({ customerData, setCustomerData, passedTransactionD
    const handleSubmit = async () => {
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser);
       const postedItem = await passedPostCall(dataToPost, accountID, userID);
-      console.log('hit');
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {

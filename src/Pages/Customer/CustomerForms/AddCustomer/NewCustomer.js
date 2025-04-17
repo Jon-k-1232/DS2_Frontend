@@ -53,7 +53,7 @@ export default function NewCustomer({ customerData, setCustomerData }) {
 
    const handleSubmit = async () => {
       // Build the object for a new customer
-      const dataToPost = formObjectForCustomerPost(selectedItems);
+      const dataToPost = formObjectForCustomerPost(selectedItems, { accountID, userID });
       const postedItem = await postNewCustomer(dataToPost, accountID, userID);
 
       setPostStatus(postedItem);
