@@ -11,9 +11,6 @@ const headers = memoryToken => {
    };
 };
 
-// console.log(config.API_ENDPOINT);
-// console.log(config.REACT_APP_ENV);
-
 export const fetchServerHealth = async (accountID, userID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/health/status/${accountID}/${userID}`, headers(token));
@@ -308,6 +305,46 @@ export const fetchOutstandingEmployeeErrorsByID = async (accountID, userID, sele
       }
    } catch (error) {
       console.error('Error fetching outstanding employee errors:', error.message);
+      return { grid: { rows: [], columns: [] }, pagination: {} };
+   }
+};
+
+export const fetchAllEmployeeTimesheetsByID = async (accountID, userID, selectedUserID, token, page = 1, limit = 10, filterQuery = '') => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getAllTimesheetsForEmployeeByUserID/${selectedUserID}/${accountID}/${userID}`, {
+         headers: { Authorization: `Bearer ${token}` },
+         params: { page, limit, filterQuery }
+      });
+
+      if (response.status === 200 && response.data) {
+         // Safely return the data
+         return response.data;
+      } else {
+         console.warn('Unexpected API response:', response);
+         return { grid: { rows: [], columns: [] }, pagination: {} };
+      }
+   } catch (error) {
+      console.error('Error fetching all employee timesheets:', error.message);
+      return { grid: { rows: [], columns: [] }, pagination: {} };
+   }
+};
+
+export const fetchTimesheetsByMonth = async (accountID, userID, selectedUserID, token, page = 1, limit = 10, filterQuery = '') => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/fetchTimesheetsByMonth/${selectedUserID}/${accountID}/${userID}`, {
+         headers: { Authorization: `Bearer ${token}` },
+         params: { page, limit, filterQuery }
+      });
+
+      if (response.status === 200 && response.data) {
+         // Safely return the data
+         return response.data;
+      } else {
+         console.warn('Unexpected API response:', response);
+         return { grid: { rows: [], columns: [] }, pagination: {} };
+      }
+   } catch (error) {
+      console.error('Error fetching timesheets by month:', error.message);
       return { grid: { rows: [], columns: [] }, pagination: {} };
    }
 };

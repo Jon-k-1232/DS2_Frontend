@@ -4,6 +4,8 @@ import { Stack, Box, Divider, Snackbar, Alert } from '@mui/material';
 import TimeTrackerStatusGrid from '../../../Pages/Transactions/TransactionGrids/TimeTrackerStatusGrid';
 import EmployeeEntryGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeEntryGrid';
 import EmployeeErrorGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeErrorGrid';
+import EmployeeTimesheetsGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeTimesheetsGrid';
+import TimesheetsByMonthGrid from '../../../Pages/Transactions/TransactionGrids/TimesheetsByMonthGrid';
 import { context } from '../../../App';
 import { useRowData } from '../../../Routes/useRowData';
 import ButtonWithLoader from '../../../Components/ButtonWithLoader';
@@ -88,10 +90,22 @@ export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomer
          )}
 
          <Routes>
-            {selectedColumnName === 'timesheet_count' && (
+            {selectedColumnName === 'transaction_count' && (
                <Route
                   path='/employeeEntries'
                   element={<EmployeeEntryGrid selectedUserID={selectedUserID} setSelectedRowDataForTransaction={handleRowSelection} refreshKey={refreshTrackerStatusKey} />}
+               />
+            )}
+            {selectedColumnName === 'trackers_by_month' && (
+               <Route
+                  path='/trackersByMonth'
+                  element={<TimesheetsByMonthGrid selectedUserID={selectedUserID} setSelectedRowDataForTransaction={handleRowSelection} refreshKey={refreshTrackerStatusKey} />}
+               />
+            )}
+            {selectedColumnName === 'trackers_to_date' && (
+               <Route
+                  path='/trackersToDate'
+                  element={<EmployeeTimesheetsGrid selectedUserID={selectedUserID} setSelectedRowDataForTransaction={handleRowSelection} refreshKey={refreshTrackerStatusKey} />}
                />
             )}
             {selectedColumnName === 'error_count' && <Route path='/employeeErrors' element={<EmployeeErrorGrid selectedUserID={selectedUserID} />} />}

@@ -29,8 +29,16 @@ export default function TimeTrackerStatusGrid({ refreshTrackerStatusKey }) {
 
 const enableColumnsOnClick = [
    {
-      field: 'timesheet_count',
+      field: 'transaction_count',
       route: '/transactions/employeeTimeTrackerTransactions/employeeEntries'
+   },
+   {
+      field: 'trackers_by_month',
+      route: '/transactions/employeeTimeTrackerTransactions/trackersByMonth'
+   },
+   {
+      field: 'trackers_to_date',
+      route: '/transactions/employeeTimeTrackerTransactions/trackersToDate'
    },
    {
       field: 'error_count',
@@ -38,4 +46,4 @@ const enableColumnsOnClick = [
    }
 ];
 
-const arrayOfColumnNames = ['user_id', 'display_name', 'timesheet_count', 'error_count'];
+const arrayOfColumnNames = ['user_id', 'display_name', 'transaction_count', 'trackers_by_month', 'trackers_to_date', 'error_count'];
