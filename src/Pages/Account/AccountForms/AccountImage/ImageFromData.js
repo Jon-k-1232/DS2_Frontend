@@ -1,10 +1,21 @@
+import { useMemo } from 'react';
+
+const toBase64FromArray = dataArray => {
+   if (!Array.isArray(dataArray) || dataArray.length === 0) {
+      return null;
+   }
+
+   return window.btoa(String.fromCharCode.apply(null, dataArray));
+};
+
 const ImageFromData = ({ accountInformation }) => {
-   const { data } = accountInformation?.account_logo_buffer || {};
+   const fallbackBase64 = useMemo(() => toBase64FromArray(accountInformation?.account_logo_buffer?.data), [accountInformation]);
 
-   // Convert the data array to a Base64 string
-   const base64String = data && btoa(data.reduce((acc, byte) => acc + String.fromCharCode(byte), ''));
+   const base64String = accountInformation?.account_logo_base64 || fallbackBase64;
+   const contentType = accountInformation?.account_logo_content_type || 'image/png';
+   const imageSrc = base64String ? `data:${contentType};base64,${base64String}` : null;
 
-   return <img style={{ width: '10em' }} src={base64String ? `data:image/png;base64,${base64String}` : null} alt='Company Logo' />;
+   return <img style={{ width: '10em' }} src={imageSrc} alt='Company Logo' />;
 };
 
 export default ImageFromData;
