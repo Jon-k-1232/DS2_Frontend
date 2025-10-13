@@ -99,6 +99,73 @@ export const fetchSingleTransaction = async (customer_id, transaction_id, accoun
    }
 };
 
+export const fetchTransactions = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+   const params = {
+      page,
+      limit
+   };
+
+   if (search && search.trim().length) {
+      params.search = search.trim();
+   }
+
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/transactions/getTransactions/${accountID}/${userID}`, {
+         ...headers(token),
+         params
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching transactions:', error);
+      return {
+         status: 500,
+         message: error.message || 'Unable to fetch transactions.',
+         transactionsList: {
+            activeTransactionsData: {
+               grid: { rows: [], columns: [] },
+               pagination: {
+                  page,
+                  limit,
+                  totalItems: 0,
+                  totalPages: 0
+               },
+               searchTerm: search
+            }
+         }
+      };
+   }
+};
+
+export const exportAllTransactions = async (accountID, userID, token, search = '') => {
+   try {
+      const params = {};
+      if (search && search.trim().length) {
+         params.search = search.trim();
+      }
+
+      const response = await axios.get(`${config.API_ENDPOINT}/transactions/exportTransactions/${accountID}/${userID}`, {
+         ...headers(token),
+         params,
+         responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'transactions.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return { status: 200 };
+   } catch (error) {
+      console.error('Error exporting transactions:', error);
+      throw error;
+   }
+};
+
 export const fetchSinglePayment = async (paymentID, accountID, userID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/payments/getSinglePayment/${paymentID}/${accountID}/${userID}`, headers(token));

@@ -3,11 +3,21 @@ import { GridToolbarContainer, GridToolbarExport, GridToolbarFilterButton, GridT
 import { DialogContent, DialogTitle, Dialog, IconButton, Box, Tooltip, Button } from '@mui/material';
 
 // Adds Custom tool bar to Grid. Allows for a plus Icon to be added to the top of the grid. along with the tools, and generalize search.
-const CustomToolbar = ({ arrayOfButtons, title, dialogSize, hideGridTools }) => {
+const CustomToolbar = ({
+   arrayOfButtons,
+   title,
+   dialogSize,
+   hideGridTools,
+   showGridTools,
+   showQuickFilter = true,
+   renderToolbarContent,
+   renderExport
+}) => {
    const [openDialog, setOpenDialog] = useState(null);
 
    const handleClickOpen = index => () => setOpenDialog(index);
    const handleClose = () => setOpenDialog(null);
+   const shouldShowGridTools = showGridTools !== undefined ? showGridTools : !hideGridTools;
    return (
       <GridToolbarContainer>
          {title && <Box sx={{ padding: '10px', fontSize: '18px', fontWeight: 'bold' }}>{title}</Box>}
@@ -26,22 +36,25 @@ const CustomToolbar = ({ arrayOfButtons, title, dialogSize, hideGridTools }) => 
                   </Dialog>
                </div>
             ))}
-         {hideGridTools && (
+         {shouldShowGridTools && (
             <>
                <GridToolbarColumnsButton />
                <GridToolbarFilterButton />
-               <GridToolbarExport />
+               {renderExport ? renderExport() : <GridToolbarExport />}
                <div style={{ flexGrow: 1 }} />
-               <GridToolbarQuickFilter
-                  sx={{ paddingRight: '10px' }}
-                  quickFilterParser={searchInput =>
-                     searchInput
-                        .split(',')
-                        .map(value => value.trim())
-                        .filter(value => value !== '')
-                  }
-                  debounceMs={100}
-               />
+               {renderToolbarContent && <Box sx={{ paddingRight: '10px' }}>{renderToolbarContent()}</Box>}
+               {showQuickFilter && (
+                  <GridToolbarQuickFilter
+                     sx={{ paddingRight: '10px' }}
+                     quickFilterParser={searchInput =>
+                        searchInput
+                           .split(',')
+                           .map(value => value.trim())
+                           .filter(value => value !== '')
+                     }
+                     debounceMs={100}
+                  />
+               )}
             </>
          )}
       </GridToolbarContainer>

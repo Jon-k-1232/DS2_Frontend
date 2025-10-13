@@ -22,7 +22,13 @@ const DataGridTable = ({
    onPaginationModelChange,
    pageSize,
    scrollOnPagination = false,
-   useClientPagination = false
+   useClientPagination = false,
+   loading = false,
+   onFilterModelChange,
+   getRowId,
+   showQuickFilter = true,
+   renderToolbarContent,
+   renderExport
 }) => {
    const navigate = useNavigate();
    const { rows = [], columns = [], totalCount = 0 } = tableData;
@@ -40,22 +46,37 @@ const DataGridTable = ({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [paginationModel]);
 
-   const getRowId = row => row.timesheet_entry_id || row.id || `${row.user_id}-${row.timesheet_name || row.date}`;
+   const defaultGetRowId = row => row.timesheet_entry_id || row.id || `${row.user_id}-${row.timesheet_name || row.date}`;
+   const deriveRowId = getRowId || defaultGetRowId;
 
    const handlePaginationChange = pagination => {
       if (onPaginationModelChange) onPaginationModelChange(pagination);
    };
 
+   const isServerFiltering = !useClientPagination && typeof onFilterModelChange === 'function';
+
    const gridProps = {
       density: 'compact',
       components: {
-         Toolbar: props => <CustomToolbar {...props} hideGridTools={hideGridTools} arrayOfButtons={arrayOfButtons} title={title} dialogSize={dialogSize} />
+         Toolbar: props => (
+            <CustomToolbar
+               {...props}
+               hideGridTools={hideGridTools}
+               showGridTools={!hideGridTools}
+               arrayOfButtons={arrayOfButtons}
+               title={title}
+               dialogSize={dialogSize}
+               showQuickFilter={showQuickFilter}
+               renderToolbarContent={renderToolbarContent}
+               renderExport={renderExport}
+            />
+         )
       },
       checkboxSelection,
       disableRowSelectionOnClick: !checkboxSelection,
       onRowSelectionModelChange: newSelection => {
          if (checkboxSelection && !rowSelectionOnly) {
-            const selectedRowsData = newSelection.map(id => rows.find(row => getRowId(row) === id));
+            const selectedRowsData = newSelection.map(id => rows.find(row => deriveRowId(row) === id));
             setArrayOfSelectedRows?.(selectedRowsData);
          }
       },
@@ -67,12 +88,15 @@ const DataGridTable = ({
          }
       },
       paginationMode: useClientPagination ? 'client' : 'server',
+      filterMode: isServerFiltering ? 'server' : 'client',
       rowCount: totalCount || rows.length,
       paginationModel: useClientPagination ? null : paginationModel,
       onPaginationModelChange: useClientPagination ? null : handlePaginationChange,
-      getRowId,
+      onFilterModelChange: isServerFiltering ? onFilterModelChange : null,
+      getRowId: deriveRowId,
       pageSize: pageSize || 10,
-      pageSizeOptions: [5, 10, 25, 50, 100]
+      pageSizeOptions: [5, 10, 25, 50, 100],
+      loading
    };
 
    const dynamicColumns = rows.length && columns.length ? getDynamicColumnWidths(rows, columns) : columns;

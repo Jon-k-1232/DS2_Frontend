@@ -44,7 +44,16 @@ const ExpandableGrid = ({
    const gridProps = {
       density: 'compact',
       components: {
-         Toolbar: props => <CustomToolbar {...props} hideGridTools={!hideGridTools} arrayOfButtons={arrayOfButtons} title={title} dialogSize={dialogSize} />
+         Toolbar: props => (
+            <CustomToolbar
+               {...props}
+               hideGridTools={hideGridTools}
+               showGridTools={!hideGridTools}
+               arrayOfButtons={arrayOfButtons}
+               title={title}
+               dialogSize={dialogSize}
+            />
+         )
       },
       checkboxSelection: checkboxSelection,
       onRowSelectionModelChange: newSelection => {
