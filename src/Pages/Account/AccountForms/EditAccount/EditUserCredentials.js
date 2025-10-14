@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { Stack, Button, Alert, Box, Checkbox, FormControlLabel } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { putEditUserLogin } from '../../../../Services/ApiCalls/PutCalls';
@@ -18,6 +18,19 @@ export default function EditUserCredentials({ customerData, setCustomerData, use
     userID: userData.user_id,
     userLoginID: userData.user_login_id
   });
+
+  useEffect(() => {
+    if (userData) {
+      setSelectedItems(prev => ({
+        ...prev,
+        userLoginName: userData.user_name || prev.userLoginName,
+        accountID: userData.account_id,
+        userID: userData.user_id,
+        userLoginID: userData.user_login_id,
+        isLoginActive: typeof userData.is_login_active === 'boolean' ? userData.is_login_active : prev.isLoginActive
+      }));
+    }
+  }, [userData]);
 
   const handleSubmit = async () => {
     const postedItem = await putEditUserLogin(selectedItems, accountID, userID);

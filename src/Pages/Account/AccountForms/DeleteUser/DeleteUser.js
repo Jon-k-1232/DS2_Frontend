@@ -123,7 +123,7 @@ export default function DeleteUser({ customerData, setCustomerData, userData }) 
           </Table>
         </TableContainer>
         <Box style={{ margin: '10px', textAlign: 'center' }}>
-          <Button onClick={handleSubmit}>Delete Job Type</Button>
+          <Button onClick={handleSubmit}>Delete User</Button>
           {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
         </Box>
 

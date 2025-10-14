@@ -18,6 +18,7 @@ const TokenService = {
     window.sessionStorage.removeItem('userID');
     window.sessionStorage.removeItem('accountID');
     window.sessionStorage.removeItem('token');
+    window.sessionStorage.removeItem('requiresPasswordReset');
   },
   tokenExpirationTime(memoryToken) {
     const token = memoryToken || window.sessionStorage.getItem('token');
@@ -50,7 +51,8 @@ const TokenService = {
       displayName: null,
       role: null,
       accessLevel: null,
-      token: null
+      token: null,
+      requiresPasswordReset: false
     };
 
     // If the token is expired
@@ -58,6 +60,7 @@ const TokenService = {
       window.sessionStorage.removeItem('userID');
       window.sessionStorage.removeItem('accountID');
       window.sessionStorage.removeItem('token');
+      window.sessionStorage.removeItem('requiresPasswordReset');
     }
     return { isExpired, resetContext };
   }

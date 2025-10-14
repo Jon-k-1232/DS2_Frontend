@@ -11,6 +11,7 @@ import WriteOffSubRoutes from './WriteOffSubRoutes';
 import RetainersGrid from '../../../Pages/Transactions/TransactionGrids/RetainersGrid';
 import RetainerSubRoutes from './RetainerSubRoutes';
 import EmployeeTimeTrackerSubRoutes from './EmployeeEntrySubRoutes';
+import ManagerAndAdminProtectedAccessRoute from '../../ManagerAndAdminProtectedAccess';
 
 export default function TransactionsRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
@@ -26,7 +27,14 @@ export default function TransactionsRoutes({ setPageTitle, customerData, setCust
                <Route path='customerPayments' element={<PaymentsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='customerWriteOffs' element={<WriteOffsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='customerRetainers' element={<RetainersGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
-               <Route path='/employeeTimeTrackerTransactions/*' element={<EmployeeTimeTrackerSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
+               <Route
+                  path='/employeeTimeTrackerTransactions/*'
+                  element={
+                     <ManagerAndAdminProtectedAccessRoute>
+                        <EmployeeTimeTrackerSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />
+                     </ManagerAndAdminProtectedAccessRoute>
+                  }
+               />
                <Route path='/customerTransactions/*' element={<TransactionSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='/customerRetainers/*' element={<RetainerSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='/customerPayments/*' element={<PaymentSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />

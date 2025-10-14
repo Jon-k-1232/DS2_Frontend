@@ -38,7 +38,8 @@ export default function AccountPopover() {
          displayName: null,
          role: null,
          accessLevel: null,
-         token: null
+         token: null,
+         requiresPasswordReset: false
       });
       navigate('/login');
    };

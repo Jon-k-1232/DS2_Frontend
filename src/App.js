@@ -10,6 +10,7 @@ export default function App() {
    const windowUserID = window.sessionStorage.getItem('userID') || null;
    const windowAccountID = window.sessionStorage.getItem('accountID') || null;
    const windowToken = window.sessionStorage.getItem('token') || null;
+   const windowRequiresReset = window.sessionStorage.getItem('requiresPasswordReset') === 'true';
 
    let [loggedInUser, setLoggedInUser] = useState(
       {
@@ -18,7 +19,8 @@ export default function App() {
          displayName: null,
          role: null,
          accessLevel: null,
-         token: windowToken
+         token: windowToken,
+         requiresPasswordReset: windowRequiresReset
       } || {}
    );
 

@@ -4,6 +4,8 @@ import TokenService from '../Services/TokenService';
 import DashboardLayout from '../Layouts/Drawer';
 import LogoOnlyLayout from '../Layouts/LogoOnlyLayout';
 import Login from '../Pages/Login/Login';
+import ForgotPassword from '../Pages/Login/ForgotPassword';
+import ResetPassword from '../Pages/Login/ResetPassword';
 import NotFound from '../Pages/Page404/Page404';
 import DashboardRoutes from './GroupedRoutes/DashboardRoutes';
 import CustomerRoutes from './GroupedRoutes/CustomerRoutes/CustomerRoutes';
@@ -11,6 +13,8 @@ import TransactionsRoutes from './GroupedRoutes/TransactionRoutes/TransactionsRo
 import InvoiceRoutes from './GroupedRoutes/InvoiceRoutes/InvoiceRoutes';
 import AccountRoutes from './GroupedRoutes/AccountRoutes/AccountRoutes';
 import JobRoutes from './GroupedRoutes/JobRoutes/JobRoutes';
+import TimeTrackingRoutes from './GroupedRoutes/TimeTrackingRoutes/TimeTrackingRoutes';
+import EmployeeTimeTrackerSubRoutes from './GroupedRoutes/TransactionRoutes/EmployeeEntrySubRoutes';
 import { context } from '../App';
 import { getInitialAppData, fetchSingleUser, fetchAppVersion } from '../Services/ApiCalls/FetchCalls';
 import ManagerAndAdminProtectedAccessRoute from './ManagerAndAdminProtectedAccess';
@@ -76,10 +80,20 @@ export default function Router() {
 
    const handleSetCustomerData = updatedData => setCustomerData(updatedData);
 
+   const TrackingAdministration = () => {
+      useEffect(() => {
+         setPageTitle('Tracking Administration');
+      }, [setPageTitle]);
+
+      return <EmployeeTimeTrackerSubRoutes customerData={customerData} setCustomerData={handleSetCustomerData} />;
+   };
+
    return (
       <Routes>
          <Route element={<LogoOnlyLayout />}>
             <Route exact path='/login' element={<Login appVersion={appVersion} />} />
+            <Route exact path='/forgot-password' element={<ForgotPassword />} />
+            <Route exact path='/reset-password' element={<ResetPassword />} />
             <Route path='/' element={<Navigate to='/login' />} />
             <Route path='404' element={<NotFound />} />
             <Route path='*' element={<Navigate to='/404' />} />
@@ -88,13 +102,50 @@ export default function Router() {
          <Route element={<DashboardLayout pageTitle={pageTitle} />}>
             <Route path='dashboard/*' element={<DashboardRoutes setPageTitle={pageTitle => setPageTitle(pageTitle)} />} />
 
-            <Route path='customers/*' element={<CustomerRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />} />
+            <Route
+               path='customers/*'
+               element={
+                  <ManagerAndAdminProtectedAccessRoute>
+                     <CustomerRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />
+                  </ManagerAndAdminProtectedAccessRoute>
+               }
+            />
 
-            <Route path='transactions/*' element={<TransactionsRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />} />
+            <Route
+               path='transactions/*'
+               element={
+                  <ManagerAndAdminProtectedAccessRoute>
+                     <TransactionsRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />
+                  </ManagerAndAdminProtectedAccessRoute>
+               }
+            />
 
-            <Route path='invoices/*' element={<InvoiceRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />} />
+            <Route
+               path='invoices/*'
+               element={
+                  <ManagerAndAdminProtectedAccessRoute>
+                     <InvoiceRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />
+                  </ManagerAndAdminProtectedAccessRoute>
+               }
+            />
 
-            <Route path='jobs/*' element={<JobRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />} />
+            <Route
+               path='jobs/*'
+               element={
+                  <ManagerAndAdminProtectedAccessRoute>
+                     <JobRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />
+                  </ManagerAndAdminProtectedAccessRoute>
+               }
+            />
+            <Route
+               path='time-tracking/trackingAdministration/*'
+               element={
+                  <ManagerAndAdminProtectedAccessRoute>
+                     <TrackingAdministration />
+                  </ManagerAndAdminProtectedAccessRoute>
+               }
+            />
+            <Route path='time-tracking/*' element={<TimeTrackingRoutes setPageTitle={setPageTitle} />} />
 
             <Route
                path='account/*'

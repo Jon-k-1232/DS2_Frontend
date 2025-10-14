@@ -56,11 +56,6 @@ export const sidebarRoutes = [
             title: 'Write Offs',
             path: '/transactions/customerWriteOffs',
             icon: getIcon(clockFill)
-         },
-         {
-            title: 'Pending Employee Transactions',
-            path: '/transactions/employeeTimeTrackerTransactions',
-            icon: getIcon(clockFill)
          }
       ]
    },
@@ -114,6 +109,28 @@ export const sidebarRoutes = [
          {
             title: 'Work Descriptions',
             path: '/jobs/workDescriptionsList',
+            icon: getIcon(clockFill)
+         }
+      ]
+   },
+   {
+      title: 'Time Tracking',
+      path: '/time-tracking',
+      icon: getIcon(clockFill),
+      children: [
+         {
+            title: 'Upload Time Tracker',
+            path: '/time-tracking/upload',
+            icon: getIcon(clockFill)
+         },
+         {
+            title: 'Time Tracker History',
+            path: '/time-tracking/history',
+            icon: getIcon(fileTextFill)
+         },
+         {
+            title: 'Tracking Administration',
+            path: '/time-tracking/trackingAdministration',
             icon: getIcon(clockFill)
          }
       ]

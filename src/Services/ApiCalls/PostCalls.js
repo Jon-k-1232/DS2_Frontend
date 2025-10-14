@@ -180,3 +180,25 @@ export const postUserTimeEntryToTransactions = async (data, accountID, userID, t
       throw error;
    }
 };
+
+export const requestPasswordReset = async identifier => {
+   const url = `${config.API_ENDPOINT}/auth/requestPasswordReset`;
+   try {
+      const response = await axios.post(url, { identifier });
+      return response.data;
+   } catch (error) {
+      console.error('Error while requesting password reset:', error);
+      throw error;
+   }
+};
+
+export const updatePasswordAfterReset = async (newPassword, token) => {
+   const url = `${config.API_ENDPOINT}/auth/updatePassword`;
+   try {
+      const response = await axios.post(url, { newPassword }, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error while updating password:', error);
+      throw error;
+   }
+};

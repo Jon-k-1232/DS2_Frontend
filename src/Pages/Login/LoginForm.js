@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import eyeFill from '@iconify/icons-eva/eye-fill';
 import eyeOffFill from '@iconify/icons-eva/eye-off-fill';
@@ -27,9 +27,15 @@ export default function LoginForm() {
          setIncorrectCredential(fetchedToken?.response?.data);
       } else if (fetchedToken.status === 200) {
          const { account_id, user_id, display_name, job_title, access_level } = fetchedToken.user;
+         const requiresPasswordReset = Boolean(fetchedToken.requiresPasswordReset);
          TokenService.saveAuthToken(fetchedToken.authToken);
          window.sessionStorage.setItem('userID', user_id);
          window.sessionStorage.setItem('accountID', account_id);
+         if (requiresPasswordReset) {
+            window.sessionStorage.setItem('requiresPasswordReset', 'true');
+         } else {
+            window.sessionStorage.removeItem('requiresPasswordReset');
+         }
 
          setLoggedInUser({
             accountID: account_id,
@@ -37,9 +43,11 @@ export default function LoginForm() {
             displayName: display_name,
             role: job_title,
             accessLevel: access_level,
-            token: fetchedToken.authToken
+            token: fetchedToken.authToken,
+            requiresPasswordReset
          });
-         navigate('/customers/customersList');
+         setIncorrectCredential(null);
+         navigate(requiresPasswordReset ? '/reset-password' : '/customers/customersList');
       }
    };
 
@@ -69,9 +77,14 @@ export default function LoginForm() {
          <LoadingButton onClick={() => handleSubmit()} style={{ marginTop: '25px' }} fullWidth size='large' variant='contained'>
             Login
          </LoadingButton>
-         {incorrectCredential && Object.keys(incorrectCredential).length && (
+         <Typography variant='body2' sx={{ mt: 2 }}>
+            <RouterLink to='/forgot-password'>Forgot password?</RouterLink>
+         </Typography>
+         {incorrectCredential && (
             <Typography variant='caption' style={{ color: 'red', marginTop: '20px' }}>
-               {incorrectCredential.status} / {incorrectCredential.error}
+               {typeof incorrectCredential === 'string'
+                  ? incorrectCredential
+                  : `${incorrectCredential.status} / ${incorrectCredential.error || incorrectCredential.message}`}
             </Typography>
          )}
       </Stack>

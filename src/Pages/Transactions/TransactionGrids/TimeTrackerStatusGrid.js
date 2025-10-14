@@ -30,19 +30,19 @@ export default function TimeTrackerStatusGrid({ refreshTrackerStatusKey }) {
 const enableColumnsOnClick = [
    {
       field: 'transaction_count',
-      route: '/transactions/employeeTimeTrackerTransactions/employeeEntries'
+      route: '/time-tracking/trackingAdministration/employeeEntries'
    },
    {
       field: 'trackers_by_month',
-      route: '/transactions/employeeTimeTrackerTransactions/trackersByMonth'
+      route: '/time-tracking/trackingAdministration/trackersByMonth'
    },
    {
       field: 'trackers_to_date',
-      route: '/transactions/employeeTimeTrackerTransactions/trackersToDate'
+      route: '/time-tracking/trackingAdministration/trackersToDate'
    },
    {
       field: 'error_count',
-      route: '/transactions/employeeTimeTrackerTransactions/employeeErrors'
+      route: '/time-tracking/trackingAdministration/employeeErrors'
    }
 ];
 
