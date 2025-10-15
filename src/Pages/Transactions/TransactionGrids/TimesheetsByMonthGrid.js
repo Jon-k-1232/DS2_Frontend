@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Stack, CircularProgress } from '@mui/material';
+import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
+import { Stack, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 import { context } from '../../../App';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
 import { fetchTimesheetsByMonth } from '../../../Services/ApiCalls/FetchCalls';
+import { downloadTimeTrackerByName } from '../../../Services/ApiCalls/TimeTrackingCalls';
 
 export default function TimesheetsByMonthGrid({ selectedUserID, setSelectedRowDataForTransaction, refreshKey }) {
    const [entriesGrid, setEntriesGrid] = useState({ rows: [], columns: [], totalCount: 0 });
@@ -47,6 +49,67 @@ export default function TimesheetsByMonthGrid({ selectedUserID, setSelectedRowDa
       setFilters(filterQuery);
    };
 
+   const triggerFileDownload = (blob, fileName) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+   };
+
+   const handleDownload = useCallback(
+      async timesheetName => {
+         if (!timesheetName) return;
+         try {
+            const { blob, fileName } = await downloadTimeTrackerByName(accountID, userID, selectedUserID, timesheetName, token);
+            triggerFileDownload(blob, fileName);
+         } catch (error) {
+            console.error('Error downloading time tracker:', error);
+         }
+      },
+      [accountID, userID, selectedUserID, token]
+   );
+
+   const enhancedGrid = useMemo(() => {
+      if (!entriesGrid?.columns?.length) return entriesGrid;
+
+      const downloadColumn = {
+         field: '__download__',
+         headerName: 'Download',
+         sortable: false,
+         filterable: false,
+         width: 130,
+         renderCell: params => {
+            const timesheetName = params?.row?.timesheet_name;
+            const disabled = !timesheetName;
+            return (
+               <Tooltip title={disabled ? 'Timesheet name unavailable' : 'Download tracker'}>
+                  <span>
+                     <IconButton
+                        size='small'
+                        color='primary'
+                        disabled={disabled}
+                        onClick={() => handleDownload(timesheetName)}
+                     >
+                        <DownloadIcon fontSize='small' />
+                     </IconButton>
+                  </span>
+               </Tooltip>
+            );
+         }
+      };
+
+      const hasDownloadColumn = entriesGrid.columns.some(column => column.field === downloadColumn.field);
+
+      return {
+         ...entriesGrid,
+         columns: hasDownloadColumn ? entriesGrid.columns : [...entriesGrid.columns, downloadColumn]
+      };
+   }, [entriesGrid, handleDownload]);
+
    return (
       <Stack spacing={3}>
          {loading ? (
@@ -54,7 +117,7 @@ export default function TimesheetsByMonthGrid({ selectedUserID, setSelectedRowDa
          ) : (
             <PaginationGrid
                title='Timesheets By Month'
-               tableData={entriesGrid}
+               tableData={enhancedGrid}
                passedHeight={500}
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}

@@ -155,21 +155,6 @@ export const postWorkDescription = async (data, accountID, userID, token) => {
    }
 };
 
-export const manuallyRunTimeTrackers = async (accountID, userID, token) => {
-   const url = `${config.API_ENDPOINT}/timesheets/runManualJob/${accountID}/${userID}`;
-   try {
-      const response = await axios.post(url, {}, headers(token));
-      return { status: response.status, data: response.data, error: null };
-   } catch (error) {
-      // Gracefully return error details
-      return {
-         status: error.response?.status || 500,
-         data: error.response?.data || { message: 'Network error occurred' },
-         error: true
-      };
-   }
-};
-
 export const postUserTimeEntryToTransactions = async (data, accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/timesheets/moveToTransactions/${accountID}/${userID}`;
    try {

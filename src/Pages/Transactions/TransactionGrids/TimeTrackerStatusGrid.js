@@ -39,11 +39,7 @@ const enableColumnsOnClick = [
    {
       field: 'trackers_to_date',
       route: '/time-tracking/trackingAdministration/trackersToDate'
-   },
-   {
-      field: 'error_count',
-      route: '/time-tracking/trackingAdministration/employeeErrors'
    }
 ];
 
-const arrayOfColumnNames = ['user_id', 'display_name', 'transaction_count', 'trackers_by_month', 'trackers_to_date', 'error_count'];
+const arrayOfColumnNames = ['user_id', 'display_name', 'transaction_count', 'trackers_by_month', 'trackers_to_date'];

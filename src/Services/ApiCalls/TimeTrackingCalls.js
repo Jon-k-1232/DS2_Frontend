@@ -60,6 +60,24 @@ export const downloadTimeTrackerHistoryFile = async (accountID, userID, key, tok
    return { blob: response.data, fileName };
 };
 
+export const downloadTimeTrackerByName = async (accountID, userID, ownerUserID, timesheetName, token) => {
+   const url = `${config.API_ENDPOINT}/time-tracking/download/by-name/${accountID}/${userID}`;
+   const response = await axios.get(url, {
+      headers: buildAuthHeaders(token),
+      params: {
+         ownerUserID,
+         timesheetName
+      },
+      responseType: 'blob'
+   });
+
+   const trackerHeader = response.headers['x-tracker-filename'];
+   const headerName = extractFileName(response.headers['content-disposition']);
+   const fileName = trackerHeader || headerName || `${timesheetName}`;
+
+   return { blob: response.data, fileName };
+};
+
 export const downloadLatestTimeTrackerTemplate = async (accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/time-tracking/template/latest/${accountID}/${userID}`;
    const response = await axios.get(url, {
@@ -106,4 +124,45 @@ export const deleteTimeTrackerTemplate = async (accountID, userID, key, token) =
       headers: buildAuthHeaders(token),
       data: { key }
    });
+};
+
+export const fetchTimeTrackerStaffSettings = async (accountID, userID, token) => {
+   const url = `${config.API_ENDPOINT}/time-tracker-staff/${accountID}/${userID}`;
+   const response = await axios.get(url, {
+      headers: buildAuthHeaders(token)
+   });
+
+   return response.data || {};
+};
+
+export const addTimeTrackerStaffMembers = async (accountID, userID, userIds, token) => {
+   const url = `${config.API_ENDPOINT}/time-tracker-staff/${accountID}/${userID}`;
+   const response = await axios.post(
+      url,
+      { userIds },
+      {
+         headers: {
+            ...buildAuthHeaders(token),
+            'Content-Type': 'application/json'
+         }
+      }
+   );
+
+   return response.data || {};
+};
+
+export const updateTimeTrackerStaffMember = async (accountID, userID, staffID, isActive, token) => {
+   const url = `${config.API_ENDPOINT}/time-tracker-staff/${accountID}/${userID}/${staffID}`;
+   const response = await axios.put(
+      url,
+      { isActive },
+      {
+         headers: {
+            ...buildAuthHeaders(token),
+            'Content-Type': 'application/json'
+         }
+      }
+   );
+
+   return response.data || {};
 };

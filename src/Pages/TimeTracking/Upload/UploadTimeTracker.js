@@ -1,8 +1,9 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
 import { useNavigate } from 'react-router-dom';
+import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../../App';
 import { uploadTimeTrackerFile, downloadLatestTimeTrackerTemplate } from '../../../Services/ApiCalls/TimeTrackingCalls';
 import FileDropzone from '../../../Components/FileDropzone/FileDropzone';
@@ -19,6 +20,10 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const [uploading, setUploading] = useState(false);
    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
    const [feedback, setFeedback] = useState({ type: null, message: '' });
+   const [validationErrors, setValidationErrors] = useState([]);
+   const [validationMetadata, setValidationMetadata] = useState(null);
+   const policyNote = 'Users can only submit their own time tracker files.';
+   const [validationNote, setValidationNote] = useState(policyNote);
 
    const isAdmin = accessLevel?.toLowerCase() === 'admin';
 
@@ -31,6 +36,9 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const handleFileSelected = file => {
       setSelectedFile(file);
       resetFeedback();
+      setValidationErrors([]);
+      setValidationMetadata(null);
+      setValidationNote(policyNote);
    };
 
    const handleUpload = async () => {
@@ -46,12 +54,22 @@ const UploadTimeTracker = ({ setPageTitle }) => {
 
       try {
          setUploading(true);
+         setValidationErrors([]);
+         setValidationMetadata(null);
          const fileName = selectedFile.name;
-         await uploadTimeTrackerFile(selectedFile, accountID, userID, token);
-         setFeedback({ type: 'success', message: `${fileName} uploaded successfully.` });
+         const response = await uploadTimeTrackerFile(selectedFile, accountID, userID, token);
+         const successMessage = response?.message || `${fileName} validated and uploaded successfully.`;
+         setFeedback({ type: 'success', message: successMessage });
+         setValidationMetadata(response?.metadata || null);
+         setValidationNote(response?.note || policyNote);
          setSelectedFile(null);
       } catch (error) {
          const message = error?.response?.data?.message || 'Unable to upload the time tracker. Please try again.';
+         const errors = error?.response?.data?.errors || [];
+         const note = error?.response?.data?.note || policyNote;
+         setValidationErrors(errors);
+         setValidationNote(note);
+         setValidationMetadata(null);
          setFeedback({ type: 'error', message });
       } finally {
          setUploading(false);
@@ -87,6 +105,24 @@ const UploadTimeTracker = ({ setPageTitle }) => {
          setDownloadingTemplate(false);
       }
    };
+
+   const errorColumns = useMemo(
+      () => [
+         { field: 'order', headerName: '#', width: 80, sortable: false },
+         { field: 'message', headerName: 'Validation Error', flex: 1, sortable: false }
+      ],
+      []
+   );
+
+   const errorRows = useMemo(
+      () =>
+         validationErrors.map((message, index) => ({
+            id: index + 1,
+            order: index + 1,
+            message
+         })),
+      [validationErrors]
+   );
 
    return (
       <Stack spacing={3}>
@@ -127,16 +163,53 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                onError={message => {
                   setFeedback({ type: 'error', message });
                   setSelectedFile(null);
+                  setValidationErrors([]);
+                  setValidationMetadata(null);
                }}
                selectedFile={selectedFile}
-               onClear={() => setSelectedFile(null)}
+               onClear={() => {
+                  setSelectedFile(null);
+                  setValidationErrors([]);
+                  setValidationMetadata(null);
+                  setValidationNote(policyNote);
+               }}
             />
+
+            <Typography variant='body2' color='text.secondary'>
+               {validationNote}
+            </Typography>
 
             <Stack direction='row' justifyContent='flex-end' spacing={2}>
                <Button variant='contained' color='primary' onClick={handleUpload} disabled={uploading || !selectedFile}>
                   {uploading ? <CircularProgress size={20} color='inherit' /> : 'Upload'}
                </Button>
             </Stack>
+
+            {validationMetadata && (
+               <Stack spacing={0.5}>
+                  <Typography variant='subtitle1'>Tracker Details</Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                     Start Date: {validationMetadata?.startDate || 'N/A'}
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                     End Date: {validationMetadata?.endDate || 'N/A'}
+                  </Typography>
+               </Stack>
+            )}
+
+            {validationErrors.length > 0 && (
+               <Stack spacing={1}>
+                  <Typography variant='subtitle1'>Validation Errors</Typography>
+                  <DataGrid
+                     rows={errorRows}
+                     columns={errorColumns}
+                     autoHeight
+                     disableColumnMenu
+                     disableRowSelectionOnClick
+                     hideFooter
+                  />
+               </Stack>
+            )}
 
             {feedback.message && (
                <Alert severity={feedback.type || 'info'} onClose={resetFeedback}>

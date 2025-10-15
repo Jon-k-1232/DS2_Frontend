@@ -5,7 +5,9 @@ import Page from '../../../Components/Page';
 import UploadTimeTracker from '../../../Pages/TimeTracking/Upload/UploadTimeTracker';
 import TimeTrackerHistory from '../../../Pages/TimeTracking/History/TimeTrackerHistory';
 import UpdateTimeTrackerTemplate from '../../../Pages/TimeTracking/TemplateUpdate/UpdateTimeTrackerTemplate';
+import TimeTrackingSettings from '../../../Pages/Account/TimeTrackingSettings/TimeTrackingSettings';
 import AdminProtectedAccessRoute from '../../AdminProtectedAccess';
+import ManagerAndAdminProtectedAccessRoute from '../../ManagerAndAdminProtectedAccess';
 
 export default function TimeTrackingRoutes({ setPageTitle }) {
    useEffect(() => {
@@ -24,6 +26,14 @@ export default function TimeTrackingRoutes({ setPageTitle }) {
                      <AdminProtectedAccessRoute>
                         <UpdateTimeTrackerTemplate setPageTitle={setPageTitle} />
                      </AdminProtectedAccessRoute>
+                  }
+               />
+               <Route
+                  path='settings'
+                  element={
+                     <ManagerAndAdminProtectedAccessRoute>
+                        <TimeTrackingSettings />
+                     </ManagerAndAdminProtectedAccessRoute>
                   }
                />
                <Route path='*' element={<Navigate to='upload' replace />} />

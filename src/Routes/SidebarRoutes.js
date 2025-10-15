@@ -132,6 +132,11 @@ export const sidebarRoutes = [
             title: 'Tracking Administration',
             path: '/time-tracking/trackingAdministration',
             icon: getIcon(clockFill)
+         },
+         {
+            title: 'Time Tracking Settings',
+            path: '/time-tracking/settings',
+            icon: getIcon(clockFill)
          }
       ]
    },
