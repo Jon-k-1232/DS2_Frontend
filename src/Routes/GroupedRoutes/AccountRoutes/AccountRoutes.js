@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import AccountUsersGrid from '../../../Pages/Account/AccountGrids/AccountUsersGrid';
 import AccountSettings from '../../../Pages/Account/AccountSettings/AccountSettings';
+import AccountAutomations from '../../../Pages/Account/Automations/AccountAutomations';
 import UsersSubRoutes from './UsersSubRoutes';
 import Page from '../../../Components/Page';
 import { Stack } from '@mui/material';
@@ -24,6 +25,14 @@ export default function AccountRoutes({ setPageTitle, customerData, setCustomerD
                   element={
                      <AdminProtectedAccessRoute>
                         <AccountSettings customerData={customerData} setCustomerData={data => setCustomerData(data)} />
+                     </AdminProtectedAccessRoute>
+                  }
+               />
+               <Route
+                  path='automations'
+                  element={
+                     <AdminProtectedAccessRoute>
+                        <AccountAutomations />
                      </AdminProtectedAccessRoute>
                   }
                />

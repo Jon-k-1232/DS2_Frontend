@@ -153,3 +153,14 @@ export const postEditWorkDescriptions = async (data, accountID, userID, token) =
       throw error;
    }
 };
+
+export const updateAccountAutomationSetting = async (accountID, userID, automationKey, isEnabled, token) => {
+   const url = `${config.API_ENDPOINT}/account/automations/${accountID}/${userID}`;
+   try {
+      const response = await axios.put(url, { automationKey, isEnabled }, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error updating account automation setting:', error);
+      throw error;
+   }
+};

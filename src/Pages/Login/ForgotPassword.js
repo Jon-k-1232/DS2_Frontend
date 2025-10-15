@@ -6,23 +6,23 @@ import Page from '../../Components/Page';
 import { requestPasswordReset } from '../../Services/ApiCalls/PostCalls';
 
 const ForgotPassword = () => {
-   const [identifier, setIdentifier] = useState('');
+   const [username, setUsername] = useState('');
    const [submitting, setSubmitting] = useState(false);
    const [feedback, setFeedback] = useState({ type: null, message: '' });
 
    const handleSubmit = async event => {
       event.preventDefault();
       setFeedback({ type: null, message: '' });
-      if (!identifier.trim()) {
-         setFeedback({ type: 'error', message: 'Enter your username or email to continue.' });
+      if (!username.trim()) {
+         setFeedback({ type: 'error', message: 'Enter your username to continue.' });
          return;
       }
 
       try {
          setSubmitting(true);
-         await requestPasswordReset(identifier.trim());
+         await requestPasswordReset(username.trim());
          setFeedback({ type: 'success', message: 'If an account matches, a temporary password has been emailed.' });
-         setIdentifier('');
+         setUsername('');
       } catch (error) {
          const message = error?.response?.data?.message || 'Unable to process your request. Please try again.';
          setFeedback({ type: 'error', message });
@@ -37,12 +37,12 @@ const ForgotPassword = () => {
             <Stack component='form' spacing={3} sx={{ width: '100%', maxWidth: 480 }} onSubmit={handleSubmit}>
                <Stack spacing={1}>
                   <Typography variant='h4'>Reset your password</Typography>
-                  <Typography variant='body2' color='text.secondary'>Enter the username or email associated with your account.</Typography>
+                  <Typography variant='body2' color='text.secondary'>Enter the username associated with your account.</Typography>
                </Stack>
                <TextField
-                  label='Username or Email'
-                  value={identifier}
-                  onChange={event => setIdentifier(event.target.value)}
+                  label='Username'
+                  value={username}
+                  onChange={event => setUsername(event.target.value)}
                   fullWidth
                />
                <LoadingButton type='submit' variant='contained' loading={submitting}>Send Temporary Password</LoadingButton>

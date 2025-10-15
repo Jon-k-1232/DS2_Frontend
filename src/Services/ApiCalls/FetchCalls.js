@@ -280,6 +280,16 @@ export const fetchAccountInformation = async (accountID, userID, token) => {
    }
 };
 
+export const fetchAccountAutomations = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/account/automations/${accountID}/${userID}`, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching account automation settings:', error);
+      return { status: 500, message: 'Unable to fetch automation settings.', automations: [] };
+   }
+};
+
 export const fetchCustomerInvoiceInformation = async (accountID, userID, customerInvoiceID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/invoices/getInvoiceDetails/${customerInvoiceID}/${accountID}/${userID}`, headers(token));
