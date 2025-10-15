@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
-import { Stack, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { Stack, CircularProgress, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import { context } from '../../../App';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
@@ -11,10 +11,11 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
    const [loading, setLoading] = useState(true);
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
    const [filters, setFilters] = useState('');
+   const [downloadError, setDownloadError] = useState('');
 
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
-   const fetchPageData = async (page = 1, limit = 10, filterQuery = '') => {
+   const fetchPageData = useCallback(async (page = 1, limit = 10, filterQuery = '') => {
       setLoading(true);
       try {
          const response = await fetchAllEmployeeTimesheetsByID(accountID, userID, selectedUserID, token, page, limit, filterQuery);
@@ -28,23 +29,31 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
       } finally {
          setLoading(false);
       }
-   };
+   }, [accountID, userID, selectedUserID, token]);
 
    useEffect(() => {
       if (selectedUserID) {
          const { page, pageSize } = paginationModel;
          fetchPageData(page + 1, pageSize, filters);
       }
-      // eslint-disable-next-line
-   }, [selectedUserID, paginationModel, filters, refreshKey]);
+   }, [selectedUserID, paginationModel.pageSize, filters, refreshKey, fetchPageData]);
 
    const handleFilterChange = filterModel => {
       const filterQuery = filterModel.items
          .filter(item => item.value)
          .map(item => `${item.columnField}=${item.value}`)
          .join('&');
+      setPaginationModel(prev => ({ ...prev, page: 0 }));
       setFilters(filterQuery);
    };
+
+   const handlePaginationModelChange = useCallback(
+      newModel => {
+         setPaginationModel(newModel);
+         fetchPageData(newModel.page + 1, newModel.pageSize, filters);
+      },
+      [fetchPageData, filters]
+   );
 
    const triggerFileDownload = (blob, fileName) => {
       const url = window.URL.createObjectURL(blob);
@@ -65,6 +74,11 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
             triggerFileDownload(blob, fileName);
          } catch (error) {
             console.error('Error downloading time tracker:', error);
+            const message =
+               error?.response?.data?.message ||
+               error?.message ||
+               'We could not download that time tracker. Please try again later.';
+            setDownloadError(message);
          }
       },
       [accountID, userID, selectedUserID, token]
@@ -117,7 +131,7 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
                tableData={enhancedGrid}
                passedHeight={500}
                paginationModel={paginationModel}
-               onPaginationModelChange={setPaginationModel}
+               onPaginationModelChange={handlePaginationModelChange}
                scrollOnPagination={true}
                fetchPageData={fetchPageData}
                onFilterModelChange={handleFilterChange}
@@ -125,6 +139,16 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
                // setSingleSelectedRow={setSelectedRowDataForTransaction}
             />
          )}
+         <Snackbar
+            open={!!downloadError}
+            autoHideDuration={6000}
+            onClose={() => setDownloadError('')}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+         >
+            <Alert onClose={() => setDownloadError('')} severity='error' sx={{ width: '100%' }}>
+               {downloadError}
+            </Alert>
+         </Snackbar>
       </Stack>
    );
 }

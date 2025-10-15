@@ -49,8 +49,10 @@ const DataGridTable = ({
    const defaultGetRowId = row => row.timesheet_entry_id || row.id || `${row.user_id}-${row.timesheet_name || row.date}`;
    const deriveRowId = getRowId || defaultGetRowId;
 
-   const handlePaginationChange = pagination => {
-      if (onPaginationModelChange) onPaginationModelChange(pagination);
+   const handlePaginationChange = (pagination, details) => {
+      if (onPaginationModelChange) {
+         onPaginationModelChange(pagination, details);
+      }
    };
 
    const isServerFiltering = !useClientPagination && typeof onFilterModelChange === 'function';
