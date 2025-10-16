@@ -2,6 +2,8 @@
 
 DS2 Frontend is the React single-page application for the DS2 time, billing, and invoicing platform. It provides dashboards, customer management, job tracking, time tracker ingestion, and invoicing workflows for admins, managers, and staff.
 
+Current package version: `0.1.0.23` (mirrors `package.json`). For backend details refer to [DS2_Backend/README.md](../DS2_Backend/README.md).
+
 ## Stack Overview
 - React 18 with React Router v6.
 - Material UI (including X Data Grid) and Emotion/styled-components for theming and layout.
