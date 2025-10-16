@@ -1,6 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import App from '../App';
 
+jest.mock('axios', () => {
+   const mock = {
+      get: jest.fn(() => Promise.resolve({ data: {} })),
+      post: jest.fn(() => Promise.resolve({ data: {} }))
+   };
+   return { __esModule: true, default: mock }; 
+});
+
 jest.mock('../Services/ApiCalls/FetchCalls', () => ({
    fetchAppVersion: jest.fn().mockResolvedValue('test-version'),
    getInitialAppData: jest.fn().mockResolvedValue({}),

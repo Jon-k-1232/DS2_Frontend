@@ -3,6 +3,14 @@ import ServerStatus from './ServerStatus';
 import { context as AppContext } from '../../App';
 import { fetchServerHealth } from '../../Services/ApiCalls/FetchCalls';
 
+jest.mock('axios', () => {
+   const mock = {
+      get: jest.fn(() => Promise.resolve({ data: {} })),
+      post: jest.fn(() => Promise.resolve({ data: {} }))
+   };
+   return { __esModule: true, default: mock };
+});
+
 jest.mock('../../Services/ApiCalls/FetchCalls', () => ({
    fetchServerHealth: jest.fn()
 }));

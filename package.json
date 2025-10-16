@@ -1,6 +1,6 @@
 {
    "name": "ds2_frontend",
-   "version": "0.1.0.25",
+   "version": "0.1.0.26",
    "private": true,
    "dependencies": {
       "@date-io/dayjs": "^2.16.0",
