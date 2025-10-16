@@ -154,10 +154,10 @@ export const postEditWorkDescriptions = async (data, accountID, userID, token) =
    }
 };
 
-export const updateAccountAutomationSetting = async (accountID, userID, automationKey, isEnabled, token) => {
+export const updateAccountAutomationSetting = async (accountID, userID, payload, token) => {
    const url = `${config.API_ENDPOINT}/account/automations/${accountID}/${userID}`;
    try {
-      const response = await axios.put(url, { automationKey, isEnabled }, headers(token));
+      const response = await axios.put(url, payload, headers(token));
       return response.data;
    } catch (error) {
       console.error('Error updating account automation setting:', error);

@@ -18,10 +18,19 @@ const extractFileName = contentDisposition => {
    return null;
 };
 
-export const uploadTimeTrackerFile = async (file, accountID, userID, token) => {
+export const uploadTimeTrackerFile = async (file, accountID, userID, token, ownerUserID) => {
    const url = `${config.API_ENDPOINT}/time-tracking/upload/${accountID}/${userID}`;
    const authHeaders = buildAuthHeaders(token);
    const arrayBuffer = await file.arrayBuffer();
+   const ownerValue = ownerUserID ?? '';
+   const submitterValue = userID ?? '';
+   const isDifferentUser =
+      ownerValue !== '' && ownerValue.toString() !== submitterValue.toString();
+   const params = isDifferentUser
+      ? {
+           ownerUserID: ownerValue
+        }
+      : undefined;
 
    const response = await axios.post(url, arrayBuffer, {
       headers: {
@@ -29,10 +38,20 @@ export const uploadTimeTrackerFile = async (file, accountID, userID, token) => {
          'Content-Type': 'application/octet-stream',
          'x-file-name': encodeURIComponent(file.name),
          'x-file-type': file.type || 'application/octet-stream'
-      }
+      },
+      params
    });
 
    return response.data;
+};
+
+export const fetchTimeTrackingUsers = async (accountID, userID, token) => {
+   const url = `${config.API_ENDPOINT}/time-tracking/users/${accountID}/${userID}`;
+   const response = await axios.get(url, {
+      headers: buildAuthHeaders(token)
+   });
+
+   return response.data?.users || [];
 };
 
 export const fetchTimeTrackerHistory = async (accountID, userID, token) => {

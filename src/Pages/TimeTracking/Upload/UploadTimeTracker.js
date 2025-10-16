@@ -1,11 +1,11 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Button, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../../App';
-import { uploadTimeTrackerFile, downloadLatestTimeTrackerTemplate } from '../../../Services/ApiCalls/TimeTrackingCalls';
+import { uploadTimeTrackerFile, downloadLatestTimeTrackerTemplate, fetchTimeTrackingUsers } from '../../../Services/ApiCalls/TimeTrackingCalls';
 import FileDropzone from '../../../Components/FileDropzone/FileDropzone';
 
 const acceptedExtensions = ['.csv', '.xls', '.xlsx', '.xlsm'];
@@ -13,7 +13,7 @@ const MAX_FILE_SIZE_BYTES = 1024 * 1024;
 
 const UploadTimeTracker = ({ setPageTitle }) => {
    const { loggedInUser } = useContext(context);
-   const { accountID, userID, token, accessLevel } = loggedInUser;
+   const { accountID, userID, token, accessLevel, displayName } = loggedInUser;
 
    const navigate = useNavigate();
    const [selectedFile, setSelectedFile] = useState(null);
@@ -22,14 +22,85 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const [feedback, setFeedback] = useState({ type: null, message: '' });
    const [validationErrors, setValidationErrors] = useState([]);
    const [validationMetadata, setValidationMetadata] = useState(null);
-   const policyNote = 'Users can only submit their own time tracker files.';
+   const policyNote =
+      'Managers and admins can submit on behalf of team members; all other users may only submit their own time tracker files.';
    const [validationNote, setValidationNote] = useState(policyNote);
 
-   const isAdmin = accessLevel?.toLowerCase() === 'admin';
+   const lowercaseAccessLevel = accessLevel?.toLowerCase?.() || '';
+   const isAdmin = lowercaseAccessLevel === 'admin';
+   const isManager = lowercaseAccessLevel === 'manager';
+   const canSubmitForOthers = isAdmin || isManager;
+   const [submissionUserId, setSubmissionUserId] = useState(userID?.toString() || '');
+   const [submissionUsers, setSubmissionUsers] = useState([]);
+   const [loadingSubmissionUsers, setLoadingSubmissionUsers] = useState(canSubmitForOthers);
 
    useEffect(() => {
       setPageTitle('Upload Time Tracker');
    }, [setPageTitle]);
+
+   useEffect(() => {
+      let isCancelled = false;
+
+      if (!canSubmitForOthers) {
+         const selfUserId = userID?.toString() || '';
+         setSubmissionUsers([
+            {
+               userId: Number(userID),
+               displayName: displayName || 'You',
+               email: ''
+            }
+         ]);
+         setSubmissionUserId(selfUserId);
+         setLoadingSubmissionUsers(false);
+         return () => {
+            isCancelled = true;
+         };
+      }
+
+      const loadUsers = async () => {
+         setLoadingSubmissionUsers(true);
+         try {
+            const users = await fetchTimeTrackingUsers(accountID, userID, token);
+            if (isCancelled) return;
+
+            const sortedUsers = [...(users || [])].sort((a, b) => {
+               const nameA = (a.displayName || '').toLowerCase();
+               const nameB = (b.displayName || '').toLowerCase();
+               if (nameA < nameB) return -1;
+               if (nameA > nameB) return 1;
+               return 0;
+            });
+
+            setSubmissionUsers(sortedUsers);
+
+            const currentSelection = submissionUserId || '';
+            const selectionExists = sortedUsers.some(
+               user => user.userId?.toString() === currentSelection
+            );
+            const fallbackSelection = userID?.toString() || '';
+            setSubmissionUserId(selectionExists ? currentSelection : fallbackSelection);
+         } catch (error) {
+            if (!isCancelled) {
+               setFeedback({
+                  type: 'error',
+                  message: error?.response?.data?.message || 'Unable to load team members for submission.'
+               });
+               setSubmissionUsers([]);
+            }
+         } finally {
+            if (!isCancelled) {
+               setLoadingSubmissionUsers(false);
+            }
+         }
+      };
+
+      loadUsers();
+
+      return () => {
+         isCancelled = true;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [accountID, userID, token, canSubmitForOthers, displayName]);
 
    const resetFeedback = () => setFeedback({ type: null, message: '' });
 
@@ -47,6 +118,11 @@ const UploadTimeTracker = ({ setPageTitle }) => {
          return;
       }
 
+      if (canSubmitForOthers && !submissionUserId) {
+         setFeedback({ type: 'error', message: 'Select the team member you are submitting for.' });
+         return;
+      }
+
       if (!accountID || !userID) {
          setFeedback({ type: 'error', message: 'Missing account details. Please log in again.' });
          return;
@@ -57,10 +133,26 @@ const UploadTimeTracker = ({ setPageTitle }) => {
          setValidationErrors([]);
          setValidationMetadata(null);
          const fileName = selectedFile.name;
-         const response = await uploadTimeTrackerFile(selectedFile, accountID, userID, token);
-         const successMessage = response?.message || `${fileName} validated and uploaded successfully.`;
+         const response = await uploadTimeTrackerFile(
+            selectedFile,
+            accountID,
+            userID,
+            token,
+            submissionUserId || userID
+         );
+         const responseMetadata = response?.metadata || null;
+         const successMessage = (() => {
+            const base = response?.message || `${fileName} validated and uploaded successfully.`;
+            if (
+               responseMetadata?.submittedForDisplayName &&
+               responseMetadata?.submittedForUserId !== responseMetadata?.submittedByUserId
+            ) {
+               return `${base} Submitted for ${responseMetadata.submittedForDisplayName}.`;
+            }
+            return base;
+         })();
          setFeedback({ type: 'success', message: successMessage });
-         setValidationMetadata(response?.metadata || null);
+         setValidationMetadata(responseMetadata);
          setValidationNote(response?.note || policyNote);
          setSelectedFile(null);
       } catch (error) {
@@ -134,9 +226,48 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                gap: 3
             }}
          >
-            <Stack direction='row' alignItems='center' justifyContent='space-between' spacing={2}>
+            <Stack
+               direction={{ xs: 'column', md: 'row' }}
+               alignItems={{ xs: 'flex-start', md: 'center' }}
+               justifyContent='space-between'
+               spacing={2}
+            >
                <Typography variant='h5'>Upload Time Tracker</Typography>
-               <Stack direction='row' spacing={2}>
+               <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  spacing={2}
+                  alignItems={{ xs: 'stretch', md: 'center' }}
+               >
+                  {canSubmitForOthers && (
+                     <FormControl size='small' sx={{ minWidth: 220 }}>
+                        <InputLabel id='submission-user-select-label'>Submitting For</InputLabel>
+                        <Select
+                           labelId='submission-user-select-label'
+                           id='submission-user-select'
+                           value={submissionUserId}
+                           label='Submitting For'
+                           onChange={event => setSubmissionUserId(event.target.value)}
+                           disabled={loadingSubmissionUsers || uploading}
+                        >
+                           {loadingSubmissionUsers ? (
+                              <MenuItem value='' disabled>
+                                 Loading team members...
+                              </MenuItem>
+                           ) : submissionUsers.length ? (
+                              submissionUsers.map(user => (
+                                 <MenuItem key={user.userId} value={user.userId?.toString()}>
+                                    {user.displayName}
+                                    {Number(user.userId) === Number(userID) ? ' (You)' : ''}
+                                 </MenuItem>
+                              ))
+                           ) : (
+                              <MenuItem value='' disabled>
+                                 No active team members found.
+                              </MenuItem>
+                           )}
+                        </Select>
+                     </FormControl>
+                  )}
                   {isAdmin && (
                      <Button variant='contained' color='primary' startIcon={<UpgradeIcon />} onClick={() => navigate('/time-tracking/update-template')}>
                         Upload New Template For Everyone
@@ -180,7 +311,12 @@ const UploadTimeTracker = ({ setPageTitle }) => {
             </Typography>
 
             <Stack direction='row' justifyContent='flex-end' spacing={2}>
-               <Button variant='contained' color='primary' onClick={handleUpload} disabled={uploading || !selectedFile}>
+               <Button
+                  variant='contained'
+                  color='primary'
+                  onClick={handleUpload}
+                  disabled={uploading || !selectedFile || (canSubmitForOthers && loadingSubmissionUsers)}
+               >
                   {uploading ? <CircularProgress size={20} color='inherit' /> : 'Upload'}
                </Button>
             </Stack>
@@ -194,6 +330,17 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                   <Typography variant='body2' color='text.secondary'>
                      End Date: {validationMetadata?.endDate || 'N/A'}
                   </Typography>
+                  {validationMetadata?.submittedForDisplayName && (
+                     <Typography variant='body2' color='text.secondary'>
+                        Submitted For: {validationMetadata.submittedForDisplayName}
+                     </Typography>
+                  )}
+                  {validationMetadata?.submittedByDisplayName &&
+                     validationMetadata?.submittedByUserId !== validationMetadata?.submittedForUserId && (
+                        <Typography variant='body2' color='text.secondary'>
+                           Submitted By: {validationMetadata.submittedByDisplayName}
+                        </Typography>
+                     )}
                </Stack>
             )}
 
