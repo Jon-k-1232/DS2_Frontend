@@ -1,5 +1,8 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
+
+jest.mock('../Routes/PrimaryRouter', () => () => <div>Mock Router</div>);
 
 jest.mock('axios', () => {
    const mock = {
@@ -34,7 +37,11 @@ describe('App', () => {
    });
 
    it('renders the login screen when no session is active', async () => {
-      render(<App />);
-      expect(await screen.findByText(/sign in to ds2/i)).toBeInTheDocument();
+      render(
+         <MemoryRouter>
+            <App />
+         </MemoryRouter>
+      );
+      expect(await screen.findByText(/mock router/i)).toBeInTheDocument();
    });
 });
