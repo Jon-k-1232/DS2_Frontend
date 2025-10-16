@@ -19,12 +19,26 @@ jobs:
            with:
               token: ${{ secrets.PAT_TOKEN }}
 
+         - name: Set up Node.js
+           uses: actions/setup-node@v3
+           with:
+              node-version: '18'
+              cache: 'npm'
+
+         - name: Install dependencies
+           run: npm ci
+
+         - name: Run unit tests
+           run: npm test -- --watch=false
+           env:
+              CI: true
+
          - name: Get current version
            id: get_version
            run: |
-              current_version=$(cat public/version.txt)
+              current_version=$(node -p "require('./package.json').version")
               echo "Current version: $current_version"
-              echo "::set-output name=current_version::$current_version"
+              echo "current_version=$current_version" >> "$GITHUB_OUTPUT"
 
          - name: Check for existing tag
            id: check_tag
@@ -33,11 +47,11 @@ jobs:
               TAG_EXISTS=$(git tag --list "v$current_version" | wc -l)
               echo "Checking tag for version: v$current_version"
               if [ "$TAG_EXISTS" -ne 0 ]; then
-                echo "Tag v$current_version already exists. Please manually update the version file."
+                echo "Tag v$current_version already exists. Please bump the version in package.json."
                 exit 1
               fi
               echo "Tag does not exist. Proceeding with build."
-              echo "::set-output name=tag_exists::$TAG_EXISTS"
+              echo "tag_exists=$TAG_EXISTS" >> "$GITHUB_OUTPUT"
 
          - name: Display versions for debugging
            run: |

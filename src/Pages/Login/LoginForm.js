@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import eyeFill from '@iconify/icons-eva/eye-fill';
@@ -7,8 +7,8 @@ import { Stack, TextField, IconButton, InputAdornment, Typography } from '@mui/m
 import { LoadingButton } from '@mui/lab';
 import { postLoginAuth } from '../../Services/ApiCalls/PostCalls';
 import TokenService from '../../Services/TokenService';
-import { useContext } from 'react';
 import { context } from '../../App';
+import { getDefaultLandingRoute } from '../../utils/navigation';
 
 export default function LoginForm() {
    const navigate = useNavigate();
@@ -47,7 +47,8 @@ export default function LoginForm() {
             requiresPasswordReset
          });
          setIncorrectCredential(null);
-         navigate(requiresPasswordReset ? '/reset-password' : '/customers/customersList');
+         const landingRoute = requiresPasswordReset ? '/reset-password' : getDefaultLandingRoute(access_level);
+         navigate(landingRoute);
       }
    };
 

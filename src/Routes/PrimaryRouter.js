@@ -80,14 +80,6 @@ export default function Router() {
 
    const handleSetCustomerData = updatedData => setCustomerData(updatedData);
 
-   const TrackingAdministration = () => {
-      useEffect(() => {
-         setPageTitle('Tracking Administration');
-      }, [setPageTitle]);
-
-      return <EmployeeTimeTrackerSubRoutes customerData={customerData} setCustomerData={handleSetCustomerData} />;
-   };
-
    return (
       <Routes>
          <Route element={<LogoOnlyLayout />}>
@@ -141,7 +133,11 @@ export default function Router() {
                path='time-tracking/trackingAdministration/*'
                element={
                   <ManagerAndAdminProtectedAccessRoute>
-                     <TrackingAdministration />
+                     <EmployeeTimeTrackerSubRoutes
+                        setPageTitle={setPageTitle}
+                        customerData={customerData}
+                        setCustomerData={handleSetCustomerData}
+                     />
                   </ManagerAndAdminProtectedAccessRoute>
                }
             />

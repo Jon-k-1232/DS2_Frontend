@@ -6,6 +6,7 @@ import Page from '../../Components/Page';
 import TokenService from '../../Services/TokenService';
 import { context } from '../../App';
 import { updatePasswordAfterReset } from '../../Services/ApiCalls/PostCalls';
+import { getDefaultLandingRoute } from '../../utils/navigation';
 
 const ResetPassword = () => {
    const navigate = useNavigate();
@@ -23,9 +24,10 @@ const ResetPassword = () => {
       }
 
       if (!loggedInUser?.requiresPasswordReset && !hasCompletedReset) {
-         navigate('/customers/customersList', { replace: true });
+         const defaultRoute = getDefaultLandingRoute(loggedInUser?.accessLevel);
+         navigate(defaultRoute, { replace: true });
       }
-   }, [loggedInUser?.requiresPasswordReset, navigate, hasCompletedReset]);
+   }, [loggedInUser?.requiresPasswordReset, loggedInUser?.accessLevel, navigate, hasCompletedReset]);
 
    const handleSubmit = async event => {
       event.preventDefault();
@@ -53,7 +55,8 @@ const ResetPassword = () => {
          setFeedback({ type: 'success', message: 'Password updated successfully. Redirecting to your dashboard...' });
          setNewPassword('');
          setConfirmPassword('');
-         setTimeout(() => navigate('/customers/customersList', { replace: true }), 1500);
+         const defaultRoute = getDefaultLandingRoute(loggedInUser?.accessLevel);
+         setTimeout(() => navigate(defaultRoute, { replace: true }), 1500);
       } catch (error) {
          const message = error?.response?.data?.message || 'Unable to update password. Please try again.';
          setFeedback({ type: 'error', message });

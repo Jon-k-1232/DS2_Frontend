@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useContext, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
 import { Stack, Divider } from '@mui/material';
 import TimeTrackerStatusGrid from '../../../Pages/Transactions/TransactionGrids/TimeTrackerStatusGrid';
 import EmployeeEntryGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeEntryGrid';
 import EmployeeTimesheetsGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeTimesheetsGrid';
 import TimesheetsByMonthGrid from '../../../Pages/Transactions/TransactionGrids/TimesheetsByMonthGrid';
-import { context } from '../../../App';
 import { useRowData } from '../../../Routes/useRowData';
 import { postUserTimeEntryToTransactions } from '../../../Services/ApiCalls/PostCalls';
 import Time from '../../../Pages/Transactions/TransactionForms/AddTransaction/Time';
@@ -13,10 +12,9 @@ import GeneralDialog from '../../../Components/Dialogs/GeneralDialog';
 
 const ALLOWED_STATUS_COLUMNS = ['transaction_count', 'trackers_by_month', 'trackers_to_date'];
 
-export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomerData }) {
+export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomerData, setPageTitle }) {
    const navigate = useNavigate();
    const location = useLocation();
-   const { accountID, userID, token } = useContext(context).loggedInUser;
    const { rowData } = location?.state ?? {};
 
    const basePath = useMemo(() => {
@@ -34,6 +32,12 @@ export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomer
    const [openDialog, setOpenDialog] = useState(false);
 
    const { rowData: contextRowData } = useRowData();
+
+   useEffect(() => {
+      if (setPageTitle) {
+         setPageTitle('Tracking Administration');
+      }
+   }, [setPageTitle]);
 
    useEffect(() => {
       if (rowData || contextRowData) {

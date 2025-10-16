@@ -16,8 +16,8 @@ const ServerStatus = () => {
          setServerHealth(serverHealthFromServer);
       };
       callServerHealth();
-      // recall every 2 minutes
-      const intervalId = setInterval(callServerHealth, 30000);
+      // refresh every 60 seconds
+      const intervalId = setInterval(callServerHealth, 60000);
       return () => clearInterval(intervalId);
       // eslint-disable-next-line
    }, []);

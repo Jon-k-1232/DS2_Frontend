@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { Alert, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import { DataGrid } from '@mui/x-data-grid';
@@ -48,6 +48,37 @@ const TimeTrackerHistory = ({ setPageTitle }) => {
       loadHistory();
    }, [accountID, userID, token]);
 
+   const triggerFileDownload = (blob, fileName) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+   };
+
+   const handleDownload = useCallback(
+      async row => {
+         if (!row) return;
+         try {
+            setActiveDownloadKey(row.key);
+            setDownloading(true);
+            const { blob, fileName } = await downloadTimeTrackerHistoryFile(accountID, userID, row.key, token);
+            triggerFileDownload(blob, fileName);
+            setFeedback({ type: 'success', message: `Downloading ${fileName}.` });
+         } catch (error) {
+            const message = error?.response?.data?.message || 'Unable to download the requested tracker.';
+            setFeedback({ type: 'error', message });
+         } finally {
+            setActiveDownloadKey(null);
+            setDownloading(false);
+         }
+      },
+      [accountID, token, userID]
+   );
+
    const columns = useMemo(
       () => [
          {
@@ -95,36 +126,8 @@ const TimeTrackerHistory = ({ setPageTitle }) => {
             )
          }
       ],
-      []
+      [activeDownloadKey, downloading, handleDownload]
    );
-
-   const triggerFileDownload = (blob, fileName) => {
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-   };
-
-   const handleDownload = async row => {
-      if (!row) return;
-      try {
-         setActiveDownloadKey(row.key);
-         setDownloading(true);
-         const { blob, fileName } = await downloadTimeTrackerHistoryFile(accountID, userID, row.key, token);
-         triggerFileDownload(blob, fileName);
-         setFeedback({ type: 'success', message: `Downloading ${fileName}.` });
-      } catch (error) {
-         const message = error?.response?.data?.message || 'Unable to download the requested tracker.';
-         setFeedback({ type: 'error', message });
-      } finally {
-         setActiveDownloadKey(null);
-         setDownloading(false);
-      }
-   };
 
    return (
       <Stack spacing={3}>

@@ -4,7 +4,6 @@ import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageN
 import { fetchSinglePayment, fetchCustomerProfileInformation } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import DeletePayment from '../../../Pages/Transactions/TransactionForms/DeleteTransaction/DeletePayment';
-import EditPayment from '../../../Pages/Transactions/TransactionForms/EditTransaction/EditPayment';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 
 export default function PaymentSubRoutes({ customerData, setCustomerData }) {

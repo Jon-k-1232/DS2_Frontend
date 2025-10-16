@@ -38,7 +38,7 @@ export default function TimesheetsByMonthGrid({ selectedUserID, setSelectedRowDa
          const { page, pageSize } = paginationModel;
          fetchPageData(page + 1, pageSize, filters);
       }
-   }, [selectedUserID, paginationModel.pageSize, filters, refreshKey, fetchPageData]);
+   }, [selectedUserID, paginationModel, filters, refreshKey, fetchPageData]);
 
    // Handle filtering
    const handleFilterChange = filterModel => {

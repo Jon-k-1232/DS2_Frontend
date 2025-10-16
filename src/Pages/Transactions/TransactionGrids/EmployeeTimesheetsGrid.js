@@ -36,7 +36,7 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
          const { page, pageSize } = paginationModel;
          fetchPageData(page + 1, pageSize, filters);
       }
-   }, [selectedUserID, paginationModel.pageSize, filters, refreshKey, fetchPageData]);
+   }, [selectedUserID, paginationModel, filters, refreshKey, fetchPageData]);
 
    const handleFilterChange = filterModel => {
       const filterQuery = filterModel.items
