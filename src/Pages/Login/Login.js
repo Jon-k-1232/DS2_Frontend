@@ -41,6 +41,8 @@ const BottomTypography = styled(Typography)(({ theme }) => ({
 // ----------------------------------------------------------------------
 
 export default function Login({ appVersion }) {
+   const showVersion = appVersion && appVersion !== 'Unknown';
+
    return (
       <RootStyle title='DS | 2'>
          <AuthLayout />
@@ -50,9 +52,11 @@ export default function Login({ appVersion }) {
                <Typography variant='h3' sx={{ px: 5, mt: 10, mb: 5 }}>
                   Hi, Welcome Back
                </Typography>
-               <BottomTypography variant='body2' sx={{ mb: 1 }}>
-                  v {appVersion}
-               </BottomTypography>
+               {showVersion && (
+                  <BottomTypography variant='body2' sx={{ mb: 1 }}>
+                     v {appVersion}
+                  </BottomTypography>
+               )}
             </SectionStyle>
          </MHidden>
 

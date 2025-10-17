@@ -312,13 +312,28 @@ export const fetchAllEmployeeTransactionsBetweenDates = async (startDate, endDat
    }
 };
 
-export const fetchAppVersion = async () =>
-   fetch('/version.txt')
-      .then(response => response.text())
-      .catch(error => {
-         console.error('Error fetching version:', error);
+export const fetchAppVersion = async () => {
+   try {
+      const response = await fetch('/version.txt', { cache: 'no-store' });
+      const contentType = response.headers.get('content-type') || '';
+      const text = await response.text();
+      const trimmed = text.trim();
+
+      if (
+         !trimmed ||
+         /^<!doctype/i.test(trimmed) ||
+         /^<html/i.test(trimmed) ||
+         contentType.includes('text/html')
+      ) {
          return 'Unknown';
-      });
+      }
+
+      return trimmed.split(/\r?\n/)[0].trim();
+   } catch (error) {
+      console.error('Error fetching version:', error);
+      return 'Unknown';
+   }
+};
 
 export const fetchInvalidTimesheets = async (accountID, userID, token, page = 1, limit = 10) => {
    try {
