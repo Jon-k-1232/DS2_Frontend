@@ -63,6 +63,11 @@ export default function Payment({ customerData, setCustomerData }) {
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, paymentsList: postedItem.paymentsList, invoicesList: postedItem.invoicesList, accountRetainersList: postedItem.accountRetainersList });
+         try {
+            window.dispatchEvent(new CustomEvent('payments:updated'));
+         } catch (e) {
+            // no-op
+         }
       }
    };
 

@@ -28,6 +28,7 @@ export default function RecurringCustomers({ customerData, setCustomerData }) {
          <Stack spacing={3}>
             <DataGridTable
                title='Recurring Customers'
+               passedHeight={window.innerHeight - 140}
                tableData={activeRecurringCustomersData.grid}
                checkboxSelection={false}
                enableSingleRowClick

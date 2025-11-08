@@ -134,3 +134,15 @@ export const deleteCustomer = async (customerID, accountID, userID, token) => {
       console.log(error);
    }
 };
+
+export const deleteAiIntegration = async (accountID, userID, token) => {
+   try {
+      const response = await axios.delete(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}`, {
+         headers: { ...headers(token) }
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error while deleting AI integration:', error);
+      throw error;
+   }
+};

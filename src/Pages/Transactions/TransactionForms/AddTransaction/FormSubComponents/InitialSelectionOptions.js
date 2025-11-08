@@ -11,7 +11,18 @@ import { context } from '../../../../../App';
 import './Transactions.css';
 import SplitOptionLabel from '../../../../../Components/SplitOptionLabel';
 
-export default function InitialSelectionOptions({ customerData, selectedItems, setSelectedItems, customerProfileData, setCustomerData, initialState, passedSelectedDate, page, children }) {
+export default function InitialSelectionOptions({
+   customerData,
+   selectedItems,
+   setSelectedItems,
+   customerProfileData,
+   setCustomerData,
+   initialState,
+   passedSelectedDate,
+   page,
+   children,
+   fieldSuggestions = {}
+}) {
    // Combine data from various sources
    const combinedData = { ...customerData, ...selectedItems, ...customerProfileData };
    const { selectedCustomer, selectedJob, selectedTeamMember, selectedDate, selectedInvoice } = combinedData;
@@ -169,6 +180,8 @@ export default function InitialSelectionOptions({ customerData, selectedItems, s
                onChange={handleDateChange}
                slotProps={{ textField: { variant: 'outlined' } }}
             />
+
+            {/* Removed customer suggestion pill per requirements */}
 
             <AutoCompleteWithDialog dialogTitle='New Customer' dialogOpen={customerDialogOpen} setDialogOpen={setCustomerDialogOpen} autoCompleteProps={customerAutoCompleteProps}>
                {/* NewCustomer is the child form for adding a new customer */}

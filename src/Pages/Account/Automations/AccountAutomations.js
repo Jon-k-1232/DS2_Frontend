@@ -1,23 +1,18 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import {
-   Alert,
-   CircularProgress,
-   FormControlLabel,
-   Paper,
-   Stack,
-   Switch,
-   TextField,
-   Typography
-} from '@mui/material';
+import { Alert, CircularProgress, FormControlLabel, Paper, Stack, Switch, TextField, Typography } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import Checkbox from '@mui/material/Checkbox';
 import { context } from '../../../App';
-import { fetchAccountAutomations } from '../../../Services/ApiCalls/FetchCalls';
+import { fetchAccountAutomations, fetchAiIntegrationSettings } from '../../../Services/ApiCalls/FetchCalls';
 import { updateAccountAutomationSetting } from '../../../Services/ApiCalls/PutCalls';
+import axios from 'axios';
+import config from '../../../config';
+import TokenService from '../../../Services/TokenService';
 
 const AccountAutomations = () => {
    const { accountID, userID, token } = useContext(context).loggedInUser;
    const [automations, setAutomations] = useState([]);
+   const [aiEnabled, setAiEnabled] = useState(false);
    const [availableUsers, setAvailableUsers] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
@@ -28,7 +23,10 @@ const AccountAutomations = () => {
       setLoading(true);
       setError('');
       try {
-         const response = await fetchAccountAutomations(accountID, userID, token);
+         const [autoResp, aiResp] = await Promise.all([fetchAccountAutomations(accountID, userID, token), fetchAiIntegrationSettings(accountID, userID, token)]);
+         const response = autoResp;
+         const aiIntegration = aiResp?.integration;
+         setAiEnabled(Boolean(aiIntegration?.isEnabled));
          if (response.status !== 200) {
             setAutomations(response.automations || []);
             setAvailableUsers(response.availableUsers || []);
@@ -69,18 +67,11 @@ const AccountAutomations = () => {
       };
 
       setError('');
-      setAutomations(prev =>
-         prev.map(item => (item.key === key ? { ...item, isEnabled: nextValue } : item))
-      );
+      setAutomations(prev => prev.map(item => (item.key === key ? { ...item, isEnabled: nextValue } : item)));
       setUpdatingKeys(prev => ({ ...prev, [key]: true }));
 
       try {
-         const response = await updateAccountAutomationSetting(
-            accountID,
-            userID,
-            { automationKey: key, isEnabled: nextValue },
-            token
-         );
+         const response = await updateAccountAutomationSetting(accountID, userID, { automationKey: key, isEnabled: nextValue }, token);
          if (response.status !== 200) {
             throw new Error(response.message || 'Unable to update automation setting.');
          }
@@ -92,18 +83,14 @@ const AccountAutomations = () => {
                   ? {
                        ...item,
                        isEnabled: updatedAutomation.isEnabled ?? nextValue,
-                       recipientUserIds: Array.isArray(updatedAutomation.recipientUserIds)
-                          ? updatedAutomation.recipientUserIds
-                          : [...item.recipientUserIds],
+                       recipientUserIds: Array.isArray(updatedAutomation.recipientUserIds) ? updatedAutomation.recipientUserIds : [...item.recipientUserIds],
                        sendToAll: !(updatedAutomation.recipientUserIds && updatedAutomation.recipientUserIds.length)
                     }
                   : item
             )
          );
       } catch (err) {
-         setAutomations(prev =>
-            prev.map(item => (item.key === key ? previousState : item))
-         );
+         setAutomations(prev => prev.map(item => (item.key === key ? previousState : item)));
          setError(err?.response?.data?.message || err.message || 'Unable to update automation setting.');
       } finally {
          setUpdatingKeys(prev => {
@@ -118,12 +105,7 @@ const AccountAutomations = () => {
       setUpdatingKeys(prev => ({ ...prev, [automationKey]: true }));
 
       try {
-         const response = await updateAccountAutomationSetting(
-            accountID,
-            userID,
-            { automationKey, recipientUserIds: nextRecipientUserIds },
-            token
-         );
+         const response = await updateAccountAutomationSetting(accountID, userID, { automationKey, recipientUserIds: nextRecipientUserIds }, token);
          if (response.status !== 200) {
             throw new Error(response.message || 'Unable to update automation recipients.');
          }
@@ -134,18 +116,14 @@ const AccountAutomations = () => {
                item.key === automationKey
                   ? {
                        ...item,
-                       recipientUserIds: Array.isArray(updatedAutomation.recipientUserIds)
-                          ? updatedAutomation.recipientUserIds
-                          : [...nextRecipientUserIds],
+                       recipientUserIds: Array.isArray(updatedAutomation.recipientUserIds) ? updatedAutomation.recipientUserIds : [...nextRecipientUserIds],
                        sendToAll: !(updatedAutomation.recipientUserIds && updatedAutomation.recipientUserIds.length)
                     }
-                 : item
+                  : item
             )
          );
       } catch (err) {
-         setAutomations(prev =>
-            prev.map(item => (item.key === automationKey ? previousState : item))
-         );
+         setAutomations(prev => prev.map(item => (item.key === automationKey ? previousState : item)));
          setError(err?.response?.data?.message || err.message || 'Unable to update automation recipients.');
       } finally {
          setUpdatingKeys(prev => {
@@ -250,103 +228,134 @@ const AccountAutomations = () => {
             </Stack>
          ) : automations.length ? (
             <Stack spacing={2}>
-               {automations.map(automation => {
-                  const recipientsDisabled = automation.sendToAll;
-                  const selectedOptions = userOptions.filter(option => automation.recipientUserIds.includes(option.userId));
-                  return (
-                     <Paper key={automation.key} elevation={1} sx={{ p: 2 }}>
-                        <Stack spacing={2}>
-                           <Stack
-                              direction={{ xs: 'column', sm: 'row' }}
-                              spacing={2}
-                              justifyContent='space-between'
-                              alignItems={{ xs: 'flex-start', sm: 'center' }}
-                           >
-                              <Stack spacing={0.5}>
-                                 <Typography variant='subtitle1'>{automation.label}</Typography>
-                                 <Typography variant='body2' color='text.secondary'>
-                                    {automation.description}
-                                 </Typography>
+               {automations
+                  .filter(a => (a.key === 'ai_training_weekly_upload' ? aiEnabled : true))
+                  .map(automation => {
+                     const recipientsDisabled = automation.sendToAll;
+                     const selectedOptions = userOptions.filter(option => automation.recipientUserIds.includes(option.userId));
+                     return (
+                        <Paper key={automation.key} elevation={1} sx={{ p: 2 }}>
+                           <Stack spacing={2}>
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent='space-between' alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                                 <Stack spacing={0.5}>
+                                    <Typography variant='subtitle1'>{automation.label}</Typography>
+                                    <Typography variant='body2' color='text.secondary'>
+                                       {automation.description}
+                                    </Typography>
+                                 </Stack>
+                                 <Stack direction='row' spacing={1} alignItems='center'>
+                                    <Switch
+                                       color='primary'
+                                       checked={Boolean(automation.isEnabled)}
+                                       onChange={() => handleToggle(automation)}
+                                       disabled={Boolean(updatingKeys[automation.key])}
+                                       inputProps={{ 'aria-label': `${automation.label} automation toggle` }}
+                                    />
+                                    {automation.key === 'ai_training_weekly_upload' && aiEnabled && <ManualRunButton accountID={accountID} userID={userID} />}
+                                    <Typography variant='body2' color='text.secondary'>
+                                       {automation.isEnabled ? 'On' : 'Off'}
+                                    </Typography>
+                                 </Stack>
                               </Stack>
-                              <Stack direction='row' spacing={1} alignItems='center'>
-                                 <Switch
-                                    color='primary'
-                                    checked={Boolean(automation.isEnabled)}
-                                    onChange={() => handleToggle(automation)}
-                                    disabled={Boolean(updatingKeys[automation.key])}
-                                    inputProps={{ 'aria-label': `${automation.label} automation toggle` }}
-                                 />
-                                 <Typography variant='body2' color='text.secondary'>
-                                    {automation.isEnabled ? 'On' : 'Off'}
-                                 </Typography>
-                              </Stack>
-                           </Stack>
 
-                           <FormControlLabel
-                              control={
-                                 <Switch
-                                    color='primary'
-                                    checked={recipientsDisabled}
-                                    onChange={() => handleSendToAllToggle(automation)}
-                                    disabled={Boolean(updatingKeys[automation.key])}
-                                 />
-                              }
-                              label='Send to all active users with email addresses'
-                           />
+                              {automation.key !== 'ai_training_weekly_upload' && (
+                                 <>
+                                    <FormControlLabel
+                                       control={
+                                          <Switch color='primary' checked={recipientsDisabled} onChange={() => handleSendToAllToggle(automation)} disabled={Boolean(updatingKeys[automation.key])} />
+                                       }
+                                       label='Send to all active users with email addresses'
+                                    />
 
-                          <Autocomplete
-                             multiple
-                             disableCloseOnSelect
-                             clearOnBlur={false}
-                             selectOnFocus
-                             options={userOptions}
-                             value={selectedOptions}
-                             onChange={(event, value) => handleRecipientsChange(automation, value)}
-                             getOptionLabel={option => option.label}
-                             ListboxProps={{
-                                style: { maxHeight: 280 }
-                             }}
-                             sx={{ width: { xs: '100%', md: 360 } }}
-                             renderOption={(props, option, { selected }) => (
-                                <li {...props}>
-                                   <Checkbox
-                                      size='small'
-                                      checked={selected}
-                                      sx={{ mr: 1 }}
-                                   />
-                                    <Stack>
-                                       <Typography variant='body2'>{option.label}</Typography>
-                                       {option.email && (
-                                          <Typography variant='caption' color='text.secondary'>
-                                             {option.email}
-                                          </Typography>
+                                    <Autocomplete
+                                       multiple
+                                       disableCloseOnSelect
+                                       clearOnBlur={false}
+                                       selectOnFocus
+                                       options={userOptions}
+                                       value={selectedOptions}
+                                       onChange={(event, value) => handleRecipientsChange(automation, value)}
+                                       getOptionLabel={option => option.label}
+                                       ListboxProps={{
+                                          style: { maxHeight: 280 }
+                                       }}
+                                       sx={{ width: { xs: '100%', md: 360 } }}
+                                       renderOption={(props, option, { selected }) => (
+                                          <li {...props}>
+                                             <Checkbox size='small' checked={selected} sx={{ mr: 1 }} />
+                                             <Stack>
+                                                <Typography variant='body2'>{option.label}</Typography>
+                                                {option.email && (
+                                                   <Typography variant='caption' color='text.secondary'>
+                                                      {option.email}
+                                                   </Typography>
+                                                )}
+                                             </Stack>
+                                          </li>
                                        )}
-                                    </Stack>
-                                 </li>
+                                       renderInput={params => (
+                                          <TextField
+                                             {...params}
+                                             size='small'
+                                             label='Select specific recipients'
+                                             placeholder='Choose team members'
+                                             helperText={
+                                                recipientsDisabled
+                                                   ? 'Currently goes to all active users. Choose team members below to limit delivery.'
+                                                   : 'Only the selected users will receive this automation.'
+                                             }
+                                          />
+                                       )}
+                                       disabled={Boolean(updatingKeys[automation.key])}
+                                       noOptionsText='No team members available.'
+                                    />
+                                 </>
                               )}
-                             renderInput={params => (
-                                <TextField
-                                   {...params}
-                                   size='small'
-                                   label='Select specific recipients'
-                                   placeholder='Choose team members'
-                                   helperText={
-                                      recipientsDisabled
-                                         ? 'Currently goes to all active users. Choose team members below to limit delivery.'
-                                         : 'Only the selected users will receive this automation.'
-                                   }
-                                />
-                             )}
-                              disabled={Boolean(updatingKeys[automation.key])}
-                              noOptionsText='No team members available.'
-                           />
-                        </Stack>
-                     </Paper>
-                  );
-               })}
+                           </Stack>
+                        </Paper>
+                     );
+                  })}
             </Stack>
          ) : (
             <Alert severity='info'>No automations are currently available for configuration.</Alert>
+         )}
+      </Stack>
+   );
+};
+
+const ManualRunButton = ({ accountID, userID }) => {
+   const [running, setRunning] = useState(false);
+   const [message, setMessage] = useState('');
+   const token = TokenService.getAuthToken();
+
+   const handleRun = async () => {
+      setRunning(true);
+      setMessage('');
+      try {
+         const url = `${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}/upload-training`;
+         const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+         const uploaded = res?.data?.uploaded ?? 0;
+         setMessage(`Uploaded ${uploaded} training example(s).`);
+      } catch (err) {
+         setMessage(err?.response?.data?.message || 'Failed to run upload.');
+      } finally {
+         setRunning(false);
+      }
+   };
+
+   return (
+      <Stack direction='row' spacing={1} alignItems='center'>
+         <button
+            onClick={handleRun}
+            disabled={running}
+            style={{ padding: '6px 10px', borderRadius: 4, background: '#2e7d32', color: 'white', border: 'none', cursor: running ? 'default' : 'pointer' }}
+         >
+            {running ? 'Running…' : 'Run now'}
+         </button>
+         {message && (
+            <Typography variant='caption' color='text.secondary'>
+               {message}
+            </Typography>
          )}
       </Stack>
    );

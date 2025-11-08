@@ -12,7 +12,7 @@ export default function CreateInvoiceGrid({ outstandingBalanceData, setSelectedR
    return (
       <>
          <Stack spacing={3}>
-            <CreateInvoiceGridTable gridData={activeOutstandingBalancesData.grid} setSelectedRowsToInvoice={data => setSelectedRowsToInvoice(data)} />
+            <CreateInvoiceGridTable passedHeight={window.innerHeight - 380} gridData={activeOutstandingBalancesData.grid} setSelectedRowsToInvoice={data => setSelectedRowsToInvoice(data)} />
          </Stack>
       </>
    );

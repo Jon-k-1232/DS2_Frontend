@@ -18,7 +18,9 @@ const DataGridTable = ({
    dialogSize,
    hideGridTools,
    enableColumnsOnClick = [],
-   pageSize = 5
+   pageSize = 5,
+   onAnyCellClick,
+   initiallyHiddenColumns = []
 }) => {
    const navigate = useNavigate();
    const { rows, columns } = tableData;
@@ -28,16 +30,7 @@ const DataGridTable = ({
    const gridProps = {
       density: 'compact',
       components: {
-         Toolbar: props => (
-            <CustomToolbar
-               {...props}
-               hideGridTools={hideGridTools}
-               showGridTools={!hideGridTools}
-               arrayOfButtons={arrayOfButtons}
-               title={title}
-               dialogSize={dialogSize}
-            />
-         )
+         Toolbar: props => <CustomToolbar {...props} hideGridTools={hideGridTools} showGridTools={!hideGridTools} arrayOfButtons={arrayOfButtons} title={title} dialogSize={dialogSize} />
       },
       checkboxSelection: checkboxSelection,
       onRowSelectionModelChange: newSelection => {
@@ -51,6 +44,13 @@ const DataGridTable = ({
          enableSingleRowClick && routeToPass && navigate(routeToPass, { state: { rowData: rowData.row } });
       },
       onCellClick: (cellParams, event) => {
+         if (typeof onAnyCellClick === 'function') {
+            try {
+               onAnyCellClick(cellParams);
+            } catch (e) {
+               // no-op
+            }
+         }
          if (!rowSelectionOnly) {
             event.stopPropagation(); // Prevent row selection on cell click
          }
@@ -73,6 +73,12 @@ const DataGridTable = ({
 
    const dynamicColumns = rows && columns && getDynamicColumnWidths(rows, columns);
 
+   // Build initial visibility model where listed columns are hidden
+   const columnVisibilityModel = (initiallyHiddenColumns || []).reduce((acc, col) => {
+      acc[col] = false;
+      return acc;
+   }, {});
+
    return (
       <Box
          sx={{
@@ -83,7 +89,7 @@ const DataGridTable = ({
             }
          }}
       >
-         <DataGrid rows={rows ? rows : []} columns={columns ? dynamicColumns : []} {...gridProps} />
+         <DataGrid rows={rows ? rows : []} columns={columns ? dynamicColumns : []} initialState={{ columns: { columnVisibilityModel } }} {...gridProps} />
       </Box>
    );
 };

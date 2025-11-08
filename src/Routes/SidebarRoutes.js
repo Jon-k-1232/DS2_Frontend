@@ -159,6 +159,11 @@ export const sidebarRoutes = [
             title: 'Automations',
             path: '/account/automations',
             icon: getIcon(clockFill)
+         },
+         {
+            title: 'AI Integration',
+            path: '/account/aiIntegration',
+            icon: getIcon(clockFill)
          }
       ]
    }

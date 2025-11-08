@@ -34,6 +34,17 @@ export const postNewPayment = async (data, accountID, userID, token) => {
    }
 };
 
+export const createAiIntegration = async (data, accountID, userID, token) => {
+   const url = `${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}`;
+   try {
+      const response = await axios.post(url, { integration: data }, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error while creating AI integration:', error);
+      throw error;
+   }
+};
+
 export const postNewWriteOff = async (data, accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/writeOffs/createWriteOffs/${accountID}/${userID}`;
    try {
@@ -184,6 +195,18 @@ export const updatePasswordAfterReset = async (newPassword, token) => {
       return response.data;
    } catch (error) {
       console.error('Error while updating password:', error);
+      throw error;
+   }
+};
+
+// Kickoff AI processing for a timesheet name or specific entry IDs
+export const postAiKickoff = async (accountID, userID, token, payload) => {
+   const url = `${config.API_ENDPOINT}/timesheets/ai/kickoff/${accountID}/${userID}`;
+   try {
+      const response = await axios.post(url, payload, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error while kicking off AI suggestions:', error?.response?.data || error.message);
       throw error;
    }
 };

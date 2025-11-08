@@ -2,9 +2,13 @@ const getDynamicColumnWidths = (rows, columns) => {
    const ctx = document.createElement('canvas').getContext('2d');
    ctx.font = '14px Roboto';
 
-   const basePadding = 16;
+   const basePadding = 20;
 
    return columns.map(column => {
+      // Respect hidden columns: keep their provided width or default to a tiny width
+      if (column.hide) {
+         return { ...column, width: column.width ?? 1 };
+      }
       if (column.field === 'invoiceNote') {
          return { ...column, width: 350 };
       }
@@ -18,7 +22,7 @@ const getDynamicColumnWidths = (rows, columns) => {
          const textWidth = ctx.measureText(row[column.field]).width;
          return Math.max(maxWidth, textWidth);
       }, headerWidth);
-      return { ...column, width: maxWidth + 35 + basePadding };
+      return { ...column, width: maxWidth + 60 + basePadding };
    });
 };
 

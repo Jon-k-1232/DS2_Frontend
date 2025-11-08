@@ -15,21 +15,24 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
 
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
-   const fetchPageData = useCallback(async (page = 1, limit = 10, filterQuery = '') => {
-      setLoading(true);
-      try {
-         const response = await fetchAllEmployeeTimesheetsByID(accountID, userID, selectedUserID, token, page, limit, filterQuery);
-         setEntriesGrid({
-            rows: response.grid.rows || [],
-            columns: response.grid.columns || [],
-            totalCount: response.pagination.totalItems || 0
-         });
-      } catch (error) {
-         console.error('Error fetching paginated data:', error);
-      } finally {
-         setLoading(false);
-      }
-   }, [accountID, userID, selectedUserID, token]);
+   const fetchPageData = useCallback(
+      async (page = 1, limit = 10, filterQuery = '') => {
+         setLoading(true);
+         try {
+            const response = await fetchAllEmployeeTimesheetsByID(accountID, userID, selectedUserID, token, page, limit, filterQuery);
+            setEntriesGrid({
+               rows: response.grid.rows || [],
+               columns: response.grid.columns || [],
+               totalCount: response.pagination.totalItems || 0
+            });
+         } catch (error) {
+            console.error('Error fetching paginated data:', error);
+         } finally {
+            setLoading(false);
+         }
+      },
+      [accountID, userID, selectedUserID, token]
+   );
 
    useEffect(() => {
       if (selectedUserID) {
@@ -74,10 +77,7 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
             triggerFileDownload(blob, fileName);
          } catch (error) {
             console.error('Error downloading time tracker:', error);
-            const message =
-               error?.response?.data?.message ||
-               error?.message ||
-               'We could not download that time tracker. Please try again later.';
+            const message = error?.response?.data?.message || error?.message || 'We could not download that time tracker. Please try again later.';
             setDownloadError(message);
          }
       },
@@ -99,12 +99,7 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
             return (
                <Tooltip title={disabled ? 'Timesheet name unavailable' : 'Download tracker'}>
                   <span>
-                     <IconButton
-                        size='small'
-                        color='primary'
-                        disabled={disabled}
-                        onClick={() => handleDownload(timesheetName)}
-                     >
+                     <IconButton size='small' color='primary' disabled={disabled} onClick={() => handleDownload(timesheetName)}>
                         <DownloadIcon fontSize='small' />
                      </IconButton>
                   </span>
@@ -129,22 +124,17 @@ export default function EmployeeTimesheetsGrid({ selectedUserID, setSelectedRowD
             <PaginationGrid
                title='Employee Timesheets To Date'
                tableData={enhancedGrid}
-               passedHeight={500}
+               passedHeight={window.innerHeight - 550}
                paginationModel={paginationModel}
                onPaginationModelChange={handlePaginationModelChange}
-               scrollOnPagination={true}
                fetchPageData={fetchPageData}
                onFilterModelChange={handleFilterChange}
+               initiallyHiddenColumns={['employee_name']}
                // enableSingleRowClick={true}
                // setSingleSelectedRow={setSelectedRowDataForTransaction}
             />
          )}
-         <Snackbar
-            open={!!downloadError}
-            autoHideDuration={6000}
-            onClose={() => setDownloadError('')}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-         >
+         <Snackbar open={!!downloadError} autoHideDuration={6000} onClose={() => setDownloadError('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
             <Alert onClose={() => setDownloadError('')} severity='error' sx={{ width: '100%' }}>
                {downloadError}
             </Alert>

@@ -143,6 +143,30 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
       initializedRef.current = true;
    }, [customerData?.transactionsList]);
 
+   // Initial fetch on mount when there's no transactions data yet
+   useEffect(() => {
+      if (initializedRef.current) return;
+      const hasData = Boolean(customerData?.transactionsList?.activeTransactionsData);
+      if (!hasData && accountID && userID && token) {
+         // Fetch first page with default size and empty search
+         fetchPageData(1, DEFAULT_PAGE_SIZE, '');
+         initializedRef.current = true;
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [accountID, userID, token]);
+
+   // Listen for global transaction updates (e.g., after submitting Time/Charge) and refresh current page
+   useEffect(() => {
+      const handler = () => {
+         const { page, pageSize } = paginationModel;
+         fetchPageData(page + 1, pageSize, searchTerm);
+      };
+
+      window.addEventListener('transactions:updated', handler);
+      return () => window.removeEventListener('transactions:updated', handler);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [paginationModel.page, paginationModel.pageSize, searchTerm, accountID, userID, token]);
+
    const handleExportAllTransactions = useCallback(async () => {
       if (!accountID || !userID || !token) return;
       setExportingAll(true);
@@ -219,6 +243,7 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
       <Stack spacing={3}>
          <PaginationGrid
             title='Charges and Time'
+            passedHeight={window.innerHeight - 140}
             tableData={gridData}
             checkboxSelection={false}
             enableSingleRowClick

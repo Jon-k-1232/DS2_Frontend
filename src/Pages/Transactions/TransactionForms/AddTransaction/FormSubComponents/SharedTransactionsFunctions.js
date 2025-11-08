@@ -41,7 +41,7 @@ export const handleTimeCalculation = (minuteDuration, selectedTeamMember, startT
  * Create or update the 'selectedItems' state based on passedTransactionData.
  */
 export const populateState = (passedTransactionData, customerData, initialState) => {
-   const { category, company_name, date, duration, first_name, last_name, notes, user_id, timesheet_entry_id } = passedTransactionData || {};
+   const { category, date, duration, notes, user_id, timesheet_entry_id, ai_suggestion, company_name, first_name, last_name } = passedTransactionData || {};
 
    const {
       customersList: { activeCustomerData: { activeCustomers = [] } = {} } = {},
@@ -49,13 +49,28 @@ export const populateState = (passedTransactionData, customerData, initialState)
       workDescriptionsList: { activeWorkDescriptionsData: { workDescriptions = [] } = {} } = {}
    } = customerData || {};
 
-   const foundCustomer = activeCustomers.find(c => c.display_name === `${first_name} ${last_name}` || c.display_name === company_name);
+   // Try to prefill the customer without using AI by matching names
+   const normalize = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
+   const company = normalize(company_name);
+   const first = normalize(first_name);
+   const last = normalize(last_name);
+   const fullNameSpace = first && last ? `${first} ${last}` : '';
+   const fullNameComma = first && last ? `${last}, ${first}` : '';
+
+   const foundCustomer =
+      activeCustomers.find(c => {
+         const display = normalize(c?.display_name);
+         return (company && display === company) || (fullNameSpace && display === fullNameSpace) || (fullNameComma && display === fullNameComma);
+      }) || null;
+
    const foundTeamMember = activeUsers.find(u => u.user_id === user_id);
-   const foundWorkDescription = workDescriptions.find(jobType => jobType.general_work_description?.toLowerCase() === category?.toLowerCase());
+   const foundWorkDescription =
+      workDescriptions.find(jobType => jobType.general_work_description_id === ai_suggestion?.suggested_general_work_description_id) ||
+      workDescriptions.find(jobType => jobType.general_work_description?.toLowerCase() === (category || '').toLowerCase());
 
    return {
       ...initialState,
-      selectedCustomer: foundCustomer || null,
+      selectedCustomer: foundCustomer || initialState.selectedCustomer,
       selectedJob: null,
       selectedTeamMember: foundTeamMember || null,
       selectedGeneralWorkDescription: foundWorkDescription || null,
@@ -63,6 +78,9 @@ export const populateState = (passedTransactionData, customerData, initialState)
       // Default to current time if date not provided
       selectedDate: date ? dayjs(date) : dayjs(),
       minutes: duration || '',
-      timesheetEntryID: timesheet_entry_id || null
+      timesheetEntryID: timesheet_entry_id || null,
+      aiSuggestion: ai_suggestion || null,
+      // Preserve original category text when provided, else fallback to matched work description label
+      category: category || foundWorkDescription?.general_work_description || null
    };
 };

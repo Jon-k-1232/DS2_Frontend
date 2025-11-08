@@ -66,6 +66,31 @@ export const fetchCustomerProfileInformation = async (accountID, userID, custome
    }
 };
 
+export const fetchCustomers = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+   const params = { page, limit };
+   if (search && search.trim().length) params.search = search.trim();
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/customer/activeCustomers/${accountID}/${userID}`, {
+         ...headers(token),
+         params
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching customers:', error);
+      return {
+         status: 500,
+         message: error.message || 'Unable to fetch customers.',
+         customersList: {
+            activeCustomerData: {
+               grid: { rows: [], columns: [] },
+               pagination: { page, limit, totalItems: 0, totalPages: 0 },
+               searchTerm: search
+            }
+         }
+      };
+   }
+};
+
 export const fetchSingleUser = async (accountID, userID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/user/fetchSingleUser/${accountID}/${userID}`, headers(token));
@@ -166,6 +191,64 @@ export const exportAllTransactions = async (accountID, userID, token, search = '
    }
 };
 
+export const fetchPayments = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+   const params = { page, limit };
+   if (search && search.trim().length) {
+      params.search = search.trim();
+   }
+
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/payments/getPayments/${accountID}/${userID}`, {
+         ...headers(token),
+         params
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching payments:', error);
+      return {
+         status: 500,
+         message: error.message || 'Unable to fetch payments.',
+         paymentsList: {
+            activePaymentsData: {
+               grid: { rows: [], columns: [] },
+               pagination: {
+                  page,
+                  limit,
+                  totalItems: 0,
+                  totalPages: 0
+               },
+               searchTerm: search
+            }
+         }
+      };
+   }
+};
+
+export const fetchInvoices = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+   const params = { page, limit };
+   if (search && search.trim().length) params.search = search.trim();
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/invoices/getInvoicesPaginated/${accountID}/${userID}`, {
+         ...headers(token),
+         params
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching invoices:', error);
+      return {
+         status: 500,
+         message: error.message || 'Unable to fetch invoices.',
+         invoicesList: {
+            activeInvoiceData: {
+               grid: { rows: [], columns: [] },
+               pagination: { page, limit, totalItems: 0, totalPages: 0 },
+               searchTerm: search
+            }
+         }
+      };
+   }
+};
+
 export const fetchSinglePayment = async (paymentID, accountID, userID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/payments/getSinglePayment/${paymentID}/${accountID}/${userID}`, headers(token));
@@ -185,6 +268,31 @@ export const fetchSingleWriteOff = async (writeOffID, accountID, userID, token) 
    } catch (error) {
       console.error('Error fetching single write off:', error);
       return [];
+   }
+};
+
+export const fetchWriteOffs = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+   const params = { page, limit };
+   if (search && search.trim().length) params.search = search.trim();
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/writeOffs/getWriteOffs/${accountID}/${userID}`, {
+         ...headers(token),
+         params
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching write-offs:', error);
+      return {
+         status: 500,
+         message: error.message || 'Unable to fetch write-offs.',
+         writeOffsList: {
+            activeWriteOffsData: {
+               grid: { rows: [], columns: [] },
+               pagination: { page, limit, totalItems: 0, totalPages: 0 },
+               searchTerm: search
+            }
+         }
+      };
    }
 };
 
@@ -280,6 +388,44 @@ export const fetchAccountInformation = async (accountID, userID, token) => {
    }
 };
 
+export const fetchAiIntegrationSettings = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}`, {
+         ...headers(token),
+         params: { t: Date.now() } // cache-buster to avoid 304/empty bodies
+      });
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching AI integration settings:', error);
+      return { status: 500, message: 'Unable to load AI integration settings.' };
+   }
+};
+
+export const fetchAiIntegrationModels = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}/models`, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching AI integration models:', error);
+      return {
+         status: error?.response?.status || 500,
+         message: error?.response?.data?.message || 'Unable to load AI integration models.',
+         connected: false,
+         models: []
+      };
+   }
+};
+
+export const revealAiIntegrationKey = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}/reveal`, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error revealing AI integration key:', error);
+      return { status: 500, message: 'Unable to reveal AI integration key.' };
+   }
+};
+
 export const fetchAccountAutomations = async (accountID, userID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/account/automations/${accountID}/${userID}`, headers(token));
@@ -319,12 +465,7 @@ export const fetchAppVersion = async () => {
       const text = await response.text();
       const trimmed = text.trim();
 
-      if (
-         !trimmed ||
-         /^<!doctype/i.test(trimmed) ||
-         /^<html/i.test(trimmed) ||
-         contentType.includes('text/html')
-      ) {
+      if (!trimmed || /^<!doctype/i.test(trimmed) || /^<html/i.test(trimmed) || contentType.includes('text/html')) {
          return 'Unknown';
       }
 
@@ -332,21 +473,6 @@ export const fetchAppVersion = async () => {
    } catch (error) {
       console.error('Error fetching version:', error);
       return 'Unknown';
-   }
-};
-
-export const fetchInvalidTimesheets = async (accountID, userID, token, page = 1, limit = 10) => {
-   try {
-      const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getInvalidTimesheets/${accountID}/${userID}`, {
-         headers: headers(token),
-         params: { page, limit }
-      });
-
-      const { invalidTimesheets, pagination } = response.data;
-      return { invalidTimesheets, pagination };
-   } catch (error) {
-      console.error('Error fetching invalid timesheets:', error);
-      return { invalidTimesheets: [], pagination: {} };
    }
 };
 

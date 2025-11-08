@@ -5,6 +5,7 @@ import TimeTrackerStatusGrid from '../../../Pages/Transactions/TransactionGrids/
 import EmployeeEntryGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeEntryGrid';
 import EmployeeTimesheetsGrid from '../../../Pages/Transactions/TransactionGrids/EmployeeTimesheetsGrid';
 import TimesheetsByMonthGrid from '../../../Pages/Transactions/TransactionGrids/TimesheetsByMonthGrid';
+import AiSuggestionsGrid from '../../../Pages/Transactions/TransactionGrids/AiSuggestionsGrid';
 import { useRowData } from '../../../Routes/useRowData';
 import { postUserTimeEntryToTransactions } from '../../../Services/ApiCalls/PostCalls';
 import Time from '../../../Pages/Transactions/TransactionForms/AddTransaction/Time';
@@ -77,7 +78,16 @@ export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomer
 
    return (
       <Stack spacing={3}>
-         <TimeTrackerStatusGrid refreshTrackerStatusKey={refreshTrackerStatusKey} />
+         <TimeTrackerStatusGrid
+            refreshTrackerStatusKey={refreshTrackerStatusKey}
+            onOpenAiSuggestions={() => {
+               // Route to AI suggestions grid
+               setSelectedColumnName(null);
+               if (location.pathname !== `${basePath}/aiSuggestions`) {
+                  navigate(`${basePath}/aiSuggestions`, { replace: true, state: { user_id: selectedUserID } });
+               }
+            }}
+         />
 
          <Divider sx={{ marginTop: '20px' }} />
 
@@ -94,6 +104,7 @@ export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomer
          )}
 
          <Routes>
+            <Route path='aiSuggestions' element={<AiSuggestionsGrid selectedUserID={selectedUserID} refreshKey={refreshTrackerStatusKey} />} />
             {selectedColumnName === 'transaction_count' && (
                <Route
                   path='employeeEntries'
@@ -113,7 +124,6 @@ export default function EmployeeTimeTrackerSubRoutes({ customerData, setCustomer
                />
             )}
          </Routes>
-
       </Stack>
    );
 }

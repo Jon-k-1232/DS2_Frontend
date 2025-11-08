@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Box, TextField, Checkbox, FormControlLabel, Radio, RadioGroup, FormControl, Typography, Autocomplete } from '@mui/material';
 import dayjs from 'dayjs';
 import { handleBillableStatus, handleTimeCalculation } from './SharedTransactionsFunctions';
+import FieldSuggestion from '../../../../../Components/Suggestions/FieldSuggestion';
 
-export default function TimeOptions({ customerData, selectedItems, setSelectedItems }) {
+export default function TimeOptions({ customerData, selectedItems, setSelectedItems, fieldSuggestions = {} }) {
    const [minutes, setMinutes] = useState('');
    const [startTime, setStartTime] = useState(dayjs().format());
    const [endTime, setEndTime] = useState(dayjs().format());
@@ -35,6 +36,9 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
 
    return (
       <Box sx={{ display: 'grid', gap: 2 }}>
+         {/* Only show Suggested general work description */}
+         <FieldSuggestion label='general work description' suggestion={fieldSuggestions?.generalWorkDescription} confidence={fieldSuggestions?.confidence} />
+
          <Autocomplete
             required
             size='small'
@@ -46,6 +50,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
             renderInput={params => <TextField {...params} label='General Work Description' variant='standard' />}
          />
 
+         {/* Removed Suggested notes input per requirements; keep detailed description as-is */}
          <TextField
             sx={{ width: 350, marginTop: '10px' }}
             variant='standard'

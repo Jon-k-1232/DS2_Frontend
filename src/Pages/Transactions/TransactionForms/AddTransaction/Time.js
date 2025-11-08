@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { Button, Typography, Alert, Box } from '@mui/material';
 import dayjs from 'dayjs';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
@@ -39,6 +39,22 @@ export default function Time({ customerData, setCustomerData, passedTransactionD
    // Destructure selectedItems
    const { unitCost, quantity } = selectedItems;
 
+   const suggestionDetails = useMemo(() => {
+      const aiSuggestion = passedTransactionData?.ai_suggestion || {};
+      const workDescriptions = customerData?.workDescriptionsList?.activeWorkDescriptionsData?.workDescriptions || [];
+      const matchedWorkDescription = workDescriptions.find(work => work.general_work_description_id === aiSuggestion?.suggested_general_work_description_id);
+
+      return {
+         customer: '',
+         category: '',
+         generalWorkDescription: matchedWorkDescription?.general_work_description || aiSuggestion?.suggested_category || '',
+         notes: '',
+         confidence: aiSuggestion?.ai_confidence || null,
+         reason: '',
+         source: aiSuggestion?.source || 'ai'
+      };
+   }, [passedTransactionData?.ai_suggestion, customerData?.workDescriptionsList?.activeWorkDescriptionsData?.workDescriptions]);
+
    useEffect(() => {
       // Only run once on mount
       const newState = populateState(passedTransactionData, customerData, initialState);
@@ -61,6 +77,12 @@ export default function Time({ customerData, setCustomerData, passedTransactionD
             accountJobsList: postedItem.accountJobsList,
             paymentsList: postedItem.paymentsList
          });
+         // Broadcast a lightweight event so any listeners (e.g., TransactionsGrid) can refetch current page
+         try {
+            window.dispatchEvent(new CustomEvent('transactions:updated'));
+         } catch (e) {
+            // no-op if window not available
+         }
          if (onSuccess) {
             onSuccess();
          }
@@ -70,6 +92,8 @@ export default function Time({ customerData, setCustomerData, passedTransactionD
    return (
       <>
          <InformationDialog dialogText={dialogText} dialogTitle='Time Transaction Help' toolTipText='Info' buttonLocation={{ position: 'absolute', top: '1em', right: '1em', cursor: 'pointer' }} />
+
+         {/* Removed AI reason/confidence informational alert per requirements */}
 
          <InitialSelectionOptions
             customerData={customerData}
@@ -81,7 +105,12 @@ export default function Time({ customerData, setCustomerData, passedTransactionD
 
          <RetainerSelection selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 
-         <TimeOptions customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
+         <TimeOptions
+            customerData={customerData}
+            selectedItems={selectedItems}
+            setSelectedItems={data => setSelectedItems(data)}
+            fieldSuggestions={{ generalWorkDescription: suggestionDetails.generalWorkDescription, confidence: suggestionDetails.confidence }}
+         />
 
          <Typography variant='body1'>
             Total:

@@ -44,6 +44,7 @@ export default function RetainersGrid({ customerData, setCustomerData }) {
          <Stack spacing={3}>
             <ExpandableGrid
                title='Retainers and Deposits'
+               passedHeight={window.innerHeight - 140}
                idField='retainer_id'
                parentColumnName='parent_retainer_id'
                tableData={activeRetainerData}

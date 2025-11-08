@@ -28,7 +28,8 @@ const DataGridTable = ({
    getRowId,
    showQuickFilter = true,
    renderToolbarContent,
-   renderExport
+   renderExport,
+   initiallyHiddenColumns = []
 }) => {
    const navigate = useNavigate();
    const { rows = [], columns = [], totalCount = 0 } = tableData;
@@ -103,9 +104,15 @@ const DataGridTable = ({
 
    const dynamicColumns = rows.length && columns.length ? getDynamicColumnWidths(rows, columns) : columns;
 
+   // Build initial column visibility model: columns listed are hidden (false), others default to true
+   const columnVisibilityModel = (initiallyHiddenColumns || []).reduce((acc, col) => {
+      acc[col] = false;
+      return acc;
+   }, {});
+
    return (
       <Box ref={scrollRef} sx={{ height: passedHeight || 680, width: '100%' }}>
-         <DataGrid rows={rows} columns={dynamicColumns} {...gridProps} />
+         <DataGrid rows={rows} columns={dynamicColumns} initialState={{ columns: { columnVisibilityModel } }} {...gridProps} />
       </Box>
    );
 };

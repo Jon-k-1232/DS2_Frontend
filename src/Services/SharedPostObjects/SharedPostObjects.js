@@ -47,7 +47,13 @@ export const formObjectForTransactionPost = (selectedItems, loggedInUser) => {
       totalTransaction: (filteredItems.quantity * filteredItems.unitCost).toFixed(2),
       selectedRetainerID: filteredItems?.selectedRetainer?.retainer_id || null,
       transactionType: filteredItems?.transactionType,
-      quantity: filteredItems?.quantity
+      quantity: filteredItems?.quantity,
+      // Provide safe provenance and AI suggestion metadata
+      timesheetEntryID: filteredItems?.timesheetEntryID || null,
+      aiSuggestion: filteredItems?.aiSuggestion || null,
+      minutes: filteredItems?.minutes || null,
+      entity: filteredItems?.entity || null,
+      category: filteredItems?.category || null
    });
 };
 
