@@ -18,8 +18,22 @@ RUN npm install --force
 # Copy app source code
 COPY . .
 
-# Build the app
+# Accept build arguments
+ARG REACT_APP_ENV=production
+ARG REACT_APP_API_PROD_ENDPOINT=https://ds2.kimmeloffice.com/ds2_backend
+
+# Set as environment variables for the build
+ENV REACT_APP_ENV=$REACT_APP_ENV
+ENV REACT_APP_API_PROD_ENDPOINT=$REACT_APP_API_PROD_ENDPOINT
+
+# Build the app for production
 RUN npm run build
 
-# Start the app
-CMD [ "npm", "start" ]
+# Install serve to run the production build
+RUN npm install -g serve
+
+# Expose port 3003
+EXPOSE 3003
+
+# Serve the production build on port 3003
+CMD ["serve", "-s", "build", "-l", "3003"]

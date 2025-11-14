@@ -13,7 +13,7 @@ const headers = memoryToken => {
 
 export const fetchServerHealth = async (accountID, userID, token) => {
    try {
-      const response = await axios.get(`${config.API_ENDPOINT}/health/status/${accountID}/${userID}`, headers(token));
+      const response = await axios.get(`${config.API_ENDPOINT}/api/health/backend/stats/${accountID}/${userID}`, headers(token));
       const serverHealth = response.data;
       return serverHealth;
    } catch (error) {
