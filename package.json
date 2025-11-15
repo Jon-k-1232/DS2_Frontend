@@ -40,7 +40,7 @@
    },
    "scripts": {
       "start": "REACT_APP_ENV=production PORT=3003 react-scripts start",
-      "start:dev": "REACT_APP_ENV=development PORT=3003 react-scripts start",
+      "start:local:dev": "REACT_APP_ENV=development PORT=3003 react-scripts start",
       "build": "REACT_APP_ENV=production PORT=3003 react-scripts build",
       "test": "react-scripts test"
    },

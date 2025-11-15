@@ -8,7 +8,7 @@ import Scrollbar from '../../Components/Scrollbar';
 import NavSection from '../../Components/NavSection';
 import { MHidden } from '../../Components/@material-extend';
 import sidebarRoutes from '../../Routes/SidebarRoutes';
-import ServerStatus from './ServerStatus';
+// ServerStatus component removed - health checks now handled by AWS
 
 const DRAWER_WIDTH = 290;
 
@@ -70,7 +70,6 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }) {
                }}
             >
                {renderContent}
-               <ServerStatus />
             </Drawer>
          </MHidden>
 
@@ -86,7 +85,6 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }) {
                }}
             >
                {renderContent}
-               <ServerStatus />
             </Drawer>
          </MHidden>
       </RootStyle>
