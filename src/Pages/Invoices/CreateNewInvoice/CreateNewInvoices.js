@@ -68,12 +68,15 @@ export default function CreateNewInvoices({ customerData, setCustomerData }) {
          const downloadedPdfFile = await fetchFileDownload(postedItem.fileLocation, 'zipped_files.zip', accountID, userID);
          if (downloadedPdfFile.status !== 200) return setPostStatus(downloadedPdfFile);
 
+         // Refresh the outstanding balance data
+         const updatedOutstandingBalanceList = await getOutstandingBalanceList(accountID, userID, token);
+         setOutstandingBalanceData(updatedOutstandingBalanceList);
+
          setIsLoading(false);
          setTimeout(() => setPostStatus(null), 2000);
 
          setSelectedRowsToInvoice(initialState);
          setCustomerData({ ...customerData, invoicesList: postedItem.invoicesList });
-         window.location.reload();
       }
    };
 
