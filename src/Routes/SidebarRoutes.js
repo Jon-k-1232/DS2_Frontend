@@ -48,6 +48,11 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
+            title: 'Pending Payments',
+            path: '/transactions/pendingPayments',
+            icon: getIcon(clockFill)
+         },
+         {
             title: 'Retainers and Deposits',
             path: '/transactions/customerRetainers',
             icon: getIcon(clockFill)
