@@ -34,17 +34,6 @@ export const postNewPayment = async (data, accountID, userID, token) => {
    }
 };
 
-export const createAiIntegration = async (data, accountID, userID, token) => {
-   const url = `${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}`;
-   try {
-      const response = await axios.post(url, { integration: data }, headers(token));
-      return response.data;
-   } catch (error) {
-      console.error('Error while creating AI integration:', error);
-      throw error;
-   }
-};
-
 export const postNewWriteOff = async (data, accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/writeOffs/createWriteOffs/${accountID}/${userID}`;
    try {

@@ -3,7 +3,6 @@ import { Route, Routes } from 'react-router-dom';
 import AccountUsersGrid from '../../../Pages/Account/AccountGrids/AccountUsersGrid';
 import AccountSettings from '../../../Pages/Account/AccountSettings/AccountSettings';
 import AccountAutomations from '../../../Pages/Account/Automations/AccountAutomations';
-import AiIntegrationSettings from '../../../Pages/Account/AIIntegration/AiIntegrationSettings';
 import UsersSubRoutes from './UsersSubRoutes';
 import Page from '../../../Components/Page';
 import { Stack } from '@mui/material';
@@ -34,14 +33,6 @@ export default function AccountRoutes({ setPageTitle, customerData, setCustomerD
                   element={
                      <AdminProtectedAccessRoute>
                         <AccountAutomations />
-                     </AdminProtectedAccessRoute>
-                  }
-               />
-               <Route
-                  path='aiIntegration'
-                  element={
-                     <AdminProtectedAccessRoute>
-                        <AiIntegrationSettings />
                      </AdminProtectedAccessRoute>
                   }
                />

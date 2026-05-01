@@ -165,13 +165,3 @@ export const updateAccountAutomationSetting = async (accountID, userID, payload,
    }
 };
 
-export const updateAiIntegration = async (data, accountID, userID, token) => {
-   const url = `${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}`;
-   try {
-      const response = await axios.put(url, { integration: data }, headers(token));
-      return response.data;
-   } catch (error) {
-      console.error('Error while updating AI integration:', error);
-      throw error;
-   }
-};

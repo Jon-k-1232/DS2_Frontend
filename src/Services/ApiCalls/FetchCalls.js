@@ -388,44 +388,6 @@ export const fetchAccountInformation = async (accountID, userID, token) => {
    }
 };
 
-export const fetchAiIntegrationSettings = async (accountID, userID, token) => {
-   try {
-      const response = await axios.get(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}`, {
-         ...headers(token),
-         params: { t: Date.now() } // cache-buster to avoid 304/empty bodies
-      });
-      return response.data;
-   } catch (error) {
-      console.error('Error fetching AI integration settings:', error);
-      return { status: 500, message: 'Unable to load AI integration settings.' };
-   }
-};
-
-export const fetchAiIntegrationModels = async (accountID, userID, token) => {
-   try {
-      const response = await axios.get(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}/models`, headers(token));
-      return response.data;
-   } catch (error) {
-      console.error('Error fetching AI integration models:', error);
-      return {
-         status: error?.response?.status || 500,
-         message: error?.response?.data?.message || 'Unable to load AI integration models.',
-         connected: false,
-         models: []
-      };
-   }
-};
-
-export const revealAiIntegrationKey = async (accountID, userID, token) => {
-   try {
-      const response = await axios.get(`${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}/reveal`, headers(token));
-      return response.data;
-   } catch (error) {
-      console.error('Error revealing AI integration key:', error);
-      return { status: 500, message: 'Unable to reveal AI integration key.' };
-   }
-};
-
 export const fetchAccountAutomations = async (accountID, userID, token) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/account/automations/${accountID}/${userID}`, headers(token));

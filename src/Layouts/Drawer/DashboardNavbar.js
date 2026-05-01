@@ -5,6 +5,7 @@ import { alpha, styled } from '@mui/material/styles';
 import { Box, Stack, AppBar, Toolbar, IconButton, Typography } from '@mui/material';
 import { MHidden } from '../../Components/@material-extend';
 import AccountPopover from './AccountPopover';
+import NotificationBell from '../../Components/Notifications/NotificationBell';
 import theme from '../../Theme/typography';
 
 const DRAWER_WIDTH = 280;
@@ -50,6 +51,7 @@ export default function DashboardNavbar({ onOpenSidebar, pageTitle }) {
         <Box sx={{ flexGrow: 1 }} />
 
         <Stack direction='row' alignItems='center' spacing={{ xs: 0.5, sm: 1.5 }}>
+          <NotificationBell />
           <AccountPopover />
         </Stack>
       </ToolbarStyle>

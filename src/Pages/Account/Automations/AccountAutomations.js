@@ -3,16 +3,12 @@ import { Alert, CircularProgress, FormControlLabel, Paper, Stack, Switch, TextFi
 import Autocomplete from '@mui/material/Autocomplete';
 import Checkbox from '@mui/material/Checkbox';
 import { context } from '../../../App';
-import { fetchAccountAutomations, fetchAiIntegrationSettings } from '../../../Services/ApiCalls/FetchCalls';
+import { fetchAccountAutomations } from '../../../Services/ApiCalls/FetchCalls';
 import { updateAccountAutomationSetting } from '../../../Services/ApiCalls/PutCalls';
-import axios from 'axios';
-import config from '../../../config';
-import TokenService from '../../../Services/TokenService';
 
 const AccountAutomations = () => {
    const { accountID, userID, token } = useContext(context).loggedInUser;
    const [automations, setAutomations] = useState([]);
-   const [aiEnabled, setAiEnabled] = useState(false);
    const [availableUsers, setAvailableUsers] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
@@ -23,10 +19,7 @@ const AccountAutomations = () => {
       setLoading(true);
       setError('');
       try {
-         const [autoResp, aiResp] = await Promise.all([fetchAccountAutomations(accountID, userID, token), fetchAiIntegrationSettings(accountID, userID, token)]);
-         const response = autoResp;
-         const aiIntegration = aiResp?.integration;
-         setAiEnabled(Boolean(aiIntegration?.isEnabled));
+         const response = await fetchAccountAutomations(accountID, userID, token);
          if (response.status !== 200) {
             setAutomations(response.automations || []);
             setAvailableUsers(response.availableUsers || []);
@@ -229,7 +222,7 @@ const AccountAutomations = () => {
          ) : automations.length ? (
             <Stack spacing={2}>
                {automations
-                  .filter(a => (a.key === 'ai_training_weekly_upload' ? aiEnabled : true))
+                  .filter(a => a.key !== 'ai_training_weekly_upload')
                   .map(automation => {
                      const recipientsDisabled = automation.sendToAll;
                      const selectedOptions = userOptions.filter(option => automation.recipientUserIds.includes(option.userId));
@@ -251,7 +244,6 @@ const AccountAutomations = () => {
                                        disabled={Boolean(updatingKeys[automation.key])}
                                        inputProps={{ 'aria-label': `${automation.label} automation toggle` }}
                                     />
-                                    {automation.key === 'ai_training_weekly_upload' && aiEnabled && <ManualRunButton accountID={accountID} userID={userID} />}
                                     <Typography variant='body2' color='text.secondary'>
                                        {automation.isEnabled ? 'On' : 'Off'}
                                     </Typography>
@@ -318,44 +310,6 @@ const AccountAutomations = () => {
             </Stack>
          ) : (
             <Alert severity='info'>No automations are currently available for configuration.</Alert>
-         )}
-      </Stack>
-   );
-};
-
-const ManualRunButton = ({ accountID, userID }) => {
-   const [running, setRunning] = useState(false);
-   const [message, setMessage] = useState('');
-   const token = TokenService.getAuthToken();
-
-   const handleRun = async () => {
-      setRunning(true);
-      setMessage('');
-      try {
-         const url = `${config.API_ENDPOINT}/ai-integration/${accountID}/${userID}/upload-training`;
-         const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
-         const uploaded = res?.data?.uploaded ?? 0;
-         setMessage(`Uploaded ${uploaded} training example(s).`);
-      } catch (err) {
-         setMessage(err?.response?.data?.message || 'Failed to run upload.');
-      } finally {
-         setRunning(false);
-      }
-   };
-
-   return (
-      <Stack direction='row' spacing={1} alignItems='center'>
-         <button
-            onClick={handleRun}
-            disabled={running}
-            style={{ padding: '6px 10px', borderRadius: 4, background: '#2e7d32', color: 'white', border: 'none', cursor: running ? 'default' : 'pointer' }}
-         >
-            {running ? 'Running…' : 'Run now'}
-         </button>
-         {message && (
-            <Typography variant='caption' color='text.secondary'>
-               {message}
-            </Typography>
          )}
       </Stack>
    );

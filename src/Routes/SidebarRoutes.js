@@ -53,6 +53,11 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
+            title: 'Billing Review',
+            path: '/transactions/billingReview',
+            icon: getIcon(clockFill)
+         },
+         {
             title: 'Retainers and Deposits',
             path: '/transactions/customerRetainers',
             icon: getIcon(clockFill)
@@ -163,11 +168,6 @@ export const sidebarRoutes = [
          {
             title: 'Automations',
             path: '/account/automations',
-            icon: getIcon(clockFill)
-         },
-         {
-            title: 'AI Integration',
-            path: '/account/aiIntegration',
             icon: getIcon(clockFill)
          }
       ]
