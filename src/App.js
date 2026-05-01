@@ -11,14 +11,20 @@ export default function App() {
    const windowAccountID = window.sessionStorage.getItem('accountID') || null;
    const windowToken = window.sessionStorage.getItem('token') || null;
    const windowRequiresReset = window.sessionStorage.getItem('requiresPasswordReset') === 'true';
+   // Restore identity-derived fields so a page reload keeps protected routes
+   // (e.g. /transactions/*) accessible without forcing a re-login. LoginForm
+   // is responsible for writing these on a fresh login.
+   const windowAccessLevel = window.sessionStorage.getItem('accessLevel') || null;
+   const windowDisplayName = window.sessionStorage.getItem('displayName') || null;
+   const windowRole = window.sessionStorage.getItem('role') || null;
 
    let [loggedInUser, setLoggedInUser] = useState(
       {
          accountID: windowAccountID,
          userID: windowUserID,
-         displayName: null,
-         role: null,
-         accessLevel: null,
+         displayName: windowDisplayName,
+         role: windowRole,
+         accessLevel: windowAccessLevel,
          token: windowToken,
          requiresPasswordReset: windowRequiresReset
       } || {}

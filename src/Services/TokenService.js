@@ -19,6 +19,9 @@ const TokenService = {
     window.sessionStorage.removeItem('accountID');
     window.sessionStorage.removeItem('token');
     window.sessionStorage.removeItem('requiresPasswordReset');
+    window.sessionStorage.removeItem('accessLevel');
+    window.sessionStorage.removeItem('displayName');
+    window.sessionStorage.removeItem('role');
   },
   tokenExpirationTime(memoryToken) {
     const token = memoryToken || window.sessionStorage.getItem('token');
@@ -61,6 +64,9 @@ const TokenService = {
       window.sessionStorage.removeItem('accountID');
       window.sessionStorage.removeItem('token');
       window.sessionStorage.removeItem('requiresPasswordReset');
+      window.sessionStorage.removeItem('accessLevel');
+      window.sessionStorage.removeItem('displayName');
+      window.sessionStorage.removeItem('role');
     }
     return { isExpired, resetContext };
   }

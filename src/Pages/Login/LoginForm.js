@@ -31,6 +31,13 @@ export default function LoginForm() {
          TokenService.saveAuthToken(fetchedToken.authToken);
          window.sessionStorage.setItem('userID', user_id);
          window.sessionStorage.setItem('accountID', account_id);
+         // Persist identity-derived fields so a page reload doesn't lose
+         // them (App.js restores them on mount). Without this, a refresh
+         // mid-session falls through to the protected-route guard's null
+         // accessLevel branch and the user sees "Unauthorized".
+         if (access_level) window.sessionStorage.setItem('accessLevel', access_level);
+         if (display_name) window.sessionStorage.setItem('displayName', display_name);
+         if (job_title) window.sessionStorage.setItem('role', job_title);
          if (requiresPasswordReset) {
             window.sessionStorage.setItem('requiresPasswordReset', 'true');
          } else {

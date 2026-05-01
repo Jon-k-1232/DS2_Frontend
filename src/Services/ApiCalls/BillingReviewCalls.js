@@ -57,6 +57,32 @@ export const fetchPreInvoiceReview = async (accountID, userID, token, { customer
    }
 };
 
+export const fetchReprocessCount = async (accountID, userID, token, { mode = 'unprocessed' } = {}) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/billing-review/reprocess-count/${accountID}/${userID}`, {
+         ..._headers(token),
+         params: { mode }
+      });
+      return response.data;
+   } catch (error) {
+      return { count: 0, eligible: false, error: error.message };
+   }
+};
+
+export const triggerReprocess = async (accountID, userID, token, { mode = 'unprocessed', batch_size = 500 } = {}) => {
+   try {
+      const response = await axios.post(
+         `${config.API_ENDPOINT}/billing-review/reprocess/${accountID}/${userID}`,
+         { mode, batch_size },
+         _headers(token)
+      );
+      return response.data;
+   } catch (error) {
+      const data = error?.response?.data || {};
+      throw Object.assign(new Error(data.message || error.message), { code: data.code, status: error?.response?.status });
+   }
+};
+
 export const updateFinalizedTransaction = async (accountID, userID, transactionID, { updates, confirmCustomerChange = false }, token) => {
    try {
       const response = await axios.put(
