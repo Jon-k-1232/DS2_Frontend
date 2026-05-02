@@ -29,7 +29,16 @@ const initialState = {
    timesheetEntryID: null
 };
 
-export default function Time({ customerData, setCustomerData, passedTransactionData = {}, passedPostCall = postTransaction, onSuccess }) {
+export default function Time({
+   customerData,
+   setCustomerData,
+   passedTransactionData = {},
+   passedPostCall = postTransaction,
+   onSuccess,
+   submitLabel = 'Submit',
+   secondaryButton = null,
+   helperText = null
+}) {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
@@ -121,8 +130,24 @@ export default function Time({ customerData, setCustomerData, passedTransactionD
          </Typography>
 
          <Box style={{ textAlign: 'center' }}>
-            <Button onClick={handleSubmit}>Submit</Button>
-            {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+               <Button onClick={handleSubmit} variant='contained'>{submitLabel}</Button>
+               {secondaryButton && (
+                  <Button
+                     onClick={() => secondaryButton.onClick && secondaryButton.onClick(selectedItems)}
+                     variant={secondaryButton.variant || 'outlined'}
+                     disabled={secondaryButton.disabled}
+                  >
+                     {secondaryButton.label}
+                  </Button>
+               )}
+            </Box>
+            {helperText && (
+               <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 0.75 }}>
+                  {helperText}
+               </Typography>
+            )}
+            {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'} sx={{ mt: 1 }}>{postStatus.message}</Alert>}
          </Box>
       </>
    );

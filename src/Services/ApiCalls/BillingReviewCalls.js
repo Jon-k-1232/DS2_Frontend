@@ -21,6 +21,12 @@ export const fetchPendingHeldEntries = async (
       trackerContains,
       notesContains,
       aiConfMin,
+      customerId,
+      employeeUserId,
+      workDescId,
+      entityEquals,
+      sortField,
+      sortDirection,
       page = 1,
       limit = 50
    } = {}
@@ -31,10 +37,16 @@ export const fetchPendingHeldEntries = async (
    if (dateStart) params.date_start = dateStart;
    if (dateEnd) params.date_end = dateEnd;
    if (entityContains) params.entity_contains = entityContains;
+   if (entityEquals) params.entity_equals = entityEquals;
    if (employeeContains) params.employee_contains = employeeContains;
    if (trackerContains) params.tracker_contains = trackerContains;
    if (notesContains) params.notes_contains = notesContains;
    if (aiConfMin != null && aiConfMin !== '') params.ai_conf_min = aiConfMin;
+   if (customerId) params.customerId = customerId;
+   if (employeeUserId) params.employeeUserId = employeeUserId;
+   if (workDescId) params.workDescId = workDescId;
+   if (sortField) params.sortField = sortField;
+   if (sortDirection) params.sortDirection = sortDirection;
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/billing-review/pending/${accountID}/${userID}`, { ..._headers(token), params });
       return response.data;
@@ -67,10 +79,15 @@ export const fetchConsolidatedTransactions = async (
       workDescId,
       jobContains,
       trackerContains,
+      noteContains,
+      entityContains,
+      entityEquals,
       aiConfMin,
       billableOnly, // 'true' | 'false' | undefined
       unbilledOnly = false,
       aiOnly = false,
+      sortField,
+      sortDirection,
       page = 1,
       limit = 200
    } = {}
@@ -81,7 +98,12 @@ export const fetchConsolidatedTransactions = async (
    if (workDescId) params.workDescId = workDescId;
    if (jobContains) params.jobContains = jobContains;
    if (trackerContains) params.trackerContains = trackerContains;
+   if (noteContains) params.noteContains = noteContains;
+   if (entityContains) params.entityContains = entityContains;
+   if (entityEquals) params.entityEquals = entityEquals;
    if (aiConfMin != null && aiConfMin !== '') params.aiConfMin = aiConfMin;
+   if (sortField) params.sortField = sortField;
+   if (sortDirection) params.sortDirection = sortDirection;
    if (billableOnly === 'true' || billableOnly === 'false') params.billableOnly = billableOnly;
    if (unbilledOnly) params.unbilledOnly = 'true';
    if (aiOnly) params.aiOnly = 'true';
@@ -91,6 +113,19 @@ export const fetchConsolidatedTransactions = async (
    } catch (error) {
       console.error('Error fetching consolidated transactions:', error);
       return { transactions: [], totalSum: 0, totalCount: 0, error: error.message };
+   }
+};
+
+export const fetchDistinctEntities = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(
+         `${config.API_ENDPOINT}/billing-review/distinct-entities/${accountID}/${userID}`,
+         _headers(token)
+      );
+      return response.data?.entities || [];
+   } catch (error) {
+      console.error('Error fetching distinct entities:', error);
+      return [];
    }
 };
 
@@ -125,6 +160,20 @@ export const triggerReprocess = async (accountID, userID, token, { mode = 'unpro
       const response = await axios.post(
          `${config.API_ENDPOINT}/billing-review/reprocess/${accountID}/${userID}`,
          body,
+         _headers(token)
+      );
+      return response.data;
+   } catch (error) {
+      const data = error?.response?.data || {};
+      throw Object.assign(new Error(data.message || error.message), { code: data.code, status: error?.response?.status });
+   }
+};
+
+export const reprocessHeldEntryWithOverrides = async (accountID, userID, entryID, overrides, token) => {
+   try {
+      const response = await axios.post(
+         `${config.API_ENDPOINT}/billing-review/reprocess-with-overrides/${entryID}/${accountID}/${userID}`,
+         { overrides },
          _headers(token)
       );
       return response.data;

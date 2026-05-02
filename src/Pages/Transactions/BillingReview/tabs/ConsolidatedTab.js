@@ -15,12 +15,13 @@ import {
    TableHead,
    TablePagination,
    TableRow,
+   TableSortLabel,
    TextField,
    Tooltip,
    Typography
 } from '@mui/material';
 import { context } from '../../../../App';
-import { fetchConsolidatedTransactions, updateFinalizedTransaction } from '../../../../Services/ApiCalls/BillingReviewCalls';
+import { fetchConsolidatedTransactions, fetchDistinctEntities, updateFinalizedTransaction } from '../../../../Services/ApiCalls/BillingReviewCalls';
 import CascadeImpactPanel from '../components/CascadeImpactPanel';
 import AutoCompleteWithDialog from '../../../../Components/Dialogs/AutoCompleteWithDialog';
 import NewJob from '../../../Jobs/JobForms/AddJob/NewJob';
@@ -101,22 +102,47 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    const [filterEmployeeUserId, setFilterEmployeeUserId] = useState('');
    const [filterWorkDescId, setFilterWorkDescId] = useState('');
    const [filterJob, setFilterJob] = useState('');
-   const [filterTracker, setFilterTracker] = useState('');
+   const [filterNote, setFilterNote] = useState('');
+   const [filterEntity, setFilterEntity] = useState('');
    const [filterAiMin, setFilterAiMin] = useState('');
    const [filterBillable, setFilterBillable] = useState(''); // '' | 'true' | 'false'
    const [debouncedJob, setDebouncedJob] = useState('');
-   const [debouncedTracker, setDebouncedTracker] = useState('');
+   const [debouncedNote, setDebouncedNote] = useState('');
    useEffect(() => { const t = setTimeout(() => setDebouncedJob(filterJob), 300); return () => clearTimeout(t); }, [filterJob]);
-   useEffect(() => { const t = setTimeout(() => setDebouncedTracker(filterTracker), 300); return () => clearTimeout(t); }, [filterTracker]);
+   useEffect(() => { const t = setTimeout(() => setDebouncedNote(filterNote), 300); return () => clearTimeout(t); }, [filterNote]);
+
+   // Distinct entities for the Entity dropdown — fetched once on mount
+   const [entityOptions, setEntityOptions] = useState([]);
+   useEffect(() => {
+      fetchDistinctEntities(accountID, userID, token).then(setEntityOptions);
+   }, [accountID, userID, token]);
+
+   // Sort state
+   const [sortField, setSortField] = useState('transaction_date');
+   const [sortDirection, setSortDirection] = useState('desc');
+   const handleSort = field => {
+      if (sortField === field) {
+         setSortDirection(d => (d === 'asc' ? 'desc' : 'asc'));
+      } else {
+         setSortField(field);
+         setSortDirection('asc');
+      }
+   };
+   const sortHeaderProps = field => ({
+      active: sortField === field,
+      direction: sortField === field ? sortDirection : 'asc',
+      onClick: () => handleSort(field)
+   });
 
    const activeFilterCount = [
       filterCustomerId, filterEmployeeUserId, filterWorkDescId,
-      debouncedJob, debouncedTracker, filterAiMin, filterBillable, aiOnly
+      debouncedJob, debouncedNote, filterEntity, filterAiMin, filterBillable, aiOnly
    ].filter(v => v !== '' && v !== false && v != null).length;
 
    const clearFilters = () => {
       setFilterCustomerId(''); setFilterEmployeeUserId(''); setFilterWorkDescId('');
-      setFilterJob(''); setFilterTracker(''); setFilterAiMin(''); setFilterBillable('');
+      setFilterJob(''); setFilterNote(''); setFilterEntity('');
+      setFilterAiMin(''); setFilterBillable('');
       setAiOnly(false);
       setPage(0);
    };
@@ -135,9 +161,12 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
          employeeUserId: filterEmployeeUserId || undefined,
          workDescId: filterWorkDescId || undefined,
          jobContains: debouncedJob || undefined,
-         trackerContains: debouncedTracker || undefined,
+         noteContains: debouncedNote || undefined,
+         entityEquals: filterEntity || undefined,
          aiConfMin: filterAiMin || undefined,
          billableOnly: filterBillable || undefined,
+         sortField,
+         sortDirection,
          unbilledOnly: true,
          aiOnly,
          page: page + 1,
@@ -151,12 +180,13 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    }, [
       accountID, userID, token, start, end, aiOnly, page, pageSize,
       filterCustomerId, filterEmployeeUserId, filterWorkDescId,
-      debouncedJob, debouncedTracker, filterAiMin, filterBillable
+      debouncedJob, debouncedNote, filterEntity, filterAiMin, filterBillable,
+      sortField, sortDirection
    ]);
 
    useEffect(() => {
       setPage(0);
-   }, [filterCustomerId, filterEmployeeUserId, filterWorkDescId, debouncedJob, debouncedTracker, filterAiMin, filterBillable, aiOnly]);
+   }, [filterCustomerId, filterEmployeeUserId, filterWorkDescId, debouncedJob, debouncedNote, filterEntity, filterAiMin, filterBillable, aiOnly]);
 
    useEffect(() => {
       reload();
@@ -255,7 +285,21 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                   All filters combine (AND). Free-text fields debounce by 300ms.
                </Typography>
             </Stack>
+            {/* Filter order follows column order: Entity, Customer, Job, Work Description, Notes, AI score, Billable, Employee. */}
             <Stack direction='row' spacing={1.5} flexWrap='wrap' useFlexGap>
+               <TextField
+                  select
+                  size='small'
+                  label='Entity'
+                  value={filterEntity}
+                  onChange={e => setFilterEntity(e.target.value)}
+                  sx={{ minWidth: 200 }}
+               >
+                  <MenuItem value=''>(any)</MenuItem>
+                  {entityOptions.map(e => (
+                     <MenuItem key={e} value={e}>{e}</MenuItem>
+                  ))}
+               </TextField>
                <TextField
                   select
                   size='small'
@@ -270,18 +314,13 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                   ))}
                </TextField>
                <TextField
-                  select
                   size='small'
-                  label='Employee'
-                  value={filterEmployeeUserId}
-                  onChange={e => setFilterEmployeeUserId(e.target.value)}
+                  label='Job contains'
+                  value={filterJob}
+                  onChange={e => setFilterJob(e.target.value)}
+                  placeholder='Conference, Tax…'
                   sx={{ minWidth: 180 }}
-               >
-                  <MenuItem value=''>(any)</MenuItem>
-                  {employeeOptions.map(u => (
-                     <MenuItem key={u.user_id} value={u.user_id}>{u.display_name}</MenuItem>
-                  ))}
-               </TextField>
+               />
                <TextField
                   select
                   size='small'
@@ -299,18 +338,10 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                </TextField>
                <TextField
                   size='small'
-                  label='Job contains'
-                  value={filterJob}
-                  onChange={e => setFilterJob(e.target.value)}
-                  placeholder='Conference, Tax…'
-                  sx={{ minWidth: 180 }}
-               />
-               <TextField
-                  size='small'
-                  label='Time tracker contains'
-                  value={filterTracker}
-                  onChange={e => setFilterTracker(e.target.value)}
-                  placeholder='Johnson_Marsha…'
+                  label='Note contains'
+                  value={filterNote}
+                  onChange={e => setFilterNote(e.target.value)}
+                  placeholder='Conference with Jim…'
                   sx={{ minWidth: 200 }}
                />
                <TextField
@@ -335,6 +366,19 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                   <MenuItem value='true'>Billable only</MenuItem>
                   <MenuItem value='false'>Non-billable only</MenuItem>
                </TextField>
+               <TextField
+                  select
+                  size='small'
+                  label='Employee'
+                  value={filterEmployeeUserId}
+                  onChange={e => setFilterEmployeeUserId(e.target.value)}
+                  sx={{ minWidth: 180 }}
+               >
+                  <MenuItem value=''>(any)</MenuItem>
+                  {employeeOptions.map(u => (
+                     <MenuItem key={u.user_id} value={u.user_id}>{u.display_name}</MenuItem>
+                  ))}
+               </TextField>
             </Stack>
          </Box>
          <Typography variant='subtitle2'>
@@ -351,18 +395,40 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                <TableHead>
                   <TableRow>
                      <TableCell sx={{ minWidth: 100, width: 100 }}>Source</TableCell>
-                     <TableCell sx={{ minWidth: 110, width: 110 }}>Date</TableCell>
-                     <TableCell sx={{ minWidth: 180 }}>Entity</TableCell>
-                     <TableCell sx={{ minWidth: 200 }}>Customer</TableCell>
-                     <TableCell sx={{ minWidth: 180 }}>Job</TableCell>
-                     <TableCell sx={{ minWidth: 180 }}>Work Description</TableCell>
+                     <TableCell sx={{ minWidth: 110, width: 110 }}>
+                        <TableSortLabel {...sortHeaderProps('transaction_date')}>Date</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 180 }}>
+                        <TableSortLabel {...sortHeaderProps('entity')}>Entity</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 200 }}>
+                        <TableSortLabel {...sortHeaderProps('customer')}>Customer</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 180 }}>
+                        <TableSortLabel {...sortHeaderProps('job')}>Job</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 180 }}>
+                        <TableSortLabel {...sortHeaderProps('work_description')}>Work Description</TableSortLabel>
+                     </TableCell>
                      <TableCell sx={{ minWidth: 300 }}>Notes</TableCell>
-                     <TableCell sx={{ minWidth: 110, width: 110 }}>AI score</TableCell>
-                     <TableCell align='right' sx={{ minWidth: 80, width: 80 }}>Hours</TableCell>
-                     <TableCell align='right' sx={{ minWidth: 100, width: 100 }}>Total</TableCell>
-                     <TableCell sx={{ minWidth: 110, width: 110 }}>Billable</TableCell>
-                     <TableCell sx={{ minWidth: 140 }}>Employee</TableCell>
-                     <TableCell sx={{ minWidth: 200 }}>Time tracker</TableCell>
+                     <TableCell sx={{ minWidth: 110, width: 110 }}>
+                        <TableSortLabel {...sortHeaderProps('ai_confidence')}>AI score</TableSortLabel>
+                     </TableCell>
+                     <TableCell align='right' sx={{ minWidth: 80, width: 80 }}>
+                        <TableSortLabel {...sortHeaderProps('hours')}>Hours</TableSortLabel>
+                     </TableCell>
+                     <TableCell align='right' sx={{ minWidth: 100, width: 100 }}>
+                        <TableSortLabel {...sortHeaderProps('total')}>Total</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 110, width: 110 }}>
+                        <TableSortLabel {...sortHeaderProps('billable')}>Billable</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 140 }}>
+                        <TableSortLabel {...sortHeaderProps('employee')}>Employee</TableSortLabel>
+                     </TableCell>
+                     <TableCell sx={{ minWidth: 200 }}>
+                        <TableSortLabel {...sortHeaderProps('timesheet_name')}>Time tracker</TableSortLabel>
+                     </TableCell>
                      <TableCell sx={{ minWidth: 80, width: 80 }}></TableCell>
                   </TableRow>
                </TableHead>

@@ -1,10 +1,10 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Alert, Box, Chip, Dialog, DialogContent, DialogTitle, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { context } from '../../../../App';
 import HoldReasonBadge from './HoldReasonBadge';
 import AiSuggestionChip from './AiSuggestionChip';
 import Time from '../../TransactionForms/AddTransaction/Time';
-import { applyHeldEntry } from '../../../../Services/ApiCalls/BillingReviewCalls';
+import { applyHeldEntry, reprocessHeldEntryWithOverrides } from '../../../../Services/ApiCalls/BillingReviewCalls';
 
 const NA = 'Not Available';
 
@@ -68,6 +68,10 @@ const buildEditsPayload = camelObj => {
 export default function ReviewBillingDialog({ open, entry, onClose, onApplied, customerData, setCustomerData }) {
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
+   // Banner shown when "Rerun AI Processing" returns a hold or error so the
+   // reviewer can see the new rejection without losing their form state.
+   const [reprocessOutcome, setReprocessOutcome] = useState(null);
+   const [reprocessing, setReprocessing] = useState(false);
 
    const passedTransactionData = useMemo(() => {
       if (!entry) return {};
@@ -376,6 +380,40 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
       }
    };
 
+   // "Rerun AI Processing" — feed the reviewer's manual edits as overrides into
+   // the orchestrator. If the AI gates auto-insert, the row inserts and the
+   // dialog closes. If the AI rejects again (new hold reason) or errors, the
+   // outcome is shown in a banner and the form state is preserved.
+   const onRerunAi = async items => {
+      const overrides = {};
+      if (items?.selectedCustomer?.customer_id) overrides.customer_id = items.selectedCustomer.customer_id;
+      if (items?.selectedJob?.customer_job_id) overrides.customer_job_id = items.selectedJob.customer_job_id;
+      if (items?.selectedGeneralWorkDescription?.general_work_description_id) {
+         overrides.general_work_description_id = items.selectedGeneralWorkDescription.general_work_description_id;
+      }
+      if (items?.selectedTeamMember?.user_id) overrides.logged_for_user_id = items.selectedTeamMember.user_id;
+      if (items?.selectedDate) overrides.transaction_date = items.selectedDate.format ? items.selectedDate.format('YYYY-MM-DD') : items.selectedDate;
+      if (items?.minutes != null && items.minutes !== '') overrides.duration_minutes = Number(items.minutes);
+
+      setReprocessing(true);
+      setReprocessOutcome(null);
+      try {
+         const result = await reprocessHeldEntryWithOverrides(accountID, userID, entry.timesheet_entry_id, overrides, token);
+         if (result.decision === 'auto_insert') {
+            if (typeof onApplied === 'function') await onApplied();
+            setTimeout(() => onClose(), 0);
+         } else if (result.decision === 'hold') {
+            setReprocessOutcome({ severity: 'warning', text: `AI still rejected this row: ${HOLD_EXPLANATIONS[result.reason] || result.reason || 'unknown reason'}` });
+         } else {
+            setReprocessOutcome({ severity: 'error', text: result.errorMessage || result.suggestionError || `AI returned an unexpected outcome: ${result.decision}` });
+         }
+      } catch (err) {
+         setReprocessOutcome({ severity: 'error', text: err?.message || 'Failed to rerun AI processing.' });
+      } finally {
+         setReprocessing(false);
+      }
+   };
+
    if (!entry) return null;
 
    return (
@@ -494,13 +532,30 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
                   </Table>
                </Box>
 
-               {/* Form — pre-filled. Job dropdown's last item ("Add New Job") creates a new job inline. */}
+               {/* Outcome banner from "Rerun AI Processing" — shown only when AI rejects again or errors. */}
+               {reprocessOutcome && (
+                  <Alert severity={reprocessOutcome.severity} onClose={() => setReprocessOutcome(null)}>
+                     {reprocessOutcome.text}
+                  </Alert>
+               )}
+
+               {/* Form — pre-filled. Job dropdown's last item ("Add New Job") creates a new job inline.
+                   Two action buttons: Manual Submission bypasses AI; Rerun AI Processing re-runs the
+                   orchestrator with the reviewer's overrides as trusted inputs. */}
                <Time
                   key={entry.timesheet_entry_id}
                   customerData={customerData}
                   setCustomerData={setCustomerData}
                   passedTransactionData={passedTransactionData}
                   passedPostCall={passedPostCall}
+                  submitLabel='Manual Submission'
+                  secondaryButton={{
+                     label: reprocessing ? 'Rerunning AI…' : 'Rerun AI Processing',
+                     onClick: onRerunAi,
+                     disabled: reprocessing,
+                     variant: 'outlined'
+                  }}
+                  helperText='Manual submission bypasses AI review and inserts directly into processed transactions. Rerun AI Processing re-runs the AI orchestrator with your manual edits as trusted hints.'
                />
             </Stack>
          </DialogContent>
