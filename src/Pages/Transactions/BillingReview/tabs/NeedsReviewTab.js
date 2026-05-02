@@ -192,19 +192,49 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
    };
 
    const startReprocessPolling = () => {
+      // Stop polling when the held count stops changing for STABLE_TICKS polls
+      // in a row. We can't ask the orchestrator "are you done?" — it runs in
+      // setImmediate — but the held count drops every time an entry auto-inserts,
+      // so a long stretch of zero change is a reliable "nothing more is moving"
+      // signal. MAX_ELAPSED is the absolute safety net.
       let elapsed = 0;
+      let lastCount = null;
+      let stableTicks = 0;
+      const POLL_INTERVAL_MS = 4000;
+      const STABLE_TICKS = 8; // 32s of unchanged count
+      const MAX_ELAPSED = 900; // 15 min hard cap
       if (reprocessPollRef.current) clearInterval(reprocessPollRef.current);
-      reprocessPollRef.current = setInterval(async () => {
-         elapsed += 4;
-         await reload();
-         await refreshReprocessCount();
-         if (elapsed >= 60) {
+
+      const finish = (msg, autoDismiss = true) => {
+         if (reprocessPollRef.current) {
             clearInterval(reprocessPollRef.current);
             reprocessPollRef.current = null;
-            setReprocessing(false);
-            setReprocessNotice(prev => prev + ' (auto-refresh stopped — click again if more remain).');
          }
-      }, 4000);
+         setReprocessing(false);
+         setReprocessNotice(msg);
+         if (autoDismiss) setTimeout(() => setReprocessNotice(''), 5000);
+      };
+
+      reprocessPollRef.current = setInterval(async () => {
+         elapsed += POLL_INTERVAL_MS / 1000;
+         await reload();
+         const r = await fetchReprocessCount(accountID, userID, token, { mode: 'all_held' });
+         const currentCount = Number(r?.count || 0);
+         setReprocessCount(currentCount);
+         setReprocessEligible(Boolean(r?.eligible));
+
+         if (lastCount !== null && currentCount === lastCount) stableTicks += 1;
+         else stableTicks = 0;
+         lastCount = currentCount;
+
+         if (currentCount === 0 || stableTicks >= STABLE_TICKS) {
+            finish(`Reprocess complete. ${currentCount} entr${currentCount === 1 ? 'y' : 'ies'} still need review.`);
+            return;
+         }
+         if (elapsed >= MAX_ELAPSED) {
+            finish('Auto-refresh stopped after 15 minutes. Click again if more remain.', false);
+         }
+      }, POLL_INTERVAL_MS);
    };
 
    const onReprocessSelected = async () => {
