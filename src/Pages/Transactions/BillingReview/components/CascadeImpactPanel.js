@@ -1,34 +1,34 @@
-import { Alert, AlertTitle, List, ListItem, ListItemText } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Alert, AlertTitle, Snackbar } from '@mui/material';
 
-const _label = effect => {
-   switch (effect.type) {
-      case 'invoice_recalculated':
-         return `Invoice #${effect.invoiceId} recalculated → total now $${Number(effect.totalCharges || 0).toFixed(2)} (delta $${Number(effect.delta || 0).toFixed(2)})`;
-      case 'old_invoice_recalculated_after_customer_change':
-         return `Old invoice #${effect.invoiceId} recalculated after customer change`;
-      case 'old_job_recalculated':
-         return `Job ${effect.customerJobId} total recomputed to $${Number(effect.total || 0).toFixed(2)}`;
-      case 'new_job_recalculated':
-         return `New job ${effect.customerJobId} total recomputed to $${Number(effect.total || 0).toFixed(2)}`;
-      case 'training_example_written':
-         return 'AI training example recorded for the learning loop';
-      default:
-         return effect.type;
-   }
-};
+const AUTO_DISMISS_MS = 5000;
 
 export default function CascadeImpactPanel({ sideEffects = [] }) {
+   const [open, setOpen] = useState(false);
+
+   // Re-show whenever a fresh batch of side effects arrives, then auto-dismiss.
+   useEffect(() => {
+      if (sideEffects.length) {
+         setOpen(true);
+         const t = setTimeout(() => setOpen(false), AUTO_DISMISS_MS);
+         return () => clearTimeout(t);
+      }
+   }, [sideEffects]);
+
    if (!sideEffects.length) return null;
+   const wroteTrainingExample = sideEffects.some(s => s.type === 'training_example_written');
+
    return (
-      <Alert severity='info' sx={{ mt: 2 }}>
-         <AlertTitle>Downstream effects</AlertTitle>
-         <List dense>
-            {sideEffects.map((s, i) => (
-               <ListItem key={i} disableGutters>
-                  <ListItemText primary={_label(s)} />
-               </ListItem>
-            ))}
-         </List>
-      </Alert>
+      <Snackbar
+         open={open}
+         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+         onClose={() => setOpen(false)}
+         autoHideDuration={AUTO_DISMISS_MS}
+      >
+         <Alert severity='success' onClose={() => setOpen(false)} sx={{ width: '100%' }}>
+            <AlertTitle>Transaction updated</AlertTitle>
+            {wroteTrainingExample && 'AI training example recorded for the learning loop.'}
+         </Alert>
+      </Snackbar>
    );
 }
