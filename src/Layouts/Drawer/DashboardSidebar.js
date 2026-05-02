@@ -12,25 +12,31 @@ import sidebarRoutes from '../../Routes/SidebarRoutes';
 
 const DRAWER_WIDTH = 290;
 
-const RootStyle = styled('div')(({ theme }) => ({
+const RootStyle = styled('div', { shouldForwardProp: prop => prop !== 'isDesktopOpen' })(({ theme, isDesktopOpen }) => ({
    [theme.breakpoints.up('lg')]: {
       flexShrink: 0,
-      width: DRAWER_WIDTH
+      width: isDesktopOpen ? DRAWER_WIDTH : 0,
+      transition: theme.transitions.create('width', {
+         easing: theme.transitions.easing.sharp,
+         duration: theme.transitions.duration.shorter
+      })
    }
 }));
 
 DashboardSidebar.propTypes = {
-   isOpenSidebar: PropTypes.bool,
-   onCloseSidebar: PropTypes.func
+   isMobileOpen: PropTypes.bool,
+   isDesktopOpen: PropTypes.bool,
+   onCloseMobile: PropTypes.func,
+   onCloseDesktop: PropTypes.func
 };
 
-export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }) {
+export default function DashboardSidebar({ isMobileOpen, isDesktopOpen, onCloseMobile, onCloseDesktop }) {
    const { pathname } = useLocation();
 
+   // Auto-close the mobile (modal) drawer on route change so it doesn't cover content.
+   // Desktop drawer is persistent — preserve its state across navigation.
    useEffect(() => {
-      if (isOpenSidebar) {
-         onCloseSidebar();
-      }
+      if (isMobileOpen) onCloseMobile();
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [pathname]);
 
@@ -60,11 +66,11 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }) {
    );
 
    return (
-      <RootStyle>
+      <RootStyle isDesktopOpen={isDesktopOpen}>
          <MHidden width='lgUp'>
             <Drawer
-               open={isOpenSidebar}
-               onClose={onCloseSidebar}
+               open={isMobileOpen}
+               onClose={onCloseMobile}
                PaperProps={{
                   sx: { width: DRAWER_WIDTH }
                }}
@@ -75,7 +81,8 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }) {
 
          <MHidden width='lgDown'>
             <Drawer
-               open
+               open={isDesktopOpen}
+               onClose={onCloseDesktop}
                variant='persistent'
                PaperProps={{
                   sx: {

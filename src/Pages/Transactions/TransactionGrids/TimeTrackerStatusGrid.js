@@ -35,5 +35,9 @@ export default function TimeTrackerStatusGrid({ refreshTrackerStatusKey }) {
    );
 }
 
-const enableColumnsOnClick = ['transaction_count', 'trackers_by_month'];
-const arrayOfColumnNamesNoAI = ['display_name', 'transaction_count', 'trackers_by_month'];
+const enableColumnsOnClick = [
+   { field: 'transaction_count', route: 'employeeEntries' },
+   { field: 'trackers_by_month', route: 'trackersByMonth' },
+   { field: 'trackers_to_date', route: 'trackersToDate' }
+];
+const arrayOfColumnNamesNoAI = ['display_name', 'user_id', 'transaction_count', 'trackers_by_month', 'trackers_to_date'];

@@ -1,6 +1,7 @@
+import { cloneElement, Children } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete } from '@mui/material';
 
-export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOpen, setDialogOpen, autoCompleteProps }) {
+export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOpen, setDialogOpen, autoCompleteProps, onAdded }) {
    const { autoCompleteLabel, autoCompleteOptionsList, onChangeKey, optionLabelProperty, valueTestProperty, addedOptionLabel, selectedOption, handleAutocompleteChange } = autoCompleteProps;
 
    const listWithAddOptions = () => {
@@ -18,6 +19,17 @@ export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOp
    const handleDialogOpen = () => {
       setDialogOpen(true);
    };
+
+   // Inject onSuccess into the inner form so that a successful submit closes the
+   // dialog and bubbles the new item up via onAdded. Without this, users had to
+   // click Cancel after submit and the parent had no idea what just got created.
+   const childWithSuccess = (newItem => {
+      handleDialogClose();
+      if (typeof onAdded === 'function') onAdded(newItem);
+   });
+   const enhancedChildren = Children.map(children, child =>
+      child ? cloneElement(child, { onSuccess: childWithSuccess }) : child
+   );
 
    return (
       <>
@@ -45,7 +57,7 @@ export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOp
 
          <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth='md'>
             <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogContent>{children}</DialogContent>
+            <DialogContent>{enhancedChildren}</DialogContent>
             <DialogActions>
                <Button onClick={handleDialogClose}>Cancel</Button>
             </DialogActions>

@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { Box, TextField, Checkbox, FormControlLabel, Radio, RadioGroup, FormControl, Typography, Autocomplete } from '@mui/material';
 import dayjs from 'dayjs';
 import { handleBillableStatus, handleTimeCalculation } from './SharedTransactionsFunctions';
-import FieldSuggestion from '../../../../../Components/Suggestions/FieldSuggestion';
 
-export default function TimeOptions({ customerData, selectedItems, setSelectedItems, fieldSuggestions = {} }) {
+export default function TimeOptions({ customerData, selectedItems, setSelectedItems }) {
    const [minutes, setMinutes] = useState('');
+   const [hoursInput, setHoursInput] = useState('');
    const [startTime, setStartTime] = useState(dayjs().format());
    const [endTime, setEndTime] = useState(dayjs().format());
 
@@ -29,6 +29,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
       // 2) If we already have minutes, set local state & run calculation
       if (selectedItems.minutes) {
          setMinutes(selectedItems.minutes);
+         setHoursInput((Number(selectedItems.minutes) / 60).toFixed(2));
          handleTimeCalculation(selectedItems.minutes, selectedTeamMember, startTime, endTime, updateSelectedItems);
       }
       // eslint-disable-next-line
@@ -36,9 +37,6 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
 
    return (
       <Box sx={{ display: 'grid', gap: 2 }}>
-         {/* Only show Suggested general work description */}
-         <FieldSuggestion label='general work description' suggestion={fieldSuggestions?.generalWorkDescription} confidence={fieldSuggestions?.confidence} />
-
          <Autocomplete
             required
             size='small'
@@ -63,14 +61,20 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
             variant='standard'
             sx={{ width: 350 }}
             type='number'
-            label='Time In Minutes'
-            value={minutes}
+            label='Time (hours)'
+            helperText='Decimal hours from your tracker (e.g. 0.25 = 15 min, 1.05 = 1h 3m). No minute conversion.'
+            inputProps={{ step: '0.05', min: '0' }}
+            value={hoursInput}
             disabled={!selectedTeamMember}
             onChange={e => {
+               const hoursStr = e.target.value;
+               setHoursInput(hoursStr);
+               const hoursNum = Number(hoursStr);
+               const minutesValue = Number.isFinite(hoursNum) ? Math.round(hoursNum * 60) : '';
                setStartTime(dayjs().format());
                setEndTime(dayjs().format());
-               setMinutes(e.target.value);
-               handleTimeCalculation(e.target.value, selectedTeamMember, dayjs().format(), dayjs().format(), updateSelectedItems);
+               setMinutes(minutesValue);
+               handleTimeCalculation(minutesValue, selectedTeamMember, dayjs().format(), dayjs().format(), updateSelectedItems);
             }}
          />
 

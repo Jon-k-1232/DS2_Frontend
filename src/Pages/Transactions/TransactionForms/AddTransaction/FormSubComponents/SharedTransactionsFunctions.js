@@ -46,7 +46,8 @@ export const populateState = (passedTransactionData, customerData, initialState)
    const {
       customersList: { activeCustomerData: { activeCustomers = [] } = {} } = {},
       teamMembersList: { activeUserData: { activeUsers = [] } = {} } = {},
-      workDescriptionsList: { activeWorkDescriptionsData: { workDescriptions = [] } = {} } = {}
+      workDescriptionsList: { activeWorkDescriptionsData: { workDescriptions = [] } = {} } = {},
+      accountJobsList: { activeJobData: { activeJobs = [] } = {} } = {}
    } = customerData || {};
 
    // Try to prefill the customer without using AI by matching names
@@ -68,10 +69,30 @@ export const populateState = (passedTransactionData, customerData, initialState)
       workDescriptions.find(jobType => jobType.general_work_description_id === ai_suggestion?.suggested_general_work_description_id) ||
       workDescriptions.find(jobType => jobType.general_work_description?.toLowerCase() === (category || '').toLowerCase());
 
+   // Pre-select a job for this customer if the tracker category matches an open job's job_description.
+   // Uses word-overlap so "Computer Maintenance" → "Computer Maintenance/Updates" picks up.
+   const wordsOf = s => normalize(s).split(/\s+/).filter(w => w.length >= 4);
+   const catWords = wordsOf(category);
+   let foundJob = null;
+   if (foundCustomer && catWords.length > 0) {
+      const customerOpenJobs = activeJobs.filter(
+         j => Number(j.customer_id) === Number(foundCustomer.customer_id) && !j.is_job_complete && !j.parent_job_id
+      );
+      const scored = customerOpenJobs
+         .map(j => {
+            const jdWords = wordsOf(j.job_description);
+            const overlap = catWords.filter(c => jdWords.includes(c)).length;
+            return { j, overlap, age: new Date(j.created_at).getTime() || 0 };
+         })
+         .filter(s => s.overlap > 0)
+         .sort((a, b) => b.overlap - a.overlap || b.age - a.age);
+      foundJob = scored[0]?.j || null;
+   }
+
    return {
       ...initialState,
       selectedCustomer: foundCustomer || initialState.selectedCustomer,
-      selectedJob: null,
+      selectedJob: foundJob,
       selectedTeamMember: foundTeamMember || null,
       selectedGeneralWorkDescription: foundWorkDescription || null,
       detailedJobDescription: notes || '',

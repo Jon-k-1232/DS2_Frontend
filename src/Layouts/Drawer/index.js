@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { styled } from '@mui/material/styles';
 import DashboardNavbar from './DashboardNavbar';
 import DashboardSidebar from './DashboardSidebar';
@@ -6,6 +6,7 @@ import PrivateRoute from '../../Routes/PrivateRoute';
 
 const APP_BAR_MOBILE = 64;
 const APP_BAR_DESKTOP = 92;
+const DESKTOP_OPEN_STORAGE_KEY = 'ds2:desktopSidebarOpen';
 
 const RootStyle = styled('div')({
    display: 'flex',
@@ -27,12 +28,34 @@ const MainStyle = styled('div')(({ theme }) => ({
 }));
 
 export default function DashboardLayout({ pageTitle }) {
-   const [open, setOpen] = useState(false);
+   const [mobileOpen, setMobileOpen] = useState(false);
+   const [desktopOpen, setDesktopOpen] = useState(() => {
+      try {
+         const stored = window.localStorage.getItem(DESKTOP_OPEN_STORAGE_KEY);
+         return stored == null ? true : stored === '1';
+      } catch {
+         return true;
+      }
+   });
+
+   useEffect(() => {
+      try { window.localStorage.setItem(DESKTOP_OPEN_STORAGE_KEY, desktopOpen ? '1' : '0'); } catch {}
+   }, [desktopOpen]);
 
    return (
       <RootStyle>
-         <DashboardNavbar onOpenSidebar={() => setOpen(true)} pageTitle={pageTitle} />
-         <DashboardSidebar isOpenSidebar={open} onCloseSidebar={() => setOpen(false)} />
+         <DashboardNavbar
+            pageTitle={pageTitle}
+            desktopOpen={desktopOpen}
+            onToggleMobileSidebar={() => setMobileOpen(o => !o)}
+            onToggleDesktopSidebar={() => setDesktopOpen(o => !o)}
+         />
+         <DashboardSidebar
+            isMobileOpen={mobileOpen}
+            isDesktopOpen={desktopOpen}
+            onCloseMobile={() => setMobileOpen(false)}
+            onCloseDesktop={() => setDesktopOpen(false)}
+         />
          <MainStyle>
             <PrivateRoute />
          </MainStyle>

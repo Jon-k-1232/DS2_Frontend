@@ -42,7 +42,8 @@
       "start": "REACT_APP_ENV=production PORT=3003 react-scripts start",
       "start:local:dev": "REACT_APP_ENV=development PORT=3003 react-scripts start",
       "build": "REACT_APP_ENV=production PORT=3003 react-scripts build",
-      "test": "react-scripts test"
+      "test": "react-scripts test",
+      "deploy": "bash deploy.sh"
    },
    "eslintConfig": {
       "extends": [

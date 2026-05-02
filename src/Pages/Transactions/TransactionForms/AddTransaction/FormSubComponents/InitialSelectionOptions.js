@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Box, TextField, Autocomplete } from '@mui/material';
+import { Box, Stack, Tooltip, IconButton, TextField, Autocomplete } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
@@ -100,16 +101,29 @@ export default function InitialSelectionOptions({
    };
 
    // Fetch jobs when a customer is selected
-   useEffect(() => {
-      if (selectedCustomer) {
-         const fetchJobs = async () => {
-            const customerJobsList = await getCustomerJobsList(accountID, userID, selectedCustomer.customer_id, token);
-            const activeCustomerJobs = customerJobsList?.activeCustomerJobData?.activeCustomerJobs || [];
-            setCustomerJobs(activeCustomerJobs);
-         };
-         fetchJobs();
+   const [externalJobBump, setExternalJobBump] = useState(0);
+   const [refreshingJobsLocal, setRefreshingJobsLocal] = useState(false);
+   const fetchJobsForCustomer = React.useCallback(async () => {
+      if (!selectedCustomer) return;
+      setRefreshingJobsLocal(true);
+      try {
+         const customerJobsList = await getCustomerJobsList(accountID, userID, selectedCustomer.customer_id, token);
+         const activeCustomerJobs = customerJobsList?.activeCustomerJobData?.activeCustomerJobs || [];
+         setCustomerJobs(activeCustomerJobs);
+      } finally {
+         setRefreshingJobsLocal(false);
       }
-   }, [selectedCustomer, jobDialogOpen, accountID, userID, token]);
+   }, [selectedCustomer, accountID, userID, token]);
+
+   useEffect(() => {
+      fetchJobsForCustomer();
+   }, [selectedCustomer, jobDialogOpen, externalJobBump, fetchJobsForCustomer]);
+
+   useEffect(() => {
+      const handler = () => setExternalJobBump(n => n + 1);
+      window.addEventListener('jobs:updated', handler);
+      return () => window.removeEventListener('jobs:updated', handler);
+   }, []);
 
    const jobAutoCompleteProps = {
       autoCompleteLabel: 'Select Job',
@@ -190,9 +204,41 @@ export default function InitialSelectionOptions({
 
             {/* Optionally show the job autocomplete if it's not certain pages */}
             {page !== 'Retainer' && page !== 'WriteOff' && page !== 'Payment' && (
-               <AutoCompleteWithDialog dialogTitle='New Job' dialogOpen={jobDialogOpen} setDialogOpen={setJobDialogOpen} autoCompleteProps={jobAutoCompleteProps}>
-                  <NewJob customerData={customerData} setCustomerData={data => setCustomerData(data)} />
-               </AutoCompleteWithDialog>
+               <Stack direction='row' alignItems='center' spacing={0.5} sx={{ width: 350 }}>
+                  <Box sx={{ flex: 1 }}>
+                     <AutoCompleteWithDialog
+                        dialogTitle='New Job'
+                        dialogOpen={jobDialogOpen}
+                        setDialogOpen={setJobDialogOpen}
+                        autoCompleteProps={jobAutoCompleteProps}
+                        onAdded={newJob => {
+                           // Auto-select the just-created job so the user doesn't have
+                           // to re-open the dropdown and find it manually.
+                           if (newJob) handleAutocompleteChange('selectedJob', newJob);
+                           setExternalJobBump(n => n + 1);
+                        }}
+                     >
+                        <NewJob
+                           customerData={customerData}
+                           setCustomerData={data => setCustomerData(data)}
+                           defaultCustomer={selectedCustomer}
+                        />
+                     </AutoCompleteWithDialog>
+                  </Box>
+                  <Tooltip title={selectedCustomer ? 'Refresh jobs list for this customer' : 'Pick a customer first'}>
+                     <span>
+                        <IconButton
+                           size='small'
+                           onClick={fetchJobsForCustomer}
+                           disabled={!selectedCustomer || refreshingJobsLocal}
+                           sx={{ alignSelf: 'flex-end', mb: 0.5 }}
+                           color='primary'
+                        >
+                           <RefreshIcon fontSize='small' />
+                        </IconButton>
+                     </span>
+                  </Tooltip>
+               </Stack>
             )}
 
             {/* Render children passed to this component */}

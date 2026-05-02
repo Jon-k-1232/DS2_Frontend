@@ -7,10 +7,34 @@ const _headers = memoryToken => {
    return { headers: { Authorization: `Bearer ${token}` } };
 };
 
-export const fetchPendingHeldEntries = async (accountID, userID, token, { holdReason, timesheetName, page = 1, limit = 50 } = {}) => {
+export const fetchPendingHeldEntries = async (
+   accountID,
+   userID,
+   token,
+   {
+      holdReason,
+      timesheetName,
+      dateStart,
+      dateEnd,
+      entityContains,
+      employeeContains,
+      trackerContains,
+      notesContains,
+      aiConfMin,
+      page = 1,
+      limit = 50
+   } = {}
+) => {
    const params = { page, limit };
    if (holdReason) params.hold_reason = holdReason;
    if (timesheetName) params.timesheet_name = timesheetName;
+   if (dateStart) params.date_start = dateStart;
+   if (dateEnd) params.date_end = dateEnd;
+   if (entityContains) params.entity_contains = entityContains;
+   if (employeeContains) params.employee_contains = employeeContains;
+   if (trackerContains) params.tracker_contains = trackerContains;
+   if (notesContains) params.notes_contains = notesContains;
+   if (aiConfMin != null && aiConfMin !== '') params.ai_conf_min = aiConfMin;
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/billing-review/pending/${accountID}/${userID}`, { ..._headers(token), params });
       return response.data;
@@ -31,16 +55,42 @@ export const applyHeldEntry = async (accountID, userID, entryID, edits, token) =
    }
 };
 
-export const fetchConsolidatedTransactions = async (accountID, userID, token, { start, end, customerId, employeeUserId, page = 1, limit = 200 } = {}) => {
+export const fetchConsolidatedTransactions = async (
+   accountID,
+   userID,
+   token,
+   {
+      start,
+      end,
+      customerId,
+      employeeUserId,
+      workDescId,
+      jobContains,
+      trackerContains,
+      aiConfMin,
+      billableOnly, // 'true' | 'false' | undefined
+      unbilledOnly = false,
+      aiOnly = false,
+      page = 1,
+      limit = 200
+   } = {}
+) => {
    const params = { start, end, page, limit };
    if (customerId) params.customerId = customerId;
    if (employeeUserId) params.employeeUserId = employeeUserId;
+   if (workDescId) params.workDescId = workDescId;
+   if (jobContains) params.jobContains = jobContains;
+   if (trackerContains) params.trackerContains = trackerContains;
+   if (aiConfMin != null && aiConfMin !== '') params.aiConfMin = aiConfMin;
+   if (billableOnly === 'true' || billableOnly === 'false') params.billableOnly = billableOnly;
+   if (unbilledOnly) params.unbilledOnly = 'true';
+   if (aiOnly) params.aiOnly = 'true';
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/billing-review/weekly/${accountID}/${userID}`, { ..._headers(token), params });
       return response.data;
    } catch (error) {
       console.error('Error fetching consolidated transactions:', error);
-      return { transactions: [], totalSum: 0, error: error.message };
+      return { transactions: [], totalSum: 0, totalCount: 0, error: error.message };
    }
 };
 
@@ -69,11 +119,12 @@ export const fetchReprocessCount = async (accountID, userID, token, { mode = 'un
    }
 };
 
-export const triggerReprocess = async (accountID, userID, token, { mode = 'unprocessed', batch_size = 500 } = {}) => {
+export const triggerReprocess = async (accountID, userID, token, { mode = 'unprocessed', batch_size = 500, ids = null } = {}) => {
    try {
+      const body = ids && ids.length ? { ids, batch_size } : { mode, batch_size };
       const response = await axios.post(
          `${config.API_ENDPOINT}/billing-review/reprocess/${accountID}/${userID}`,
-         { mode, batch_size },
+         body,
          _headers(token)
       );
       return response.data;
