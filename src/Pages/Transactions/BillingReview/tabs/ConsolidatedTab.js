@@ -352,8 +352,8 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                   <TableRow>
                      <TableCell sx={{ minWidth: 100, width: 100 }}>Source</TableCell>
                      <TableCell sx={{ minWidth: 110, width: 110 }}>Date</TableCell>
-                     <TableCell sx={{ minWidth: 200 }}>Customer</TableCell>
                      <TableCell sx={{ minWidth: 180 }}>Entity</TableCell>
+                     <TableCell sx={{ minWidth: 200 }}>Customer</TableCell>
                      <TableCell sx={{ minWidth: 180 }}>Job</TableCell>
                      <TableCell sx={{ minWidth: 180 }}>Work Description</TableCell>
                      <TableCell sx={{ minWidth: 300 }}>Notes</TableCell>
@@ -402,6 +402,8 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                     txnDate
                                  )}
                               </TableCell>
+                              {/* Entity (employer the work was logged under — read-only; comes from tracker) */}
+                              <TableCell>{r.tracker_entity || NA}</TableCell>
                               {/* Customer */}
                               <TableCell>
                                  {isEditing ? (
@@ -425,8 +427,6 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                     </Typography>
                                  )}
                               </TableCell>
-                              {/* Entity (employer the work was logged under — read-only; comes from tracker) */}
-                              <TableCell>{r.tracker_entity || NA}</TableCell>
                               {/* Job — uses AutoCompleteWithDialog so "Add New Job" is inline */}
                               <TableCell>
                                  {isEditing ? (
@@ -624,6 +624,8 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                  <TableCell sx={{ color: dateMismatch ? 'warning.main' : 'text.secondary', fontWeight: dateMismatch ? 600 : undefined }}>
                                     {trackerDate}
                                  </TableCell>
+                                 {/* Entity (from tracker — employer the work was logged under) */}
+                                 <TableCell>{r.tracker_entity || NA}</TableCell>
                                  {/* Customer (from tracker) */}
                                  <TableCell>
                                     {(() => {
@@ -637,8 +639,6 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                        return trackerCustomer || NA;
                                     })()}
                                  </TableCell>
-                                 {/* Entity (from tracker — employer the work was logged under) */}
-                                 <TableCell>{r.tracker_entity || NA}</TableCell>
                                  {/* Job — tracker doesn't have one */}
                                  <TableCell>{NA}</TableCell>
                                  {/* Work Description (tracker category) */}
