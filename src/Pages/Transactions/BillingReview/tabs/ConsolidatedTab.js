@@ -22,6 +22,8 @@ import {
 import { context } from '../../../../App';
 import { fetchConsolidatedTransactions, updateFinalizedTransaction } from '../../../../Services/ApiCalls/BillingReviewCalls';
 import CascadeImpactPanel from '../components/CascadeImpactPanel';
+import AutoCompleteWithDialog from '../../../../Components/Dialogs/AutoCompleteWithDialog';
+import NewJob from '../../../Jobs/JobForms/AddJob/NewJob';
 
 const _todayISO = (offsetDays = 0) => {
    const d = new Date();
@@ -72,7 +74,7 @@ const _trim = (s, max = 90) => {
    return s.length > max ? `${s.slice(0, max)}…` : s;
 };
 
-export default function ConsolidatedTab({ period, customerData }) {
+export default function ConsolidatedTab({ period, customerData, setCustomerData }) {
    const { accountID, userID, token } = useContext(context).loggedInUser;
    const initialStart = period === 'unbilled' ? _fortyFiveDaysAgo() : period === 'month' ? _startOfMonth() : _startOfWeek();
    const [start, setStart] = useState(initialStart);
@@ -85,9 +87,14 @@ export default function ConsolidatedTab({ period, customerData }) {
    const [edits, setEdits] = useState({});
    const [error, setError] = useState('');
    const [sideEffects, setSideEffects] = useState([]);
-   const [aiOnly, setAiOnly] = useState(false);
+   // Default to AI-only — most reviewers care about what the AI just auto-applied,
+   // not the long tail of manually-added rows.
+   const [aiOnly, setAiOnly] = useState(true);
    const [page, setPage] = useState(0);
    const [pageSize, setPageSize] = useState(50);
+   // Inline-edit Job dropdown's "Add New Job" dialog state. Only one row edits
+   // at a time so a single piece of state covers all rows.
+   const [jobDialogOpen, setJobDialogOpen] = useState(false);
 
    // Filter state — controls combine on the backend with AND.
    const [filterCustomerId, setFilterCustomerId] = useState('');
@@ -340,21 +347,22 @@ export default function ConsolidatedTab({ period, customerData }) {
          {error && <Alert severity='error'>{error}</Alert>}
          <CascadeImpactPanel sideEffects={sideEffects} />
          <Box sx={{ overflow: 'auto', maxWidth: '100%' }}>
-            <Table size='small' stickyHeader sx={{ minWidth: 1400, '& th, & td': { px: 1.25, py: 0.75 } }}>
+            <Table size='small' stickyHeader sx={{ minWidth: 1600, '& th, & td': { px: 1.25, py: 0.75 } }}>
                <TableHead>
                   <TableRow>
                      <TableCell sx={{ minWidth: 100, width: 100 }}>Source</TableCell>
                      <TableCell sx={{ minWidth: 110, width: 110 }}>Date</TableCell>
                      <TableCell sx={{ minWidth: 200 }}>Customer</TableCell>
-                     <TableCell sx={{ minWidth: 180 }}>Work Description</TableCell>
+                     <TableCell sx={{ minWidth: 180 }}>Entity</TableCell>
                      <TableCell sx={{ minWidth: 180 }}>Job</TableCell>
-                     <TableCell sx={{ minWidth: 140 }}>Employee</TableCell>
+                     <TableCell sx={{ minWidth: 180 }}>Work Description</TableCell>
+                     <TableCell sx={{ minWidth: 300 }}>Notes</TableCell>
+                     <TableCell sx={{ minWidth: 110, width: 110 }}>AI score</TableCell>
                      <TableCell align='right' sx={{ minWidth: 80, width: 80 }}>Hours</TableCell>
                      <TableCell align='right' sx={{ minWidth: 100, width: 100 }}>Total</TableCell>
                      <TableCell sx={{ minWidth: 110, width: 110 }}>Billable</TableCell>
+                     <TableCell sx={{ minWidth: 140 }}>Employee</TableCell>
                      <TableCell sx={{ minWidth: 200 }}>Time tracker</TableCell>
-                     <TableCell sx={{ minWidth: 110, width: 110 }}>AI score</TableCell>
-                     <TableCell sx={{ minWidth: 300 }}>Notes</TableCell>
                      <TableCell sx={{ minWidth: 80, width: 80 }}></TableCell>
                   </TableRow>
                </TableHead>
@@ -394,6 +402,7 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     txnDate
                                  )}
                               </TableCell>
+                              {/* Customer */}
                               <TableCell>
                                  {isEditing ? (
                                     <TextField
@@ -416,6 +425,40 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     </Typography>
                                  )}
                               </TableCell>
+                              {/* Entity (employer the work was logged under — read-only; comes from tracker) */}
+                              <TableCell>{r.tracker_entity || NA}</TableCell>
+                              {/* Job — uses AutoCompleteWithDialog so "Add New Job" is inline */}
+                              <TableCell>
+                                 {isEditing ? (
+                                    <AutoCompleteWithDialog
+                                       dialogTitle='New Job'
+                                       dialogOpen={jobDialogOpen}
+                                       setDialogOpen={setJobDialogOpen}
+                                       autoCompleteProps={{
+                                          autoCompleteLabel: 'Select Job',
+                                          autoCompleteOptionsList: jobsForSelectedCustomer,
+                                          onChangeKey: 'selectedJob',
+                                          optionLabelProperty: 'job_description',
+                                          valueTestProperty: 'customer_job_id',
+                                          addedOptionLabel: 'Add New Job',
+                                          selectedOption: jobsForSelectedCustomer.find(j => j.customer_job_id === edits.customer_job_id) || null,
+                                          handleAutocompleteChange: (_key, value) => setEdits(p => ({ ...p, customer_job_id: value?.customer_job_id || null }))
+                                       }}
+                                       onAdded={newJob => {
+                                          if (newJob) setEdits(p => ({ ...p, customer_job_id: newJob.customer_job_id }));
+                                       }}
+                                    >
+                                       <NewJob
+                                          customerData={customerData}
+                                          setCustomerData={data => setCustomerData && setCustomerData(data)}
+                                          defaultCustomer={customers.find(c => c.customer_id === edits.customer_id) || null}
+                                       />
+                                    </AutoCompleteWithDialog>
+                                 ) : (
+                                    r.customer_job_description || NA
+                                 )}
+                              </TableCell>
+                              {/* Work Description */}
                               <TableCell>
                                  {isEditing ? (
                                     <TextField
@@ -436,37 +479,38 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     r.general_work_description || NA
                                  )}
                               </TableCell>
-                              <TableCell>
-                                 {isEditing ? (
-                                    <TextField
-                                       select
-                                       size='small'
-                                       label='Job'
-                                       value={edits.customer_job_id || ''}
-                                       onChange={e => setEdits(p => ({ ...p, customer_job_id: Number(e.target.value) }))}
-                                       sx={{ minWidth: 180 }}
-                                       disabled={jobsForSelectedCustomer.length === 0}
-                                       helperText={jobsForSelectedCustomer.length === 0 ? 'No jobs for selected customer' : ''}
-                                    >
-                                       {jobsForSelectedCustomer.map(j => (
-                                          <MenuItem key={j.customer_job_id} value={j.customer_job_id}>
-                                             {j.job_description || `Job #${j.customer_job_id}`}{j._isOrphanedChild ? ' (child)' : ''}
-                                          </MenuItem>
-                                       ))}
-                                    </TextField>
-                                 ) : (
-                                    r.customer_job_description || NA
-                                 )}
-                              </TableCell>
-                              <TableCell>
-                                 {isEditing ? (
-                                    <Tooltip title='Employee is not editable here. Re-create the transaction if you need to change who logged it.'>
-                                       <span>{r.logged_for_user_display_name || NA}</span>
+                              {/* Notes */}
+                              <TableCell sx={{ maxWidth: 300 }}>
+                                 {r.detailed_work_description || r.note ? (
+                                    <Tooltip title={r.detailed_work_description || r.note}>
+                                       <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {_trim(r.detailed_work_description || r.note, 80)}
+                                       </span>
                                     </Tooltip>
                                  ) : (
-                                    r.logged_for_user_display_name || NA
+                                    <em style={{ color: '#888' }}>(empty)</em>
                                  )}
                               </TableCell>
+                              {/* AI score */}
+                              <TableCell>
+                                 {hasTrackerOrigin && r.ai_confidence != null && (
+                                    <Tooltip title={r.ai_reason || 'AI confidence — higher = more sure'}>
+                                       <Chip
+                                          size='small'
+                                          label={`AI ${Number(r.ai_confidence).toFixed(2)}`}
+                                          color={_confidenceColor(r.ai_confidence)}
+                                          variant='outlined'
+                                       />
+                                    </Tooltip>
+                                 )}
+                                 {hasTrackerOrigin && r.ai_confidence == null && (
+                                    <Tooltip title='Applied via held-entry dialog (not auto-inserted by AI)'>
+                                       <Chip size='small' label='from tracker' variant='outlined' />
+                                    </Tooltip>
+                                 )}
+                                 {!hasTrackerOrigin && NA}
+                              </TableCell>
+                              {/* Hours */}
                               <TableCell align='right'>
                                  {isEditing ? (
                                     <TextField
@@ -483,6 +527,7 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     NA
                                  )}
                               </TableCell>
+                              {/* Total */}
                               <TableCell align='right'>
                                  {isEditing ? (
                                     <TextField
@@ -499,6 +544,7 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     NA
                                  )}
                               </TableCell>
+                              {/* Billable */}
                               <TableCell>
                                  {isEditing ? (
                                     <FormControlLabel
@@ -524,6 +570,17 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     </Tooltip>
                                  )}
                               </TableCell>
+                              {/* Employee */}
+                              <TableCell>
+                                 {isEditing ? (
+                                    <Tooltip title='Employee is not editable here. Re-create the transaction if you need to change who logged it.'>
+                                       <span>{r.logged_for_user_display_name || NA}</span>
+                                    </Tooltip>
+                                 ) : (
+                                    r.logged_for_user_display_name || NA
+                                 )}
+                              </TableCell>
+                              {/* Time tracker filename */}
                               <TableCell>
                                  {r.tracker_filename ? (
                                     <Tooltip title={r.tracker_filename}>
@@ -535,35 +592,7 @@ export default function ConsolidatedTab({ period, customerData }) {
                                     NA
                                  )}
                               </TableCell>
-                              <TableCell>
-                                 {hasTrackerOrigin && r.ai_confidence != null && (
-                                    <Tooltip title={r.ai_reason || 'AI confidence — higher = more sure'}>
-                                       <Chip
-                                          size='small'
-                                          label={`AI ${Number(r.ai_confidence).toFixed(2)}`}
-                                          color={_confidenceColor(r.ai_confidence)}
-                                          variant='outlined'
-                                       />
-                                    </Tooltip>
-                                 )}
-                                 {hasTrackerOrigin && r.ai_confidence == null && (
-                                    <Tooltip title='Applied via held-entry dialog (not auto-inserted by AI)'>
-                                       <Chip size='small' label='from tracker' variant='outlined' />
-                                    </Tooltip>
-                                 )}
-                                 {!hasTrackerOrigin && NA}
-                              </TableCell>
-                              <TableCell sx={{ maxWidth: 300 }}>
-                                 {r.detailed_work_description || r.note ? (
-                                    <Tooltip title={r.detailed_work_description || r.note}>
-                                       <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          {_trim(r.detailed_work_description || r.note, 80)}
-                                       </span>
-                                    </Tooltip>
-                                 ) : (
-                                    <em style={{ color: '#888' }}>(empty)</em>
-                                 )}
-                              </TableCell>
+                              {/* Edit */}
                               <TableCell>
                                  {isEditing ? (
                                     <Stack direction='row' spacing={1}>
@@ -595,6 +624,7 @@ export default function ConsolidatedTab({ period, customerData }) {
                                  <TableCell sx={{ color: dateMismatch ? 'warning.main' : 'text.secondary', fontWeight: dateMismatch ? 600 : undefined }}>
                                     {trackerDate}
                                  </TableCell>
+                                 {/* Customer (from tracker) */}
                                  <TableCell>
                                     {(() => {
                                        const trackerCustomer =
@@ -604,35 +634,16 @@ export default function ConsolidatedTab({ period, customerData }) {
                                              : null) ||
                                           r.tracker_first_name ||
                                           r.tracker_last_name;
-                                       return trackerCustomer ? (
-                                          <Tooltip title={r.tracker_entity ? `Logged for entity: ${r.tracker_entity} (employer's business — not the customer)` : 'Customer from tracker'}>
-                                             <span>{trackerCustomer}</span>
-                                          </Tooltip>
-                                       ) : (
-                                          NA
-                                       );
+                                       return trackerCustomer || NA;
                                     })()}
                                  </TableCell>
+                                 {/* Entity (from tracker — employer the work was logged under) */}
+                                 <TableCell>{r.tracker_entity || NA}</TableCell>
+                                 {/* Job — tracker doesn't have one */}
+                                 <TableCell>{NA}</TableCell>
+                                 {/* Work Description (tracker category) */}
                                  <TableCell>{r.tracker_category || NA}</TableCell>
-                                 <TableCell>{NA}</TableCell>
-                                 <TableCell>{r.tracker_employee_name || NA}</TableCell>
-                                 <TableCell align='right' sx={{ color: hoursMismatch ? 'warning.main' : 'text.secondary', fontWeight: hoursMismatch ? 600 : undefined }}>
-                                    {trackerHours != null ? `${trackerHours} h` : NA}
-                                 </TableCell>
-                                 <TableCell align='right'>{NA}</TableCell>
-                                 <TableCell>{NA}</TableCell>
-                                 <TableCell>
-                                    {r.tracker_filename ? (
-                                       <Tooltip title={r.tracker_filename}>
-                                          <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-                                             {_trim(r.tracker_filename, 32)}
-                                          </span>
-                                       </Tooltip>
-                                    ) : (
-                                       NA
-                                    )}
-                                 </TableCell>
-                                 <TableCell>{NA}</TableCell>
+                                 {/* Notes */}
                                  <TableCell sx={{ maxWidth: 300 }}>
                                     {r.tracker_notes ? (
                                        <Tooltip title={r.tracker_notes}>
@@ -644,8 +655,32 @@ export default function ConsolidatedTab({ period, customerData }) {
                                        NA
                                     )}
                                  </TableCell>
+                                 {/* AI score */}
+                                 <TableCell>{NA}</TableCell>
+                                 {/* Hours */}
+                                 <TableCell align='right' sx={{ color: hoursMismatch ? 'warning.main' : 'text.secondary', fontWeight: hoursMismatch ? 600 : undefined }}>
+                                    {trackerHours != null ? `${trackerHours} h` : NA}
+                                 </TableCell>
+                                 {/* Total */}
+                                 <TableCell align='right'>{NA}</TableCell>
+                                 {/* Billable */}
+                                 <TableCell>{NA}</TableCell>
+                                 {/* Employee */}
+                                 <TableCell>{r.tracker_employee_name || NA}</TableCell>
+                                 {/* Time tracker filename */}
+                                 <TableCell>
+                                    {r.tracker_filename ? (
+                                       <Tooltip title={r.tracker_filename}>
+                                          <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                                             {_trim(r.tracker_filename, 32)}
+                                          </span>
+                                       </Tooltip>
+                                    ) : (
+                                       NA
+                                    )}
+                                 </TableCell>
+                                 {/* Edit (no action on tracker offset row) */}
                                  <TableCell />
-
                               </TableRow>
                            )}
                         </Fragment>
