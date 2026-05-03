@@ -21,7 +21,7 @@ import {
    Typography
 } from '@mui/material';
 import { context } from '../../../../App';
-import { fetchConsolidatedTransactions, fetchDistinctEntities, updateFinalizedTransaction } from '../../../../Services/ApiCalls/BillingReviewCalls';
+import { fetchConsolidatedTransactions, fetchDistinctEntities, fetchEarliestUnbilledMonth, updateFinalizedTransaction } from '../../../../Services/ApiCalls/BillingReviewCalls';
 import CascadeImpactPanel from '../components/CascadeImpactPanel';
 import AutoCompleteWithDialog from '../../../../Components/Dialogs/AutoCompleteWithDialog';
 import NewJob from '../../../Jobs/JobForms/AddJob/NewJob';
@@ -45,9 +45,9 @@ const _startOfMonth = () => {
    return d.toISOString().slice(0, 10);
 };
 
-const _fortyFiveDaysAgo = () => {
+const _firstOfThisMonth = () => {
    const d = new Date();
-   d.setUTCDate(d.getUTCDate() - 45);
+   d.setUTCDate(1);
    return d.toISOString().slice(0, 10);
 };
 
@@ -77,9 +77,14 @@ const _trim = (s, max = 90) => {
 
 export default function ConsolidatedTab({ period, customerData, setCustomerData }) {
    const { accountID, userID, token } = useContext(context).loggedInUser;
-   const initialStart = period === 'unbilled' ? _fortyFiveDaysAgo() : period === 'month' ? _startOfMonth() : _startOfWeek();
+   // Provisional start while we fetch the earliest unbilled month from the
+   // backend. For 'unbilled' we initially use the first of the current month
+   // and then update once the API returns; for the other periods (kept for
+   // legacy callers that may pass them) we keep the old behaviour.
+   const initialStart = period === 'unbilled' ? _firstOfThisMonth() : period === 'month' ? _startOfMonth() : _startOfWeek();
    const [start, setStart] = useState(initialStart);
    const [end, setEnd] = useState(_todayISO());
+   const [startInitialized, setStartInitialized] = useState(period !== 'unbilled');
    const [rows, setRows] = useState([]);
    const [totalSum, setTotalSum] = useState(0);
    const [totalCount, setTotalCount] = useState(0);
@@ -116,6 +121,20 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    useEffect(() => {
       fetchDistinctEntities(accountID, userID, token).then(setEntityOptions);
    }, [accountID, userID, token]);
+
+   // Default Start = first of the earliest unbilled month. Fetched once on
+   // mount; suppresses the initial reload (see below) so we don't fire two
+   // requests with different Starts back-to-back.
+   useEffect(() => {
+      if (period !== 'unbilled') return;
+      let cancelled = false;
+      fetchEarliestUnbilledMonth(accountID, userID, token).then(s => {
+         if (cancelled) return;
+         if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) setStart(s);
+         setStartInitialized(true);
+      });
+      return () => { cancelled = true; };
+   }, [accountID, userID, token, period]);
 
    // Sort state
    const [sortField, setSortField] = useState('transaction_date');
@@ -189,8 +208,9 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    }, [filterCustomerId, filterEmployeeUserId, filterWorkDescId, debouncedJob, debouncedNote, filterEntity, filterAiMin, filterBillable, aiOnly]);
 
    useEffect(() => {
+      if (!startInitialized) return;
       reload();
-   }, [reload]);
+   }, [reload, startInitialized]);
 
    // Server-side filters now do unbilled + aiOnly. The page only renders what came back.
    const filteredRows = rows;

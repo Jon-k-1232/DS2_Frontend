@@ -129,6 +129,19 @@ export const fetchDistinctEntities = async (accountID, userID, token) => {
    }
 };
 
+export const fetchEarliestUnbilledMonth = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(
+         `${config.API_ENDPOINT}/billing-review/earliest-unbilled-month/${accountID}/${userID}`,
+         _headers(token)
+      );
+      return response.data?.start || null;
+   } catch (error) {
+      console.error('Error fetching earliest unbilled month:', error);
+      return null;
+   }
+};
+
 export const fetchPreInvoiceReview = async (accountID, userID, token, { customerId, start, end } = {}) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/billing-review/pre-invoice/${accountID}/${userID}`, {
