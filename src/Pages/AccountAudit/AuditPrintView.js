@@ -89,6 +89,43 @@ export default function AuditPrintView({ audit }) {
          <Divider sx={{ my: 1, borderColor: '#000' }} />
          <Row label='Strict ledger balance (after pending writeoffs applied)' value={formatCurrency(totals.strict_ledger_balance)} strong />
 
+         {summary.retainers && summary.retainers.total_chains > 0 && (
+            <>
+               <SectionHeader>Retainers & deposits</SectionHeader>
+               <Row label='Total prepaid (lifetime)' value={formatCurrency(totals.retainer_total_prepaid_lifetime)} />
+               <Row label='Drawn down to date' value={formatCurrency(totals.retainer_drawn)} />
+               <Row label='Currently available (active retainers)' value={formatCurrency(totals.retainer_available)} strong />
+               <Row label='Audit balance' value={formatCurrency(totals.audit_balance)} />
+               <Row label='Net position after applying available retainer' value={formatCurrency(totals.net_position_after_retainer)} strong />
+               <Box component='table' sx={{ width: '100%', mt: 1, borderCollapse: 'collapse', fontSize: 11, '& th, & td': { border: '1px solid #999', p: '3px 5px', verticalAlign: 'top' }, '& th': { backgroundColor: '#eee', textAlign: 'left' } }}>
+                  <thead>
+                     <tr>
+                        <th>Established</th>
+                        <th>Name / Type</th>
+                        <th>Form</th>
+                        <th align='right'>Starting</th>
+                        <th align='right'>Drawn</th>
+                        <th align='right'>Current</th>
+                        <th>Active?</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {summary.retainers.breakdown.map(r => (
+                        <tr key={r.retainer_id}>
+                           <td>{r.created_at ? r.created_at.slice(0, 10) : ''}</td>
+                           <td>{r.display_name || r.type_of_hold || 'Retainer'}</td>
+                           <td>{r.form_of_payment || ''}</td>
+                           <td align='right'>{formatCurrency(r.starting_amount)}</td>
+                           <td align='right'>{formatCurrency(r.drawn_to_date)}</td>
+                           <td align='right'>{formatCurrency(r.current_amount)}</td>
+                           <td>{r.is_active ? 'Yes' : 'No'}</td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </Box>
+            </>
+         )}
+
          <SectionHeader>Methodology</SectionHeader>
          <Typography variant='body2' paragraph>{methodology.description}</Typography>
          <Typography variant='caption' display='block'><strong>Audit balance:</strong> {methodology.audit_balance_formula}</Typography>
