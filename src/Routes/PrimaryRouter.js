@@ -141,7 +141,7 @@ export default function Router() {
                   </ManagerAndAdminProtectedAccessRoute>
                }
             />
-            <Route path='time-tracking/*' element={<TimeTrackingRoutes setPageTitle={setPageTitle} />} />
+            <Route path='time-tracking/*' element={<TimeTrackingRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />} />
 
             <Route
                path='account/*'

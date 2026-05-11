@@ -13,7 +13,6 @@ import RetainerSubRoutes from './RetainerSubRoutes';
 import EmployeeTimeTrackerSubRoutes from './EmployeeEntrySubRoutes';
 import ManagerAndAdminProtectedAccessRoute from '../../ManagerAndAdminProtectedAccess';
 import PendingPaymentsPage from '../../../Pages/Transactions/PendingPayments/PendingPaymentsPage';
-import BillingReviewPage from '../../../Pages/Transactions/BillingReview/BillingReviewPage';
 
 export default function TransactionsRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
@@ -28,7 +27,6 @@ export default function TransactionsRoutes({ setPageTitle, customerData, setCust
                <Route path='customerTransactions' element={<TransactionsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='customerPayments' element={<PaymentsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='pendingPayments' element={<PendingPaymentsPage customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
-               <Route path='billingReview' element={<BillingReviewPage setPageTitle={setPageTitle} customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='customerWriteOffs' element={<WriteOffsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='customerRetainers' element={<RetainersGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route

@@ -6,12 +6,12 @@ import ConsolidatedTab from './tabs/ConsolidatedTab';
 export default function BillingReviewPage({ setPageTitle, customerData, setCustomerData }) {
    const [tab, setTab] = useState('needsReview');
    useEffect(() => {
-      if (typeof setPageTitle === 'function') setPageTitle('Billing Review');
+      if (typeof setPageTitle === 'function') setPageTitle('Transaction Review');
    }, [setPageTitle]);
 
    return (
       <Stack spacing={2}>
-         <Typography variant='h5'>Billing Review</Typography>
+         <Typography variant='h5'>Transaction Review</Typography>
          <Typography variant='body2' color='text.secondary'>
             Spot-check rows the AI couldn't auto-apply, review consolidated transactions for the period, and flag anomalies before invoices go out.
          </Typography>

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useEffect } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { Box, Drawer } from '@mui/material';
@@ -7,7 +7,8 @@ import Logo from '../../Components/Logo';
 import Scrollbar from '../../Components/Scrollbar';
 import NavSection from '../../Components/NavSection';
 import { MHidden } from '../../Components/@material-extend';
-import sidebarRoutes from '../../Routes/SidebarRoutes';
+import { buildSidebarRoutes } from '../../Routes/SidebarRoutes';
+import { context } from '../../App';
 // ServerStatus component removed - health checks now handled by AWS
 
 const DRAWER_WIDTH = 290;
@@ -32,6 +33,8 @@ DashboardSidebar.propTypes = {
 
 export default function DashboardSidebar({ isMobileOpen, isDesktopOpen, onCloseMobile, onCloseDesktop }) {
    const { pathname } = useLocation();
+   const { loggedInUser } = useContext(context);
+   const navConfig = useMemo(() => buildSidebarRoutes(loggedInUser), [loggedInUser]);
 
    // Auto-close the mobile (modal) drawer on route change so it doesn't cover content.
    // Desktop drawer is persistent — preserve its state across navigation.
@@ -59,7 +62,7 @@ export default function DashboardSidebar({ isMobileOpen, isDesktopOpen, onCloseM
             </Box>
          </Box>
 
-         <NavSection navConfig={sidebarRoutes} />
+         <NavSection navConfig={navConfig} />
 
          <Box sx={{ flexGrow: 1 }} />
       </Scrollbar>

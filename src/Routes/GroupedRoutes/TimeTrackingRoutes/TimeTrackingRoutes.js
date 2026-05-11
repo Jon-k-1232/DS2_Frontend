@@ -6,10 +6,11 @@ import UploadTimeTracker from '../../../Pages/TimeTracking/Upload/UploadTimeTrac
 import TimeTrackerHistory from '../../../Pages/TimeTracking/History/TimeTrackerHistory';
 import UpdateTimeTrackerTemplate from '../../../Pages/TimeTracking/TemplateUpdate/UpdateTimeTrackerTemplate';
 import TimeTrackingSettings from '../../../Pages/Account/TimeTrackingSettings/TimeTrackingSettings';
+import BillingReviewPage from '../../../Pages/Transactions/BillingReview/BillingReviewPage';
 import AdminProtectedAccessRoute from '../../AdminProtectedAccess';
 import ManagerAndAdminProtectedAccessRoute from '../../ManagerAndAdminProtectedAccess';
 
-export default function TimeTrackingRoutes({ setPageTitle }) {
+export default function TimeTrackingRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
       setPageTitle('Time Tracking');
    }, [setPageTitle]);
@@ -33,6 +34,14 @@ export default function TimeTrackingRoutes({ setPageTitle }) {
                   element={
                      <ManagerAndAdminProtectedAccessRoute>
                         <TimeTrackingSettings />
+                     </ManagerAndAdminProtectedAccessRoute>
+                  }
+               />
+               <Route
+                  path='billingReview'
+                  element={
+                     <ManagerAndAdminProtectedAccessRoute>
+                        <BillingReviewPage setPageTitle={setPageTitle} customerData={customerData} setCustomerData={setCustomerData} />
                      </ManagerAndAdminProtectedAccessRoute>
                   }
                />

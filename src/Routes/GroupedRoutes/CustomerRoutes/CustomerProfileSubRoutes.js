@@ -9,14 +9,17 @@ import CustomerProfileJobs from '../../../Pages/Customer/CustomerProfile/Custome
 import EditCustomerProfile from '../../../Pages/Customer/CustomerProfile/EditCustomerProfile';
 import CustomerRetainers from '../../../Pages/Customer/CustomerProfile/CustomerRetainers';
 import CustomerProfilePayments from '../../../Pages/Customer/CustomerProfile/CustomerProfilePayments';
+import CustomerProfileAIAudit from '../../../Pages/Customer/CustomerProfile/CustomerProfileAIAudit';
+import AuditorProtectedAccessRoute, { canAccessAccountAudit } from '../../AuditorProtectedAccess';
 import { context } from '../../../App';
 import { useRowData } from '../../../Routes/useRowData';
 
 export default function CustomerProfileSubRoutes({ customerData, setCustomerData }) {
    const navigate = useNavigate();
    const location = useLocation();
-   const { accountID, userID, token } = useContext(context).loggedInUser;
-   const menuOptions = fetchMenuOptions(navigate);
+   const { loggedInUser } = useContext(context);
+   const { accountID, userID, token } = loggedInUser;
+   const menuOptions = fetchMenuOptions(navigate, canAccessAccountAudit(loggedInUser));
    const { rowData } = location?.state ?? {};
 
    const [profileData, setProfileData] = useState({});
@@ -56,6 +59,14 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
             <Route path='customerPayments' element={<CustomerProfilePayments profileData={profileData} />} />
             <Route path='retainersAndPrePayments' element={<CustomerRetainers profileData={profileData} />} />
             <Route
+               path='aiAudit'
+               element={
+                  <AuditorProtectedAccessRoute>
+                     <CustomerProfileAIAudit profileData={profileData} />
+                  </AuditorProtectedAccessRoute>
+               }
+            />
+            <Route
                path='editCustomerProfile'
                element={
                   <EditCustomerProfile
@@ -72,7 +83,7 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
    );
 }
 
-const fetchMenuOptions = navigate => [
+const fetchMenuOptions = (navigate, showAudit) => [
    {
       display: 'Invoices',
       value: 'customerInvoices',
@@ -103,6 +114,16 @@ const fetchMenuOptions = navigate => [
       route: '/customers/customersList/customerProfile/retainersAndPrePayments',
       onClick: () => navigate('/customers/customersList/customerProfile/retainersAndPrePayments')
    },
+   ...(showAudit
+      ? [
+           {
+              display: 'AI Audit',
+              value: 'aiAudit',
+              route: '/customers/customersList/customerProfile/aiAudit',
+              onClick: () => navigate('/customers/customersList/customerProfile/aiAudit')
+           }
+        ]
+      : []),
    {
       display: 'Edit Customer Profile',
       value: 'editCustomerProfile',

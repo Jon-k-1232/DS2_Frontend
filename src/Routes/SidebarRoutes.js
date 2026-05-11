@@ -5,8 +5,25 @@ import fileTextFill from '@iconify/icons-eva/file-text-fill';
 import clockFill from '@iconify/icons-eva/clock-fill';
 import printerFill from '@iconify/icons-eva/printer-fill';
 import baselineWork from '@iconify/icons-ic/baseline-work';
+import { canAccessAccountAudit } from './AuditorProtectedAccess';
 
 const getIcon = name => <Icon icon={name} width={22} height={22} />;
+
+// Build a copy of the sidebar config with entries removed that the current
+// user is not allowed to see. Used by DashboardSidebar at render time.
+export const buildSidebarRoutes = loggedInUser => {
+   const showAudit = canAccessAccountAudit(loggedInUser);
+   return sidebarRoutes.map(group => {
+      if (!group.children) return group;
+      return {
+         ...group,
+         children: group.children.filter(child => {
+            if (child.requiresAuditor && !showAudit) return false;
+            return true;
+         })
+      };
+   });
+};
 
 export const sidebarRoutes = [
    // {
@@ -53,11 +70,6 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
-            title: 'Billing Review',
-            path: '/transactions/billingReview',
-            icon: getIcon(clockFill)
-         },
-         {
             title: 'Retainers and Deposits',
             path: '/transactions/customerRetainers',
             icon: getIcon(clockFill)
@@ -88,6 +100,12 @@ export const sidebarRoutes = [
             title: 'Create Invoice',
             path: '/invoices/createInvoice',
             icon: getIcon(clockFill)
+         },
+         {
+            title: 'Account Audit',
+            path: '/invoices/accountAudit',
+            icon: getIcon(clockFill),
+            requiresAuditor: true
          }
          // {
          //   title: 'Create Quote',
@@ -134,13 +152,18 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
-            title: 'Time Tracker History',
+            title: 'Your Trackers',
             path: '/time-tracking/history',
             icon: getIcon(fileTextFill)
          },
          {
-            title: 'Tracking Administration',
+            title: 'Employee Trackers',
             path: '/time-tracking/trackingAdministration',
+            icon: getIcon(clockFill)
+         },
+         {
+            title: 'Transaction Review',
+            path: '/time-tracking/billingReview',
             icon: getIcon(clockFill)
          },
          {

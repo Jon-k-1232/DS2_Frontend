@@ -7,6 +7,8 @@ import CreateNewInvoices from '../../../Pages/Invoices/CreateNewInvoice/CreateNe
 import { Stack } from '@mui/material';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 import InvoiceSubRoutes from './InvoiceSubRoutes';
+import AccountAuditPage from '../../../Pages/AccountAudit/AccountAuditPage';
+import AuditorProtectedAccessRoute from '../../AuditorProtectedAccess';
 
 export default function InvoiceRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
@@ -21,6 +23,14 @@ export default function InvoiceRoutes({ setPageTitle, customerData, setCustomerD
                <Route path='invoices' element={<InvoicesGrid customerData={customerData} setCustomerData={setCustomerData} />} />
                <Route path='quotes' element={<QuotesGrid customerData={customerData} setCustomerData={setCustomerData} />} />
                <Route path='createInvoice' element={<CreateNewInvoices customerData={customerData} setCustomerData={e => setCustomerData(e)} />} />
+               <Route
+                  path='accountAudit'
+                  element={
+                     <AuditorProtectedAccessRoute>
+                        <AccountAuditPage setPageTitle={setPageTitle} />
+                     </AuditorProtectedAccessRoute>
+                  }
+               />
                {/* <Route path='createQuote' element={<WriteOff customerData={customerData} setCustomerData={e => setCustomerData(e)} />} /> */}
                <Route
                   path='/invoices/invoiceDetail/*'

@@ -108,23 +108,37 @@ export default function Customers({ customerData, setCustomerData }) {
       });
    };
 
-   useEffect(() => {
-      const activeCustomerData = customerData?.customersList?.activeCustomerData;
-      if (!activeCustomerData) return;
-      applyFilteredGrid(activeCustomerData);
-      initializedRef.current = true;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [customerData?.customersList]);
-
+   // First mount: always fetch a clean page 1 with no search.
+   // Deliberately ignore any cached customersList that may have a stale
+   // search term — otherwise navigating back from a customer profile
+   // re-populates the search bar with the previous term, which triggers an
+   // extra refetch and makes the table flicker between cached and fresh
+   // results.
    useEffect(() => {
       if (initializedRef.current) return;
-      const hasData = Boolean(customerData?.customersList?.activeCustomerData);
-      if (!hasData && accountID && userID && token) {
-         fetchPageData(1, DEFAULT_PAGE_SIZE, '');
-         initializedRef.current = true;
-      }
+      if (!accountID || !userID || !token) return;
+      initializedRef.current = true;
+      previousSearchTermRef.current = '';
+      fetchPageData(1, DEFAULT_PAGE_SIZE, '');
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [accountID, userID, token]);
+
+   // After first mount, sync only the grid rows when the cached
+   // customersList changes (e.g. an add/edit elsewhere updated it).
+   // Do NOT touch searchInput/searchTerm/pagination — those are
+   // user-driven now and must not be clobbered.
+   useEffect(() => {
+      if (!initializedRef.current) return;
+      const activeCustomerData = customerData?.customersList?.activeCustomerData;
+      if (!activeCustomerData?.grid) return;
+      const filteredGrid = filterGridByColumnName(activeCustomerData.grid, arrayOfColumnNames);
+      const totalCount = activeCustomerData.pagination?.totalItems ?? filteredGrid.rows.length ?? 0;
+      setGridData(prev => {
+         if (prev.totalCount === totalCount && prev.rows === filteredGrid.rows) return prev;
+         return { rows: filteredGrid.rows, columns: filteredGrid.columns, totalCount };
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [customerData?.customersList]);
 
    const fetchPageData = async (page = paginationModel.page + 1, pageSize = paginationModel.pageSize, searchValue = searchTerm) => {
       if (!accountID || !userID || !token) return;
