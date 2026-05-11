@@ -94,6 +94,9 @@ export default function AuditPrintView({ audit }) {
          <Typography variant='caption' display='block'><strong>Audit balance:</strong> {methodology.audit_balance_formula}</Typography>
          <Typography variant='caption' display='block'><strong>Strict ledger:</strong> {methodology.strict_ledger_formula}</Typography>
          <Typography variant='caption' display='block'><strong>Net position:</strong> {methodology.net_position_formula}</Typography>
+         {methodology.ledger_basis && (
+            <Typography variant='caption' display='block' sx={{ mt: 0.5 }}><strong>Ledger basis:</strong> {methodology.ledger_basis}</Typography>
+         )}
 
          <SectionHeader>Per-invoice breakdown ({breakdown.length})</SectionHeader>
          <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, '& th, & td': { border: '1px solid #999', p: '4px 6px', verticalAlign: 'top' }, '& th': { backgroundColor: '#eee', textAlign: 'left' } }}>
