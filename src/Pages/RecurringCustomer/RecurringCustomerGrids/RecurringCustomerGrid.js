@@ -34,7 +34,7 @@ export default function RecurringCustomers({ customerData, setCustomerData }) {
                enableSingleRowClick
                rowSelectionOnly
                arrayOfButtons={gridButtons}
-               routeToPass='/customers/customersList/customerProfile/customerInvoices'
+               routeToPass={row => `/customers/customersList/customerProfile/${row.customer_id}/customerInvoices`}
             />
          </Stack>
       </>

@@ -34,9 +34,7 @@ export default function CustomerProfileJobs({ profileData }) {
                parentColumnName='parent_job_id'
                tableData={customerJobData}
                checkboxSelection
-               enableSingleRowClick
                rowSelectionOnly
-               routeToPass={'/jobs/jobsList/deleteJob'}
                displayColumnNames={displayColumnNames}
             />
          </Stack>

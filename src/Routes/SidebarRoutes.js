@@ -102,6 +102,11 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
+            title: 'Accounts Receivable',
+            path: '/invoices/accountsReceivable',
+            icon: getIcon(clockFill)
+         },
+         {
             title: 'Account Audit',
             path: '/invoices/accountAudit',
             icon: getIcon(clockFill),

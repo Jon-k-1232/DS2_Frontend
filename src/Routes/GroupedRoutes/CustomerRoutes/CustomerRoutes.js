@@ -25,9 +25,9 @@ export default function CustomerRoutes({ setPageTitle, customerData, setCustomer
             element={<RecurringCustomers customerData={customerData} setCustomerData={data => setCustomerData(data)} />}
           />
           <Route
-            path='/customersList/customerProfile/*'
+            path='/customersList/customerProfile/:customerId/*'
             element={
-              <ErrorBoundary fallbackComponent='/customersList'>
+              <ErrorBoundary fallbackComponent='/customers/customersList'>
                 <CustomerProfileSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />
               </ErrorBoundary>
             }

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
+import { useLocation, useNavigate, useParams, Routes, Route } from 'react-router-dom';
 import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageNavigationHeader';
 import { fetchCustomerProfileInformation } from '../../../Services/ApiCalls/FetchCalls';
 import CustomerProfile from '../../../Pages/Customer/CustomerProfile/CustomerProfile';
@@ -12,45 +12,47 @@ import CustomerProfilePayments from '../../../Pages/Customer/CustomerProfile/Cus
 import CustomerProfileAIAudit from '../../../Pages/Customer/CustomerProfile/CustomerProfileAIAudit';
 import AuditorProtectedAccessRoute, { canAccessAccountAudit } from '../../AuditorProtectedAccess';
 import { context } from '../../../App';
-import { useRowData } from '../../../Routes/useRowData';
 
+// CustomerProfileSubRoutes — customer_id lives in the URL (`/customers/customersList/customerProfile/:customerId/...`).
+// This means Back/Forward navigation works "for free": the URL is the source of truth,
+// not location.state, sessionStorage, or context. Reloading or sharing a profile URL
+// also works without any extra plumbing.
 export default function CustomerProfileSubRoutes({ customerData, setCustomerData }) {
    const navigate = useNavigate();
    const location = useLocation();
+   const { customerId } = useParams();
+   const customerID = customerId ? Number(customerId) : null;
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
-   const menuOptions = fetchMenuOptions(navigate, canAccessAccountAudit(loggedInUser));
-   const { rowData } = location?.state ?? {};
 
    const [profileData, setProfileData] = useState({});
    const [callProfileData, setCallProfileData] = useState(new Date());
-   const [customerInfoID, setCustomerInfoID] = useState(null);
 
-   // Custom hook to get rowData from context
-   // eslint-disable-next-line
-   const { rowData: contextRowData } = useRowData();
+   const basePath = customerID ? `/customers/customersList/customerProfile/${customerID}` : '/customers/customersList/customerProfile';
+
+   const menuOptions = useMemo(
+      () => fetchMenuOptions(navigate, canAccessAccountAudit(loggedInUser), basePath),
+      [navigate, loggedInUser, basePath]
+   );
 
    useEffect(() => {
-      if (rowData || contextRowData || customerInfoID) {
-         const apiCall = async () => {
-            const customerID = rowData?.customer_id || contextRowData?.customer_id || customerInfoID;
-
-            const fetchCustomerInformation = await fetchCustomerProfileInformation(accountID, userID, customerID, token);
-            setProfileData({ ...fetchCustomerInformation });
-            setCustomerInfoID(customerID);
-         };
-         apiCall();
-      } else {
+      if (!customerID || Number.isNaN(customerID)) {
          navigate('/customers/customersList');
+         return;
       }
+      const apiCall = async () => {
+         const fetchCustomerInformation = await fetchCustomerProfileInformation(accountID, userID, customerID, token);
+         setProfileData({ ...fetchCustomerInformation });
+      };
+      apiCall();
       // eslint-disable-next-line
-   }, [callProfileData]);
+   }, [customerID, callProfileData]);
 
    return (
       <>
          <PageNavigationHeader menuOptions={menuOptions} onClickNavigation={() => {}} currentLocation={location} />
 
-         {location.pathname !== '/customers/customersList/customerProfile/editCustomerProfile' && <CustomerProfile profileData={profileData} />}
+         {!location.pathname.endsWith('/editCustomerProfile') && <CustomerProfile profileData={profileData} />}
 
          <Routes>
             <Route path='customerInvoices' element={<CustomerProfileInvoices profileData={profileData} />} />
@@ -83,51 +85,51 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
    );
 }
 
-const fetchMenuOptions = (navigate, showAudit) => [
+const fetchMenuOptions = (navigate, showAudit, basePath) => [
    {
       display: 'Invoices',
       value: 'customerInvoices',
-      route: '/customers/customersList/customerProfile/customerInvoices',
-      onClick: () => navigate('/customers/customersList/customerProfile/customerInvoices')
+      route: `${basePath}/customerInvoices`,
+      onClick: () => navigate(`${basePath}/customerInvoices`)
    },
    {
       display: 'Transactions',
       value: 'customerTransactions',
-      route: '/customers/customersList/customerProfile/customerTransactions',
-      onClick: () => navigate('/customers/customersList/customerProfile/customerTransactions')
+      route: `${basePath}/customerTransactions`,
+      onClick: () => navigate(`${basePath}/customerTransactions`)
    },
    {
       display: 'Jobs',
       value: 'customerJobs',
-      route: '/customers/customersList/customerProfile/customerJobs',
-      onClick: () => navigate('/customers/customersList/customerProfile/customerJobs')
+      route: `${basePath}/customerJobs`,
+      onClick: () => navigate(`${basePath}/customerJobs`)
    },
    {
       display: 'Payments',
       value: 'customerPayments',
-      route: '/customers/customersList/customerProfile/customerPayments',
-      onClick: () => navigate('/customers/customersList/customerProfile/customerPayments')
+      route: `${basePath}/customerPayments`,
+      onClick: () => navigate(`${basePath}/customerPayments`)
    },
    {
       display: 'Retainers and PrePayments',
       value: 'retainersAndPrePayments',
-      route: '/customers/customersList/customerProfile/retainersAndPrePayments',
-      onClick: () => navigate('/customers/customersList/customerProfile/retainersAndPrePayments')
+      route: `${basePath}/retainersAndPrePayments`,
+      onClick: () => navigate(`${basePath}/retainersAndPrePayments`)
    },
    ...(showAudit
       ? [
            {
               display: 'AI Audit',
               value: 'aiAudit',
-              route: '/customers/customersList/customerProfile/aiAudit',
-              onClick: () => navigate('/customers/customersList/customerProfile/aiAudit')
+              route: `${basePath}/aiAudit`,
+              onClick: () => navigate(`${basePath}/aiAudit`)
            }
         ]
       : []),
    {
       display: 'Edit Customer Profile',
       value: 'editCustomerProfile',
-      route: '/customers/customersList/customerProfile/editCustomerProfile',
-      onClick: () => navigate('/customers/customersList/customerProfile/editCustomerProfile')
+      route: `${basePath}/editCustomerProfile`,
+      onClick: () => navigate(`${basePath}/editCustomerProfile`)
    }
 ];

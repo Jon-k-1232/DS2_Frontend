@@ -7,9 +7,28 @@ const headers = memoryToken => {
    return { headers: { Authorization: `Bearer ${token}` } };
 };
 
-export const fetchAuditableCustomers = async (accountID, userID, { page = 1, limit = 25, search = '' } = {}, token) => {
-   const params = new URLSearchParams({ page, limit, search }).toString();
-   const res = await axios.get(`${config.API_ENDPOINT}/accountAudit/customers/${accountID}/${userID}?${params}`, headers(token));
+export const fetchAuditableCustomers = async (
+   accountID,
+   userID,
+   {
+      page = 1,
+      limit = 25,
+      search = '',
+      filter = null,
+      sort = null,
+      direction = 'asc',
+      hideZeroAppBalance = true
+   } = {},
+   token
+) => {
+   const params = new URLSearchParams({ page, limit, search });
+   if (filter) params.set('filter', filter);
+   if (sort) {
+      params.set('sort', sort);
+      params.set('direction', direction);
+   }
+   if (hideZeroAppBalance) params.set('hideZeroAppBalance', 'true');
+   const res = await axios.get(`${config.API_ENDPOINT}/accountAudit/customers/${accountID}/${userID}?${params.toString()}`, headers(token));
    return res.data;
 };
 
@@ -19,6 +38,11 @@ export const runAccountAudits = async (accountID, userID, customerIds, notes, to
       { customer_ids: customerIds, notes: notes || null },
       headers(token)
    );
+   return res.data;
+};
+
+export const pollAuditJob = async (jobId, accountID, userID, token) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/accountAudit/job/${jobId}/${accountID}/${userID}`, headers(token));
    return res.data;
 };
 

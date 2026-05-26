@@ -32,11 +32,7 @@ export default function CustomerRetainers({ profileData }) {
                idField='retainer_id'
                parentColumnName='parent_retainer_id'
                tableData={customerRetainerData}
-               checkboxSelection
-               enableSingleRowClick
-               rowSelectionOnly
                displayColumnNames={displayColumnNames}
-               routeToPass={'/transactions/customerRetainers/deleteRetainer'}
             />
          </Stack>
       </>

@@ -87,7 +87,11 @@ const DataGridTable = ({
          if (enableSingleRowClick && !routeToPass) {
             setSingleSelectedRow?.(rowData.row);
          } else if (enableSingleRowClick && routeToPass) {
-            navigate(routeToPass, { state: { rowData: rowData.row } });
+            // routeToPass may be a string OR a function (row) => string — the
+            // function form lets callers stamp row-derived ids into the URL
+            // itself (preferred over location.state so Back-navigation works).
+            const resolvedRoute = typeof routeToPass === 'function' ? routeToPass(rowData.row) : routeToPass;
+            navigate(resolvedRoute, { state: { rowData: rowData.row } });
          }
       },
       paginationMode: useClientPagination ? 'client' : 'server',

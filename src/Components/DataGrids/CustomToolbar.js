@@ -44,14 +44,21 @@ const CustomToolbar = ({
                <div style={{ flexGrow: 1 }} />
                {renderToolbarContent && <Box sx={{ paddingRight: '10px' }}>{renderToolbarContent()}</Box>}
                {showQuickFilter && (
+                  // IMPORTANT: parser + formatter must be lossless inverses, or
+                  // MUI re-derives the input value from quickFilterValues and
+                  // strips whatever the parser dropped — most visibly trailing
+                  // spaces. The old "split(',').map(trim).filter(non-empty)"
+                  // parser caused "guenther [space] j" to flicker to "guentherj"
+                  // after the debounce because the trailing space was trimmed
+                  // out and then the formatter rebuilt the input without it.
+                  //
+                  // Treat the entire input as a single filter term — preserves
+                  // every character the user types. Trade-off: comma-separated
+                  // OR-filtering (rarely used) no longer works.
                   <GridToolbarQuickFilter
                      sx={{ paddingRight: '10px' }}
-                     quickFilterParser={searchInput =>
-                        searchInput
-                           .split(',')
-                           .map(value => value.trim())
-                           .filter(value => value !== '')
-                     }
+                     quickFilterParser={input => (input && input.length > 0 ? [input] : [])}
+                     quickFilterFormatter={values => (values && values.length ? values[0] : '')}
                      debounceMs={100}
                   />
                )}

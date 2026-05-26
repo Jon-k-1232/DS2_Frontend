@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -12,19 +11,19 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.log(error, info);
+    console.error('[ErrorBoundary] Caught error:', error, info);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (this.state.hasError !== prevState.hasError && this.state.hasError === true) {
-      this.navigate(this.props.fallbackRoute);
+      const fallback = this.props.fallbackComponent || this.props.fallbackRoute;
+      if (fallback) {
+        // Use window.location for imperative navigation from a class component.
+        // (useNavigate() cannot be called inside class methods.)
+        window.location.href = fallback;
+      }
     }
   }
-
-  navigate = path => {
-    const navigate = useNavigate();
-    navigate(path);
-  };
 
   render() {
     return this.state.hasError ? null : this.props.children;

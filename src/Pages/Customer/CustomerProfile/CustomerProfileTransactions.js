@@ -27,7 +27,7 @@ export default function CustomerProfileTransactions({ profileData }) {
    return (
       <>
          <Stack spacing={3}>
-            <DataGridTable tableData={filteredGrid} checkboxSelection enableSingleRowClick rowSelectionOnly routeToPass={'/transactions/customerTransactions/deleteTimeOrCharge'} />
+            <DataGridTable tableData={filteredGrid} />
          </Stack>
       </>
    );

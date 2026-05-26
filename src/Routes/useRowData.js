@@ -14,7 +14,11 @@ export const RowDataProvider = ({ children }) => {
    const { state } = location;
 
    useEffect(() => {
-      if (state?.rowData) {
+      // Only accept rowData that looks like a customer record (has customer_id and
+      // does NOT look like a job/invoice/transaction row).  This prevents navigating
+      // to a sub-page (e.g. job delete form) from overwriting the customer context
+      // so that clicking Back still restores the correct profile.
+      if (state?.rowData && state.rowData.customer_id != null && state.rowData.customer_job_id == null) {
          setRowData(state.rowData);
       }
    }, [state]);

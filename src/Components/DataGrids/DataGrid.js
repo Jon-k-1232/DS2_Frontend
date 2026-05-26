@@ -41,7 +41,12 @@ const DataGridTable = ({
       },
       onRowClick: rowData => {
          enableSingleRowClick && !routeToPass && setSingleSelectedRow(rowData.row);
-         enableSingleRowClick && routeToPass && navigate(routeToPass, { state: { rowData: rowData.row } });
+         if (enableSingleRowClick && routeToPass) {
+            // routeToPass may be a string OR (row) => string — function form
+            // lets callers stamp row ids into the URL itself.
+            const resolvedRoute = typeof routeToPass === 'function' ? routeToPass(rowData.row) : routeToPass;
+            navigate(resolvedRoute, { state: { rowData: rowData.row } });
+         }
       },
       onCellClick: (cellParams, event) => {
          if (typeof onAnyCellClick === 'function') {

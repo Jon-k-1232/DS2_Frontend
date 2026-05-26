@@ -192,7 +192,7 @@ export default function Customers({ customerData, setCustomerData }) {
                arrayOfButtons={gridButtons}
                enableSingleRowClick
                rowSelectionOnly
-               routeToPass='/customers/customersList/customerProfile/customerInvoices'
+               routeToPass={row => `/customers/customersList/customerProfile/${row.customer_id}/customerInvoices`}
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}
                loading={loading}

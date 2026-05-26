@@ -11,7 +11,7 @@ import AddressTypeSelections from '../CustomerForms/AddCustomer/FormSubComponent
 import RecurringCustomerForm from '../CustomerForms/AddCustomer/FormSubComponents/RecurringCustomerForm';
 import { context } from '../../../App';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const initialState = {
    recurringCustomerID: '',
@@ -42,6 +42,7 @@ const initialState = {
 
 export default function EditCustomerProfile({ profileData, setCallProfileData, customerData, setCustomerData }) {
    const navigate = useNavigate();
+   const location = useLocation();
    const {
       loggedInUser,
       loggedInUser: { accountID, userID }
@@ -135,7 +136,14 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
          setCustomerData({ ...customerData, customersList: postedItem.customersList });
 
          if (selectedItems.isCustomerActive && !deleteCustomer) {
-            navigate('/customers/customersList/customerProfile/customerInvoices');
+            // Stay on the same customer's profile — pull the customerId out of the
+            // current URL so we don't depend on context/state to reconstruct it.
+            const customerIdFromPath = location.pathname.match(/customerProfile\/(\d+)/)?.[1];
+            if (customerIdFromPath) {
+               navigate(`/customers/customersList/customerProfile/${customerIdFromPath}/customerInvoices`);
+            } else {
+               navigate('/customers/customersList');
+            }
          } else {
             navigate('/customers/customersList');
          }

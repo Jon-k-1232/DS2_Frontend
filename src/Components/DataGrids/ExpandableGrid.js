@@ -111,17 +111,17 @@ const ExpandableGrid = ({
       return column;
    });
 
-   // Once the row is expanded, allows for the flattening of the data to include children rows based on expanded state
+   // Flatten the tree for DataGrid.  For expanded parents, sort children descending
+   // by ID (most recent first) and insert them immediately below the parent.
+   // Use a copy for sorting so we never mutate the shared children array on the row.
    const flattenedData = [];
    rows.forEach(row => {
       flattenedData.push(row);
-      if (expandedRows.has(row[idField])) {
-         row.children.forEach(childRow => {
-            // Create label for children rows
-            flattenedData.push({ ...childRow, [idField]: childRow[idField] });
+      if (expandedRows.has(row[idField]) && row.children && row.children.length > 0) {
+         const sortedChildren = [...row.children].sort((a, b) => b[idField] - a[idField]);
+         sortedChildren.forEach(childRow => {
+            flattenedData.push({ ...childRow });
          });
-         // Sort children rows by idField in ascending order the most recent will be just below the parent.
-         row.children.sort((a, b) => b[idField] - a[idField]);
       }
    });
 

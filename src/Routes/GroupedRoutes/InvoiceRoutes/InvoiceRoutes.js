@@ -9,6 +9,7 @@ import ErrorBoundary from '../../../Components/ErrorBoundary';
 import InvoiceSubRoutes from './InvoiceSubRoutes';
 import AccountAuditPage from '../../../Pages/AccountAudit/AccountAuditPage';
 import AuditorProtectedAccessRoute from '../../AuditorProtectedAccess';
+import AccountsReceivablePage from '../../../Pages/AccountsReceivable/AccountsReceivablePage';
 
 export default function InvoiceRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
@@ -31,6 +32,7 @@ export default function InvoiceRoutes({ setPageTitle, customerData, setCustomerD
                      </AuditorProtectedAccessRoute>
                   }
                />
+               <Route path='accountsReceivable' element={<AccountsReceivablePage />} />
                {/* <Route path='createQuote' element={<WriteOff customerData={customerData} setCustomerData={e => setCustomerData(e)} />} /> */}
                <Route
                   path='/invoices/invoiceDetail/*'
