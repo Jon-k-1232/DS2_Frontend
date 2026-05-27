@@ -1,8 +1,10 @@
+import { createContext, useState } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import Router from './Routes/PrimaryRouter';
 import ThemeConfig from './Theme';
 import GlobalStyles from './Theme/globalStyles';
-import { createContext, useState } from 'react';
 import { RowDataProvider } from './Routes/useRowData';
+import config from './config';
 
 let context = createContext();
 
@@ -10,7 +12,6 @@ export default function App() {
    const windowUserID = window.sessionStorage.getItem('userID') || null;
    const windowAccountID = window.sessionStorage.getItem('accountID') || null;
    const windowToken = window.sessionStorage.getItem('token') || null;
-   const windowRequiresReset = window.sessionStorage.getItem('requiresPasswordReset') === 'true';
    // Restore identity-derived fields so a page reload keeps protected routes
    // (e.g. /transactions/*) accessible without forcing a re-login. LoginForm
    // is responsible for writing these on a fresh login.
@@ -25,20 +26,21 @@ export default function App() {
          displayName: windowDisplayName,
          role: windowRole,
          accessLevel: windowAccessLevel,
-         token: windowToken,
-         requiresPasswordReset: windowRequiresReset
+         token: windowToken
       } || {}
    );
 
    return (
-      <ThemeConfig>
-         <context.Provider value={{ loggedInUser, setLoggedInUser }}>
-            <RowDataProvider>
-               <GlobalStyles />
-               <Router />
-            </RowDataProvider>
-         </context.Provider>
-      </ThemeConfig>
+      <GoogleOAuthProvider clientId={config.GOOGLE_CLIENT_ID}>
+         <ThemeConfig>
+            <context.Provider value={{ loggedInUser, setLoggedInUser }}>
+               <RowDataProvider>
+                  <GlobalStyles />
+                  <Router />
+               </RowDataProvider>
+            </context.Provider>
+         </ThemeConfig>
+      </GoogleOAuthProvider>
    );
 }
 

@@ -26,8 +26,6 @@ const initialState = {
   billingRate: 0,
   role: '',
   accessLevel: '',
-  userLoginName: '',
-  userLoginPassword: '',
   isUserActive: true
 };
 

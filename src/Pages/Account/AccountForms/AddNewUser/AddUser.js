@@ -3,7 +3,6 @@ import { Stack, Button, Alert, Box } from '@mui/material';
 import TeamMemberName from './FormSubComponents/TeamMemberNameForm';
 import AccessSelections from './FormSubComponents/AccessSelections';
 import RateSelections from './FormSubComponents/RateSelections';
-import UserLoginSelections from './FormSubComponents/UserLoginSelections';
 import { postNewTeamMember } from '../../../../Services/ApiCalls/PostCalls';
 import { useContext } from 'react';
 import { context } from '../../../../App';
@@ -16,9 +15,7 @@ const initialState = {
   costRate: 0,
   billingRate: 0,
   role: '',
-  accessLevel: null,
-  userLoginName: '',
-  userLoginPassword: ''
+  accessLevel: null
 };
 
 export default function AddUser({ customerData, setCustomerData }) {
@@ -44,7 +41,6 @@ export default function AddUser({ customerData, setCustomerData }) {
         <TeamMemberName selectedItems={selectedItems} setSelectedItems={e => setSelectedItems(e)} />
         <RateSelections selectedItems={selectedItems} setSelectedItems={e => setSelectedItems(e)} />
         <AccessSelections selectedItems={selectedItems} setSelectedItems={e => setSelectedItems(e)} />
-        <UserLoginSelections selectedItems={selectedItems} setSelectedItems={e => setSelectedItems(e)} />
 
         <Box style={{ textAlign: 'center' }}>
           <Button onClick={handleSubmit}>Submit</Button>

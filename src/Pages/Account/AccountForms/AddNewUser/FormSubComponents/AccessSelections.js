@@ -29,4 +29,4 @@ export default function AccessSelections({ selectedItems, setSelectedItems }) {
   );
 }
 
-const accessLevels = ['Admin', 'Manager', 'User'];
+const accessLevels = ['Super Admin', 'Admin', 'Manager', 'User'];

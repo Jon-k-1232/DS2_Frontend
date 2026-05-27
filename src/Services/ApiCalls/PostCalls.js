@@ -133,13 +133,13 @@ export const postNewRetainer = async (data, accountID, userID, token) => {
    }
 };
 
-export const postLoginAuth = async (suppliedUsername, suppliedPassword, token) => {
-   const url = `${config.API_ENDPOINT}/auth/login`;
+export const postGoogleAuth = async credential => {
+   const url = `${config.API_ENDPOINT}/auth/google`;
    try {
-      const response = await axios.post(url, { suppliedUsername, suppliedPassword }, headers(token));
+      const response = await axios.post(url, { credential });
       return response.data;
    } catch (error) {
-      console.error('Error while posting login auth:', error);
+      console.error('Error while posting Google auth:', error);
       return error;
    }
 };
@@ -162,28 +162,6 @@ export const postUserTimeEntryToTransactions = async (data, accountID, userID, t
       return response.data;
    } catch (error) {
       console.error('Error while posting time entry to transactions:', error);
-      throw error;
-   }
-};
-
-export const requestPasswordReset = async identifier => {
-   const url = `${config.API_ENDPOINT}/auth/requestPasswordReset`;
-   try {
-      const response = await axios.post(url, { identifier });
-      return response.data;
-   } catch (error) {
-      console.error('Error while requesting password reset:', error);
-      throw error;
-   }
-};
-
-export const updatePasswordAfterReset = async (newPassword, token) => {
-   const url = `${config.API_ENDPOINT}/auth/updatePassword`;
-   try {
-      const response = await axios.post(url, { newPassword }, headers(token));
-      return response.data;
-   } catch (error) {
-      console.error('Error while updating password:', error);
       throw error;
    }
 };

@@ -2,14 +2,10 @@ import { useContext } from 'react';
 import { Typography, Container } from '@mui/material';
 import { context } from '../App';
 
-// Mirror of DS2_Backend/.../auditAllowlist.js — must stay in sync.
-const ACCOUNT_AUDIT_ALLOWED_NAMES = ['kasi kimmel', 'jon kimmel'];
-
 export const canAccessAccountAudit = loggedInUser => {
    if (!loggedInUser) return false;
    const access = (loggedInUser.accessLevel || '').toLowerCase();
-   const name = (loggedInUser.displayName || '').trim().toLowerCase();
-   return access === 'admin' && ACCOUNT_AUDIT_ALLOWED_NAMES.includes(name);
+   return access === 'super admin';
 };
 
 const AuditorProtectedAccessRoute = ({ children }) => {

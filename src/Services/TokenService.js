@@ -18,7 +18,6 @@ const TokenService = {
     window.sessionStorage.removeItem('userID');
     window.sessionStorage.removeItem('accountID');
     window.sessionStorage.removeItem('token');
-    window.sessionStorage.removeItem('requiresPasswordReset');
     window.sessionStorage.removeItem('accessLevel');
     window.sessionStorage.removeItem('displayName');
     window.sessionStorage.removeItem('role');
@@ -27,7 +26,7 @@ const TokenService = {
     const token = memoryToken || window.sessionStorage.getItem('token');
     const decodedToken = jwtDecode(token);
     const expirationTimeInSeconds = decodedToken.exp;
-    const expirationDate = new Date(expirationTimeInSeconds * 1000); // Convert to milliseconds
+    const expirationDate = new Date(expirationTimeInSeconds * 1000);
 
     return expirationDate;
   },
@@ -35,10 +34,10 @@ const TokenService = {
     const token = memoryToken || window.sessionStorage.getItem('token');
     const decodedToken = jwtDecode(token);
     const expirationTimeInSeconds = decodedToken.exp;
-    const expirationDate = new Date(expirationTimeInSeconds * 1000); // Convert to milliseconds
+    const expirationDate = new Date(expirationTimeInSeconds * 1000);
 
     const currentTime = new Date();
-    const timeLeft = expirationDate - currentTime; // This will be in milliseconds
+    const timeLeft = expirationDate - currentTime;
 
     return timeLeft;
   },
@@ -54,16 +53,13 @@ const TokenService = {
       displayName: null,
       role: null,
       accessLevel: null,
-      token: null,
-      requiresPasswordReset: false
+      token: null
     };
 
-    // If the token is expired
     if (isExpired) {
       window.sessionStorage.removeItem('userID');
       window.sessionStorage.removeItem('accountID');
       window.sessionStorage.removeItem('token');
-      window.sessionStorage.removeItem('requiresPasswordReset');
       window.sessionStorage.removeItem('accessLevel');
       window.sessionStorage.removeItem('displayName');
       window.sessionStorage.removeItem('role');

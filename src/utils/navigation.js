@@ -1,4 +1,4 @@
-const CUSTOMER_ACCESS_LEVELS = ['admin', 'manager'];
+const CUSTOMER_ACCESS_LEVELS = ['admin', 'manager', 'super admin'];
 
 export const getDefaultLandingRoute = accessLevel => {
    const normalized = typeof accessLevel === 'string' ? accessLevel.toLowerCase() : '';

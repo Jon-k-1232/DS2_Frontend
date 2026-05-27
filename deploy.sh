@@ -38,6 +38,7 @@ echo "[2/4] Building image..."
 docker build --platform linux/amd64 --no-cache \
   --build-arg REACT_APP_ENV=production \
   --build-arg REACT_APP_API_PROD_ENDPOINT=https://ds2.kimmeloffice.com/ds2_backend \
+  --build-arg REACT_APP_GOOGLE_CLIENT_ID=416134646597-hbvabo1pq1e2g92c4edm22altec6pmt3.apps.googleusercontent.com \
   -t ${ECR_REPO}:${VERSION_TAG} .
 docker tag ${ECR_REPO}:${VERSION_TAG} ${ECR_REPO}:latest
 

@@ -5,8 +5,6 @@ import { fetchSingleUser } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import DeleteUser from '../../../Pages/Account/AccountForms/DeleteUser/DeleteUser';
 import EditUser from '../../../Pages/Account/AccountForms/EditAccount/EditUser';
-import EditUserCredentials from '../../../Pages/Account/AccountForms/EditAccount/EditUserCredentials';
-import ResetUserPassword from '../../../Pages/Account/AccountForms/EditAccount/ResetUserPassword';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 
 export default function UsersSubRoutes({ customerData, setCustomerData }) {
@@ -51,22 +49,6 @@ export default function UsersSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
-            <Route
-               path='editUserCredentials'
-               element={
-                  <ErrorBoundary fallbackComponent='/account/accountUsers'>
-                     <EditUserCredentials customerData={customerData} setCustomerData={data => setCustomerData(data)} userData={userData} />
-                  </ErrorBoundary>
-               }
-            />
-            <Route
-               path='resetUserPassword'
-               element={
-                  <ErrorBoundary fallbackComponent='/account/accountUsers'>
-                     <ResetUserPassword customerData={customerData} setCustomerData={data => setCustomerData(data)} userData={userData} />
-                  </ErrorBoundary>
-               }
-            />
          </Routes>
       </>
    );
@@ -84,17 +66,5 @@ const fetchMenuOptions = navigate => [
       value: 'editUser',
       route: '/account/accountUsers/editUser',
       onClick: () => navigate('/account/accountUsers/editUser')
-   },
-   {
-      display: 'Edit User Credentials',
-      value: 'editUserCredentials',
-      route: '/account/accountUsers/editUserCredentials',
-      onClick: () => navigate('/account/accountUsers/editUserCredentials')
-   },
-   {
-      display: 'Reset User Password',
-      value: 'resetUserPassword',
-      route: '/account/accountUsers/resetUserPassword',
-      onClick: () => navigate('/account/accountUsers/resetUserPassword')
    }
 ];

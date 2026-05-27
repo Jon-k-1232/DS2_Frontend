@@ -66,7 +66,7 @@ export default function Login({ appVersion }) {
                   <Typography variant='h4' gutterBottom>
                      Sign in to DS2
                   </Typography>
-                  <Typography sx={{ color: 'text.secondary' }}>Enter your details below.</Typography>
+                  <Typography sx={{ color: 'text.secondary' }}>Use your @jimkimmel.com Google account.</Typography>
                </Stack>
 
                <LoginForm />

@@ -4,8 +4,6 @@ import TokenService from '../Services/TokenService';
 import DashboardLayout from '../Layouts/Drawer';
 import LogoOnlyLayout from '../Layouts/LogoOnlyLayout';
 import Login from '../Pages/Login/Login';
-import ForgotPassword from '../Pages/Login/ForgotPassword';
-import ResetPassword from '../Pages/Login/ResetPassword';
 import NotFound from '../Pages/Page404/Page404';
 import DashboardRoutes from './GroupedRoutes/DashboardRoutes';
 import CustomerRoutes from './GroupedRoutes/CustomerRoutes/CustomerRoutes';
@@ -84,8 +82,6 @@ export default function Router() {
       <Routes>
          <Route element={<LogoOnlyLayout />}>
             <Route exact path='/login' element={<Login appVersion={appVersion} />} />
-            <Route exact path='/forgot-password' element={<ForgotPassword />} />
-            <Route exact path='/reset-password' element={<ResetPassword />} />
             <Route path='/' element={<Navigate to='/login' />} />
             <Route path='404' element={<NotFound />} />
             <Route path='*' element={<Navigate to='/404' />} />
