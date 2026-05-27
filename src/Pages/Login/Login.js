@@ -1,5 +1,5 @@
 import { styled } from '@mui/material/styles';
-import { Card, Stack, Container, Typography } from '@mui/material';
+import { Card, Stack, Container, Typography, Paper } from '@mui/material';
 import AuthLayout from '../../Layouts/AuthLayout';
 import Page from '../../Components/Page';
 import { MHidden } from '../../Components/@material-extend';
@@ -8,7 +8,9 @@ import LoginForm from './LoginForm';
 const RootStyle = styled(Page)(({ theme }) => ({
    [theme.breakpoints.up('md')]: {
       display: 'flex'
-   }
+   },
+   minHeight: '100vh',
+   background: theme.palette.grey[100]
 }));
 
 const SectionStyle = styled(Card)(({ theme }) => ({
@@ -18,6 +20,7 @@ const SectionStyle = styled(Card)(({ theme }) => ({
    flexDirection: 'column',
    justifyContent: 'center',
    margin: theme.spacing(2, 0, 2, 2),
+   borderRadius: theme.spacing(2),
    position: 'relative'
 }));
 
@@ -28,7 +31,14 @@ const ContentStyle = styled('div')(({ theme }) => ({
    minHeight: '100vh',
    flexDirection: 'column',
    justifyContent: 'center',
-   padding: theme.spacing(12, 0)
+   padding: theme.spacing(12, 2)
+}));
+
+const LoginCard = styled(Paper)(({ theme }) => ({
+   padding: theme.spacing(6, 4),
+   borderRadius: theme.spacing(2),
+   border: `1px solid ${theme.palette.grey[200]}`,
+   boxShadow: '0 24px 48px -8px rgba(145, 158, 171, 0.12)'
 }));
 
 const BottomTypography = styled(Typography)(({ theme }) => ({
@@ -62,14 +72,16 @@ export default function Login({ appVersion }) {
 
          <Container maxWidth='sm'>
             <ContentStyle>
-               <Stack sx={{ mb: 5 }}>
-                  <Typography variant='h4' gutterBottom>
-                     Sign in to DS2
-                  </Typography>
-                  <Typography sx={{ color: 'text.secondary' }}>Use your @jimkimmel.com Google account.</Typography>
-               </Stack>
+               <LoginCard elevation={0}>
+                  <Stack sx={{ mb: 4, textAlign: 'center' }} spacing={1}>
+                     <Typography variant='h4' sx={{ fontWeight: 600 }}>
+                        Sign in to DS2
+                     </Typography>
+                     <Typography sx={{ color: 'text.secondary' }}>Use your @jimkimmel.com Google account.</Typography>
+                  </Stack>
 
-               <LoginForm />
+                  <LoginForm />
+               </LoginCard>
             </ContentStyle>
          </Container>
       </RootStyle>
