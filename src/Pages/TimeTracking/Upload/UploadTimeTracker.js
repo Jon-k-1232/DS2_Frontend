@@ -28,9 +28,10 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const [validationNote, setValidationNote] = useState(policyNote);
 
    const lowercaseAccessLevel = accessLevel?.toLowerCase?.() || '';
+   const isSuper = lowercaseAccessLevel === 'super admin';
    const isAdmin = lowercaseAccessLevel === 'admin';
    const isManager = lowercaseAccessLevel === 'manager';
-   const canSubmitForOthers = isAdmin || isManager;
+   const canSubmitForOthers = isSuper || isAdmin || isManager;
    const canUploadNewTemplate = isSuperAdmin(loggedInUser);
    const [submissionUserId, setSubmissionUserId] = useState(userID?.toString() || '');
    const [submissionUsers, setSubmissionUsers] = useState([]);
