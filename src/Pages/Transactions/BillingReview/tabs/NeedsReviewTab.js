@@ -488,8 +488,14 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
                            [r.first_name, r.last_name].filter(Boolean).join(' ') ||
                            NA;
                         return (
-                           <TableRow key={r.timesheet_entry_id} hover selected={selectedIds.has(r.timesheet_entry_id)}>
-                              <TableCell padding='checkbox'>
+                           <TableRow
+                              key={r.timesheet_entry_id}
+                              hover
+                              selected={selectedIds.has(r.timesheet_entry_id)}
+                              onClick={() => onEdit(r)}
+                              sx={{ cursor: 'pointer' }}
+                           >
+                              <TableCell padding='checkbox' onClick={e => e.stopPropagation()}>
                                  <Checkbox
                                     size='small'
                                     checked={selectedIds.has(r.timesheet_entry_id)}
@@ -532,7 +538,15 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
                                  )}
                               </TableCell>
                               <TableCell>
-                                 <Button size='small' onClick={() => onEdit(r)}>Edit</Button>
+                                 <Button
+                                    size='small'
+                                    onClick={e => {
+                                       e.stopPropagation();
+                                       onEdit(r);
+                                    }}
+                                 >
+                                    Edit
+                                 </Button>
                               </TableCell>
                            </TableRow>
                         );
