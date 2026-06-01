@@ -1,14 +1,10 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Chip, CircularProgress, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
-import UpgradeIcon from '@mui/icons-material/Upgrade';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../../App';
 import { uploadTimeTrackerFile, downloadLatestTimeTrackerTemplate, fetchTimeTrackingUsers } from '../../../Services/ApiCalls/TimeTrackingCalls';
 import FileDropzone from '../../../Components/FileDropzone/FileDropzone';
-import { isSuperAdmin } from '../../../Routes/SuperAdminAccess';
 
 const acceptedExtensions = ['.csv', '.xls', '.xlsx', '.xlsm'];
 const MAX_FILE_SIZE_BYTES = 1024 * 1024;
@@ -17,7 +13,6 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token, accessLevel, displayName } = loggedInUser;
 
-   const navigate = useNavigate();
    const [selectedFile, setSelectedFile] = useState(null);
    const [uploading, setUploading] = useState(false);
    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
@@ -33,7 +28,6 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const isAdmin = lowercaseAccessLevel === 'admin';
    const isManager = lowercaseAccessLevel === 'manager';
    const canSubmitForOthers = isSuper || isAdmin || isManager;
-   const canUploadNewTemplate = isSuperAdmin(loggedInUser);
    const [submissionUserId, setSubmissionUserId] = useState(userID?.toString() || '');
    const [submissionUsers, setSubmissionUsers] = useState([]);
    const [loadingSubmissionUsers, setLoadingSubmissionUsers] = useState(canSubmitForOthers);
@@ -222,32 +216,8 @@ const UploadTimeTracker = ({ setPageTitle }) => {
 
    return (
       <Stack spacing={3}>
-         {/* ADMIN ZONE — master template management, visually separated from the
-             daily submit flow so users don't confuse "replace the blank template
-             for everyone" with "submit my completed tracker". */}
-         {canUploadNewTemplate && (
-            <Paper variant='outlined' sx={{ p: 2.5, borderColor: 'warning.light', backgroundColor: 'rgba(237, 108, 2, 0.04)' }}>
-               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent='space-between'>
-                  <Stack direction='row' spacing={1.5} alignItems='center'>
-                     <AdminPanelSettingsIcon color='warning' />
-                     <Box>
-                        <Stack direction='row' spacing={1} alignItems='center'>
-                           <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>Master Tracker Template</Typography>
-                           <Chip size='small' color='warning' label='ADMIN' />
-                        </Stack>
-                        <Typography variant='body2' color='text.secondary'>
-                           Replace the blank template that everyone downloads. This does not submit time.
-                        </Typography>
-                     </Box>
-                  </Stack>
-                  <Button variant='contained' color='warning' startIcon={<UpgradeIcon />} onClick={() => navigate('/time-tracking/update-template')} sx={{ whiteSpace: 'nowrap' }}>
-                     Upload New Template For Everyone
-                  </Button>
-               </Stack>
-            </Paper>
-         )}
-
-         {/* MAIN FLOW — submit a completed tracker */}
+         {/* Submit a completed tracker. Master-template management lives on its
+             own sidebar page (Master Tracker Template), gated to super admins. */}
          <Paper sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box>
                <Typography variant='h5'>Submit Your Time Tracker</Typography>
