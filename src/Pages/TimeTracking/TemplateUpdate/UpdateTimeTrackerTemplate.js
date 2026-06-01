@@ -1,11 +1,9 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Stack, Typography } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { DataGrid } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
 import { context } from '../../../App';
 import FileDropzone from '../../../Components/FileDropzone/FileDropzone';
 import { deleteTimeTrackerTemplate, fetchTimeTrackerTemplates, uploadTimeTrackerTemplate } from '../../../Services/ApiCalls/TimeTrackingCalls';
@@ -14,7 +12,6 @@ const acceptedExtensions = ['.xls', '.xlsx', '.xlsm', '.csv'];
 const MAX_FILE_SIZE_BYTES = 1024 * 1024;
 
 const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
-   const navigate = useNavigate();
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
 
@@ -93,12 +90,7 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
                gap: 3
             }}
          >
-            <Stack direction='row' alignItems='center' justifyContent='space-between'>
-               <Typography variant='h5'>Upload New Tracker Template</Typography>
-               <Button variant='outlined' color='primary' startIcon={<ArrowBackIcon />} onClick={() => navigate('/time-tracking/upload')}>
-                  Back to Uploads
-               </Button>
-            </Stack>
+            <Typography variant='h5'>Upload New Tracker Template</Typography>
             <Typography variant='body2' color='text.secondary'>
                Upload the latest time tracker template. Uploads are stored in S3 under the tracker versions directory and made available for download to your team.
             </Typography>

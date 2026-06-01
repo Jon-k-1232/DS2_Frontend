@@ -175,7 +175,7 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
-            title: 'Master Tracker Template',
+            title: 'Upload Master Tracker Template',
             path: '/time-tracking/update-template',
             icon: getIcon(fileTextFill),
             requiresSuperAdmin: true
