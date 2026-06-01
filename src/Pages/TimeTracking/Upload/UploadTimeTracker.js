@@ -1,7 +1,8 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../../App';
@@ -221,72 +222,103 @@ const UploadTimeTracker = ({ setPageTitle }) => {
 
    return (
       <Stack spacing={3}>
-         <Paper
-            sx={{
-               p: 4,
-               display: 'flex',
-               flexDirection: 'column',
-               gap: 3
-            }}
-         >
-            <Stack
-               direction={{ xs: 'column', md: 'row' }}
-               alignItems={{ xs: 'flex-start', md: 'center' }}
-               justifyContent='space-between'
-               spacing={2}
-            >
-               <Typography variant='h5'>Upload Time Tracker</Typography>
-               <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={2}
-                  alignItems={{ xs: 'stretch', md: 'center' }}
-               >
-                  {canSubmitForOthers && (
-                     <FormControl size='small' sx={{ minWidth: 220 }}>
-                        <InputLabel id='submission-user-select-label'>Submitting For</InputLabel>
-                        <Select
-                           labelId='submission-user-select-label'
-                           id='submission-user-select'
-                           value={submissionUserId}
-                           label='Submitting For'
-                           onChange={event => setSubmissionUserId(event.target.value)}
-                           disabled={loadingSubmissionUsers || uploading}
-                        >
-                           {loadingSubmissionUsers ? (
-                              <MenuItem value='' disabled>
-                                 Loading team members...
-                              </MenuItem>
-                           ) : submissionUsers.length ? (
-                              submissionUsers.map(user => (
-                                 <MenuItem key={user.userId} value={user.userId?.toString()}>
-                                    {user.displayName}
-                                    {Number(user.userId) === Number(userID) ? ' (You)' : ''}
-                                 </MenuItem>
-                              ))
-                           ) : (
-                              <MenuItem value='' disabled>
-                                 No active team members found.
-                              </MenuItem>
-                           )}
-                        </Select>
-                     </FormControl>
-                  )}
-                  {canUploadNewTemplate && (
-                     <Button variant='contained' color='primary' startIcon={<UpgradeIcon />} onClick={() => navigate('/time-tracking/update-template')}>
-                        Upload New Template For Everyone
-                     </Button>
-                  )}
-                  <Button
-                     variant='contained'
-                     color='primary'
-                     startIcon={downloadingTemplate ? <CircularProgress size={18} color='inherit' /> : <DownloadIcon />}
-                     onClick={handleTemplateDownload}
-                     disabled={downloadingTemplate}
-                  >
-                     Download Latest Template
+         {/* ADMIN ZONE — master template management, visually separated from the
+             daily submit flow so users don't confuse "replace the blank template
+             for everyone" with "submit my completed tracker". */}
+         {canUploadNewTemplate && (
+            <Paper variant='outlined' sx={{ p: 2.5, borderColor: 'warning.light', backgroundColor: 'rgba(237, 108, 2, 0.04)' }}>
+               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent='space-between'>
+                  <Stack direction='row' spacing={1.5} alignItems='center'>
+                     <AdminPanelSettingsIcon color='warning' />
+                     <Box>
+                        <Stack direction='row' spacing={1} alignItems='center'>
+                           <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>Master Tracker Template</Typography>
+                           <Chip size='small' color='warning' label='ADMIN' />
+                        </Stack>
+                        <Typography variant='body2' color='text.secondary'>
+                           Replace the blank template that everyone downloads. This does not submit time.
+                        </Typography>
+                     </Box>
+                  </Stack>
+                  <Button variant='contained' color='warning' startIcon={<UpgradeIcon />} onClick={() => navigate('/time-tracking/update-template')} sx={{ whiteSpace: 'nowrap' }}>
+                     Upload New Template For Everyone
                   </Button>
                </Stack>
-            </Stack>
+            </Paper>
+         )}
+
+         {/* MAIN FLOW — submit a completed tracker */}
+         <Paper sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box>
+               <Typography variant='h5'>Submit Your Time Tracker</Typography>
+               <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+                  Drop your completed tracker below to submit it for billing review.
+               </Typography>
+            </Box>
+
+            {/* Step 1 helper — get the blank template. Clearly distinct from submitting. */}
+            <Box
+               sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'flex-start', sm: 'center' },
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                  p: 2,
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  backgroundColor: 'action.hover'
+               }}
+            >
+               <Box>
+                  <Typography variant='subtitle2'>Need the blank tracker?</Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                     Download the latest template, fill it out, then drop it below.
+                  </Typography>
+               </Box>
+               <Button
+                  variant='outlined'
+                  color='primary'
+                  startIcon={downloadingTemplate ? <CircularProgress size={18} color='inherit' /> : <DownloadIcon />}
+                  onClick={handleTemplateDownload}
+                  disabled={downloadingTemplate}
+                  sx={{ whiteSpace: 'nowrap' }}
+               >
+                  Download Latest Template
+               </Button>
+            </Box>
+
+            {canSubmitForOthers && (
+               <FormControl size='small' sx={{ minWidth: 260, maxWidth: 360 }}>
+                  <InputLabel id='submission-user-select-label'>Submitting For</InputLabel>
+                  <Select
+                     labelId='submission-user-select-label'
+                     id='submission-user-select'
+                     value={submissionUserId}
+                     label='Submitting For'
+                     onChange={event => setSubmissionUserId(event.target.value)}
+                     disabled={loadingSubmissionUsers || uploading}
+                  >
+                     {loadingSubmissionUsers ? (
+                        <MenuItem value='' disabled>
+                           Loading team members...
+                        </MenuItem>
+                     ) : submissionUsers.length ? (
+                        submissionUsers.map(user => (
+                           <MenuItem key={user.userId} value={user.userId?.toString()}>
+                              {user.displayName}
+                              {Number(user.userId) === Number(userID) ? ' (You)' : ''}
+                           </MenuItem>
+                        ))
+                     ) : (
+                        <MenuItem value='' disabled>
+                           No active team members found.
+                        </MenuItem>
+                     )}
+                  </Select>
+               </FormControl>
+            )}
 
             <FileDropzone
                acceptExtensions={acceptedExtensions}
@@ -309,20 +341,29 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                }}
             />
 
-            <Typography variant='body2' color='text.secondary'>
+            {/* Primary submit — full-width and prominent, directly under the dropzone
+                so it's visible the moment a file is dropped (no scrolling). */}
+            <Button
+               variant='contained'
+               color='primary'
+               size='large'
+               fullWidth
+               onClick={handleUpload}
+               disabled={uploading || !selectedFile || (canSubmitForOthers && loadingSubmissionUsers)}
+            >
+               {uploading ? <CircularProgress size={22} color='inherit' /> : selectedFile ? `Submit ${selectedFile.name}` : 'Submit Tracker'}
+            </Button>
+
+            {feedback.message && (
+               <Alert severity={feedback.type || 'info'} onClose={resetFeedback}>
+                  {feedback.message}
+               </Alert>
+            )}
+
+            <Divider />
+            <Typography variant='caption' color='text.secondary'>
                {validationNote}
             </Typography>
-
-            <Stack direction='row' justifyContent='flex-end' spacing={2}>
-               <Button
-                  variant='contained'
-                  color='primary'
-                  onClick={handleUpload}
-                  disabled={uploading || !selectedFile || (canSubmitForOthers && loadingSubmissionUsers)}
-               >
-                  {uploading ? <CircularProgress size={20} color='inherit' /> : 'Upload'}
-               </Button>
-            </Stack>
 
             {validationMetadata && (
                <Stack spacing={0.5}>
@@ -359,12 +400,6 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                      hideFooter
                   />
                </Stack>
-            )}
-
-            {feedback.message && (
-               <Alert severity={feedback.type || 'info'} onClose={resetFeedback}>
-                  {feedback.message}
-               </Alert>
             )}
          </Paper>
       </Stack>
