@@ -6,6 +6,7 @@ import clockFill from '@iconify/icons-eva/clock-fill';
 import printerFill from '@iconify/icons-eva/printer-fill';
 import baselineWork from '@iconify/icons-ic/baseline-work';
 import { canAccessAccountAudit } from './AuditorProtectedAccess';
+import { isSuperAdmin } from './SuperAdminAccess';
 
 const getIcon = name => <Icon icon={name} width={22} height={22} />;
 
@@ -13,12 +14,14 @@ const getIcon = name => <Icon icon={name} width={22} height={22} />;
 // user is not allowed to see. Used by DashboardSidebar at render time.
 export const buildSidebarRoutes = loggedInUser => {
    const showAudit = canAccessAccountAudit(loggedInUser);
+   const showSuperAdmin = isSuperAdmin(loggedInUser);
    return sidebarRoutes.map(group => {
       if (!group.children) return group;
       return {
          ...group,
          children: group.children.filter(child => {
             if (child.requiresAuditor && !showAudit) return false;
+            if (child.requiresSuperAdmin && !showSuperAdmin) return false;
             return true;
          })
       };
@@ -186,7 +189,8 @@ export const sidebarRoutes = [
          {
             title: 'Account Users',
             path: '/account/accountUsers',
-            icon: getIcon(clockFill)
+            icon: getIcon(clockFill),
+            requiresSuperAdmin: true
          },
          {
             title: 'Account Settings',

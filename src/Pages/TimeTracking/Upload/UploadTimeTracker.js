@@ -7,6 +7,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../../App';
 import { uploadTimeTrackerFile, downloadLatestTimeTrackerTemplate, fetchTimeTrackingUsers } from '../../../Services/ApiCalls/TimeTrackingCalls';
 import FileDropzone from '../../../Components/FileDropzone/FileDropzone';
+import { isSuperAdmin } from '../../../Routes/SuperAdminAccess';
 
 const acceptedExtensions = ['.csv', '.xls', '.xlsx', '.xlsm'];
 const MAX_FILE_SIZE_BYTES = 1024 * 1024;
@@ -30,6 +31,7 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const isAdmin = lowercaseAccessLevel === 'admin';
    const isManager = lowercaseAccessLevel === 'manager';
    const canSubmitForOthers = isAdmin || isManager;
+   const canUploadNewTemplate = isSuperAdmin(loggedInUser);
    const [submissionUserId, setSubmissionUserId] = useState(userID?.toString() || '');
    const [submissionUsers, setSubmissionUsers] = useState([]);
    const [loadingSubmissionUsers, setLoadingSubmissionUsers] = useState(canSubmitForOthers);
@@ -268,7 +270,7 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                         </Select>
                      </FormControl>
                   )}
-                  {isAdmin && (
+                  {canUploadNewTemplate && (
                      <Button variant='contained' color='primary' startIcon={<UpgradeIcon />} onClick={() => navigate('/time-tracking/update-template')}>
                         Upload New Template For Everyone
                      </Button>

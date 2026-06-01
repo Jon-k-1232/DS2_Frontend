@@ -7,6 +7,7 @@ import UsersSubRoutes from './UsersSubRoutes';
 import Page from '../../../Components/Page';
 import { Stack } from '@mui/material';
 import AdminProtectedAccessRoute from '../../AdminProtectedAccess';
+import SuperAdminProtectedAccessRoute from '../../SuperAdminAccess';
 
 export default function AccountRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
@@ -18,8 +19,22 @@ export default function AccountRoutes({ setPageTitle, customerData, setCustomerD
       <Page style={{ paddingTop: 0 }}>
          <Stack style={{ padding: '20px' }}>
             <Routes>
-               <Route path='accountUsers' element={<AccountUsersGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
-               <Route path='/accountUsers/*' element={<UsersSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
+               <Route
+                  path='accountUsers'
+                  element={
+                     <SuperAdminProtectedAccessRoute>
+                        <AccountUsersGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />
+                     </SuperAdminProtectedAccessRoute>
+                  }
+               />
+               <Route
+                  path='/accountUsers/*'
+                  element={
+                     <SuperAdminProtectedAccessRoute>
+                        <UsersSubRoutes customerData={customerData} setCustomerData={data => setCustomerData(data)} />
+                     </SuperAdminProtectedAccessRoute>
+                  }
+               />
                <Route
                   path='accountSettings'
                   element={

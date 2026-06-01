@@ -9,6 +9,7 @@ import TimeTrackingSettings from '../../../Pages/Account/TimeTrackingSettings/Ti
 import BillingReviewPage from '../../../Pages/Transactions/BillingReview/BillingReviewPage';
 import AdminProtectedAccessRoute from '../../AdminProtectedAccess';
 import ManagerAndAdminProtectedAccessRoute from '../../ManagerAndAdminProtectedAccess';
+import SuperAdminProtectedAccessRoute from '../../SuperAdminAccess';
 
 export default function TimeTrackingRoutes({ setPageTitle, customerData, setCustomerData }) {
    useEffect(() => {
@@ -24,9 +25,9 @@ export default function TimeTrackingRoutes({ setPageTitle, customerData, setCust
                <Route
                   path='update-template'
                   element={
-                     <AdminProtectedAccessRoute>
+                     <SuperAdminProtectedAccessRoute>
                         <UpdateTimeTrackerTemplate setPageTitle={setPageTitle} />
-                     </AdminProtectedAccessRoute>
+                     </SuperAdminProtectedAccessRoute>
                   }
                />
                <Route
