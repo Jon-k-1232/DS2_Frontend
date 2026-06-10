@@ -1,13 +1,17 @@
 import { useState, useEffect, useContext } from 'react';
 import { context } from '../../../App';
-import { Divider, Stack, Typography, Alert, Box } from '@mui/material';
+import { Divider, Stack, Typography, Alert, Box, Button, TextField } from '@mui/material';
 import { postInvoiceCreation } from '../../../Services/ApiCalls/PostCalls';
+import { downloadCustomerStatement } from '../../../Services/ApiCalls/AnalyticsCalls';
 import FloatingTooltip from '../../../Components/FloatingTooltip';
 import dayjs from 'dayjs';
 
 export default function CustomerProfile({ profileData }) {
    const [customerBalance, setCustomerBalance] = useState({});
    const [postStatus, setPostStatus] = useState(null);
+   const [statementStart, setStatementStart] = useState(dayjs().startOf('year').format('YYYY-MM-DD'));
+   const [statementEnd, setStatementEnd] = useState(dayjs().format('YYYY-MM-DD'));
+   const [downloadingStatement, setDownloadingStatement] = useState(false);
 
    const {
       loggedInUser: { accountID, userID, token }
@@ -111,6 +115,28 @@ export default function CustomerProfile({ profileData }) {
             <Typography variant='h5'>{is_customer_active ? 'Active' : 'Inactive'}</Typography>
             <Typography variant='h5'>Customer Type: {is_commercial_customer ? 'Commercial' : 'Individual'}</Typography>
             <Typography variant='h5'>Client: {customer_id}</Typography>
+         </Stack>
+
+         <Stack direction='row' spacing={1} alignItems='center' sx={{ mb: 1 }}>
+            <TextField size='small' label='Statement from' type='date' value={statementStart} onChange={e => setStatementStart(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField size='small' label='to' type='date' value={statementEnd} onChange={e => setStatementEnd(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <Button
+               size='small'
+               variant='outlined'
+               disabled={downloadingStatement}
+               onClick={async () => {
+                  setDownloadingStatement(true);
+                  try {
+                     await downloadCustomerStatement(accountID, userID, customer_id, { start: statementStart, end: statementEnd });
+                  } catch (error) {
+                     setPostStatus({ status: 500, message: error.response?.data?.message || error.message || 'Statement download failed.' });
+                  } finally {
+                     setDownloadingStatement(false);
+                  }
+               }}
+            >
+               {downloadingStatement ? 'Building…' : 'Download Statement (PDF)'}
+            </Button>
          </Stack>
 
          <Stack style={styles.tableContainer}>

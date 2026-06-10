@@ -136,6 +136,21 @@ export const sidebarRoutes = [
             title: 'Time Allocation',
             path: '/analytics/timeAllocation',
             icon: getIcon(clockFill)
+         },
+         {
+            title: 'WIP / Unbilled',
+            path: '/analytics/wipAging',
+            icon: getIcon(clockFill)
+         },
+         {
+            title: 'Job Budgets',
+            path: '/analytics/jobBudgets',
+            icon: getIcon(clockFill)
+         },
+         {
+            title: 'Tax Season Capacity',
+            path: '/analytics/taxSeasonCapacity',
+            icon: getIcon(clockFill)
          }
       ]
    },

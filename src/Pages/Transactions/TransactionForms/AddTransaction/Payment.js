@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Box, Button, Typography, Alert, Stack, TextField } from '@mui/material';
+import { Box, Button, Typography, Alert, Stack, TextField, Checkbox, FormControlLabel } from '@mui/material';
 import dayjs from 'dayjs';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
 import PaymentOptions from './FormSubComponents/PaymentOptions';
@@ -25,7 +25,9 @@ const initialState = {
    formOfPayment: null,
    paymentReferenceNumber: '',
    foundInvoiceID: null,
-   note: ''
+   note: '',
+   holdAsPrepayment: false,
+   captureOverpayment: false
 };
 
 export default function Payment({ customerData, setCustomerData }) {
@@ -58,13 +60,18 @@ export default function Payment({ customerData, setCustomerData }) {
 
    const validatePayment = () => {
       if (!selectedItems.selectedCustomer) return 'Select a customer.';
-      if (!selectedItems.selectedInvoice) return 'Select the invoice this payment applies to.';
+      if (!selectedItems.selectedInvoice && !selectedItems.holdAsPrepayment)
+         return 'Select the invoice this payment applies to, or check "Hold as prepayment".';
       if (!selectedItems.formOfPayment) return 'Select a form of payment.';
       if (!Math.abs(Number(selectedItems.unitCost))) return 'Enter a payment amount.';
       if ((selectedItems.formOfPayment === 'Retainer' || selectedItems.formOfPayment === 'Prepayment') && !selectedItems.selectedRetainer)
          return 'Select the retainer/prepayment funding this payment.';
       return null;
    };
+
+   const selectedRemaining = Number(selectedItems.selectedInvoice?.remaining_balance_on_invoice);
+   const amountEntered = Math.abs(Number(selectedItems.unitCost)) || 0;
+   const overpays = Boolean(selectedItems.selectedInvoice) && amountEntered > selectedRemaining && selectedRemaining > 0;
 
    const handleSubmit = async () => {
       if (submitting) return;
@@ -116,6 +123,38 @@ export default function Payment({ customerData, setCustomerData }) {
                <InvoiceConfirmation customerProfileData={customerProfileData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 
                <PaymentOptions selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
+
+               {!selectedItems.selectedInvoice && (
+                  <FormControlLabel
+                     control={
+                        <Checkbox
+                           checked={selectedItems.holdAsPrepayment}
+                           onChange={e => setSelectedItems(prev => ({ ...prev, holdAsPrepayment: e.target.checked }))}
+                        />
+                     }
+                     label='No open invoice — hold this payment as a prepayment retainer'
+                  />
+               )}
+
+               {overpays && (
+                  <Stack spacing={1} sx={{ maxWidth: 350 }}>
+                     <Alert severity={selectedItems.captureOverpayment ? 'info' : 'warning'}>
+                        Amount exceeds the invoice remaining (${selectedRemaining.toFixed(2)}).
+                        {selectedItems.captureOverpayment
+                           ? ` $${(amountEntered - selectedRemaining).toFixed(2)} will be held as a prepayment retainer.`
+                           : ' Check the box below to bank the excess, or lower the amount.'}
+                     </Alert>
+                     <FormControlLabel
+                        control={
+                           <Checkbox
+                              checked={selectedItems.captureOverpayment}
+                              onChange={e => setSelectedItems(prev => ({ ...prev, captureOverpayment: e.target.checked }))}
+                           />
+                        }
+                        label='Apply the remaining balance and hold the excess as a prepayment'
+                     />
+                  </Stack>
+               )}
 
                <Stack>
                   <TextField sx={{ width: '100%', maxWidth: '350px' }} value={note} variant='standard' label='Optional Note' onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />

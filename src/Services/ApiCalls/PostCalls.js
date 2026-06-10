@@ -31,6 +31,17 @@ export const postNewPayment = async (data, accountID, userID, token) => {
    }
 };
 
+export const postReversePayment = async (accountID, userID, { paymentID, reason }, token) => {
+   const url = `${config.API_ENDPOINT}/payments/reversePayment/${accountID}/${userID}`;
+   try {
+      const response = await axios.post(url, { payment: { paymentID, reason } }, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error while reversing payment:', error);
+      throw error;
+   }
+};
+
 export const postNewWriteOff = async (data, accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/writeOffs/createWriteOffs/${accountID}/${userID}`;
    try {

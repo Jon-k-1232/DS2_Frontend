@@ -4,6 +4,7 @@ import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageN
 import { fetchSinglePayment, fetchCustomerProfileInformation } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import DeletePayment from '../../../Pages/Transactions/TransactionForms/DeleteTransaction/DeletePayment';
+import ReversePayment from '../../../Pages/Transactions/TransactionForms/ReversePayment/ReversePayment';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 
 export default function PaymentSubRoutes({ customerData, setCustomerData }) {
@@ -43,6 +44,14 @@ export default function PaymentSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
+            <Route
+               path='reversePayment'
+               element={
+                  <ErrorBoundary fallbackComponent='/transactions/customerPayments'>
+                     <ReversePayment customerData={customerData} setCustomerData={data => setCustomerData(data)} paymentData={paymentData} />
+                  </ErrorBoundary>
+               }
+            />
             {/* 
             Edit is not implemented yet
 
@@ -70,6 +79,12 @@ const fetchMenuOptions = navigate => [
       value: 'deletePayment',
       route: '/transactions/customerPayments/deletePayment',
       onClick: () => navigate('/transactions/customerPayments/deletePayment')
+   },
+   {
+      display: 'Reverse Payment (NSF)',
+      value: 'reversePayment',
+      route: '/transactions/customerPayments/reversePayment',
+      onClick: () => navigate('/transactions/customerPayments/reversePayment')
    }
    // {
    //   display: 'Edit Payment',

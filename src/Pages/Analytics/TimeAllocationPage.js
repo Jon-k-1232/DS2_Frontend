@@ -19,7 +19,7 @@ import {
 import DownloadIcon from '@mui/icons-material/Download';
 import { Alert } from '@mui/material';
 import { context } from '../../App';
-import { fetchTimeAllocation, downloadTimeAllocationCsv } from '../../Services/ApiCalls/AnalyticsCalls';
+import { fetchTimeAllocation, downloadTimeAllocationCsv, downloadYearEndPacket } from '../../Services/ApiCalls/AnalyticsCalls';
 
 const fmtMoney = v => (v == null ? '—' : `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`);
 const fmtHours = v => (v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 1 }));
@@ -114,6 +114,13 @@ export default function TimeAllocationPage() {
                   onClick={() => downloadTimeAllocationCsv(accountID, userID, { year }).catch(err => setError(err.message || 'CSV export failed.'))}
                >
                   CSV
+               </Button>
+               <Button
+                  startIcon={<DownloadIcon />}
+                  variant='outlined'
+                  onClick={() => downloadYearEndPacket(accountID, userID, { year }).catch(err => setError(err.message || 'Packet export failed.'))}
+               >
+                  Year-End Packet
                </Button>
             </Stack>
          </Stack>
