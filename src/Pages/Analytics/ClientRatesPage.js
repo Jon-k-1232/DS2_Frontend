@@ -20,6 +20,7 @@ import {
    Tooltip
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import { Alert } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../App';
 import { fetchClientRates, downloadClientRatesCsv } from '../../Services/ApiCalls/AnalyticsCalls';
@@ -38,6 +39,7 @@ export default function ClientRatesPage() {
    const { accountID, userID } = loggedInUser;
 
    const [loading, setLoading] = useState(true);
+   const [error, setError] = useState(null);
    const [yearsBack, setYearsBack] = useState(6);
    const [data, setData] = useState(null);
    const [search, setSearch] = useState('');
@@ -48,11 +50,15 @@ export default function ClientRatesPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setError(null);
          try {
             const res = await fetchClientRates(accountID, userID, { yearsBack });
-            if (!cancelled && res?.clientRates) setData(res.clientRates);
+            if (cancelled) return;
+            if (res?.clientRates) setData(res.clientRates);
+            else setError(res?.message || 'Unable to load client rates.');
          } catch (err) {
             console.error('Error fetching client rates:', err);
+            if (!cancelled) setError(err.response?.data?.message || err.message || 'Unable to load client rates.');
          } finally {
             if (!cancelled) setLoading(false);
          }
@@ -138,11 +144,16 @@ export default function ClientRatesPage() {
                   onClick={() => setActiveOnly(v => !v)}
                   variant={activeOnly ? 'filled' : 'outlined'}
                />
-               <Button startIcon={<DownloadIcon />} onClick={() => downloadClientRatesCsv(accountID, userID, { yearsBack })}>
+               <Button
+                  startIcon={<DownloadIcon />}
+                  onClick={() => downloadClientRatesCsv(accountID, userID, { yearsBack }).catch(err => setError(err.message || 'CSV export failed.'))}
+               >
                   CSV
                </Button>
             </Stack>
          </Stack>
+
+         {error && <Alert severity='error' onClose={() => setError(null)}>{error}</Alert>}
 
          {firm && (
             <Paper variant='outlined' sx={{ p: 1.5 }}>

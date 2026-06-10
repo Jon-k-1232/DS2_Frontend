@@ -17,6 +17,7 @@ import {
    CircularProgress
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import { Alert } from '@mui/material';
 import { context } from '../../App';
 import { fetchTimeAllocation, downloadTimeAllocationCsv } from '../../Services/ApiCalls/AnalyticsCalls';
 
@@ -53,6 +54,7 @@ export default function TimeAllocationPage() {
    const { accountID, userID } = loggedInUser;
 
    const [loading, setLoading] = useState(true);
+   const [error, setError] = useState(null);
    const [year, setYear] = useState(new Date().getFullYear() - 1);
    const [data, setData] = useState(null);
 
@@ -60,11 +62,15 @@ export default function TimeAllocationPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setError(null);
          try {
             const res = await fetchTimeAllocation(accountID, userID, { year });
-            if (!cancelled && res?.timeAllocation) setData(res.timeAllocation);
+            if (cancelled) return;
+            if (res?.timeAllocation) setData(res.timeAllocation);
+            else setError(res?.message || 'Unable to load time allocation.');
          } catch (err) {
             console.error('Error fetching time allocation:', err);
+            if (!cancelled) setError(err.response?.data?.message || err.message || 'Unable to load time allocation.');
          } finally {
             if (!cancelled) setLoading(false);
          }
@@ -75,7 +81,13 @@ export default function TimeAllocationPage() {
       };
    }, [accountID, userID, year]);
 
-   const yearOptions = data?.availableYears?.length ? data.availableYears : [year];
+   // Always include the selected year so the controlled Select never holds a
+   // value missing from its options.
+   const yearOptions = data?.availableYears?.length
+      ? data.availableYears.includes(year)
+         ? data.availableYears
+         : [...data.availableYears, year].sort((a, b) => b - a)
+      : [year];
    const maxDescHours = Math.max(1, ...(data?.byWorkDescription || []).map(r => r.hours));
    const maxMonthHours = Math.max(1, ...(data?.monthly || []).map(r => r.billable_hours + r.nonbillable_hours));
    const maxTrackerHours = Math.max(1, ...(data?.trackerByCategory || []).map(r => r.hours));
@@ -97,11 +109,16 @@ export default function TimeAllocationPage() {
                      </MenuItem>
                   ))}
                </TextField>
-               <Button startIcon={<DownloadIcon />} onClick={() => downloadTimeAllocationCsv(accountID, userID, { year })}>
+               <Button
+                  startIcon={<DownloadIcon />}
+                  onClick={() => downloadTimeAllocationCsv(accountID, userID, { year }).catch(err => setError(err.message || 'CSV export failed.'))}
+               >
                   CSV
                </Button>
             </Stack>
          </Stack>
+
+         {error && <Alert severity='error' onClose={() => setError(null)}>{error}</Alert>}
 
          {loading || !data ? (
             <Stack alignItems='center' justifyContent='center' sx={{ height: 300 }}>
