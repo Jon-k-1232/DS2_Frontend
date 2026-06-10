@@ -44,7 +44,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
          <Autocomplete
             required
             size='small'
-            sx={{ width: 350, marginTop: '10px' }}
+            sx={{ width: '100%', maxWidth: 350, marginTop: '10px' }}
             value={selectedGeneralWorkDescription}
             onChange={(e, value) => updateSelectedItems('selectedGeneralWorkDescription', value)}
             getOptionLabel={option => (option ? option.general_work_description : '') || ''}
@@ -54,7 +54,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
 
          {/* Removed Suggested notes input per requirements; keep detailed description as-is */}
          <TextField
-            sx={{ width: 350, marginTop: '10px' }}
+            sx={{ width: '100%', maxWidth: 350, marginTop: '10px' }}
             variant='standard'
             label='Work Completed On Job'
             value={detailedJobDescription}
@@ -63,7 +63,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
 
          <TextField
             variant='standard'
-            sx={{ width: 350 }}
+            sx={{ width: '100%', maxWidth: 350 }}
             type='number'
             label='Time (hours)'
             helperText='Decimal hours from your tracker (e.g. 0.25 = 15 min, 1.05 = 1h 3m). No minute conversion.'
@@ -85,7 +85,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
          <FormControlLabel control={<Checkbox checked={isTransactionBillable} onChange={e => updateSelectedItems('isTransactionBillable', e.target.checked)} />} label='Billable' />
 
          {selectedCustomer?.is_recurring && (
-            <FormControl style={{ width: '350px' }} component='fieldset'>
+            <FormControl style={{ width: '100%', maxWidth: '350px' }} component='fieldset'>
                <Typography variant='body1'>Is this in addition to the customers monthly base charge?</Typography>
                <RadioGroup
                   row

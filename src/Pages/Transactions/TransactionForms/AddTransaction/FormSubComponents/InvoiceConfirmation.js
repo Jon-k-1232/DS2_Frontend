@@ -38,7 +38,7 @@ export default function InvoiceConfirmation({ selectedItems, setSelectedItems, c
       <Stack spacing={2}>
         <Stack>
           <TextField
-            sx={{ width: 350 }}
+            sx={{ width: '100%', maxWidth: 350 }}
             variant='standard'
             label='Invoice Number'
             value={invoiceNumber}
@@ -49,7 +49,7 @@ export default function InvoiceConfirmation({ selectedItems, setSelectedItems, c
         </Stack>
         <Stack>
           <TextField
-            sx={{ width: 350 }}
+            sx={{ width: '100%', maxWidth: 350 }}
             variant='standard'
             label='Confirm Invoice Number'
             value={invoiceConfirmationOverride ? invoiceNumber : invoiceConfirmation}

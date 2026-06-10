@@ -24,7 +24,7 @@ export default function PaymentOptions({ selectedItems, setSelectedItems, page }
                <Autocomplete
                   required
                   size='small'
-                  sx={{ width: 350 }}
+                  sx={{ width: '100%', maxWidth: 350 }}
                   value={formOfPayment}
                   onChange={handleAutocompleteChange('formOfPayment')}
                   getOptionLabel={option => (option ? option.toString() : undefined)}
@@ -36,7 +36,7 @@ export default function PaymentOptions({ selectedItems, setSelectedItems, page }
             {formOfPayment !== 'Retainer' && formOfPayment !== 'Prepayment' && (
                <Stack style={{ margin: '5px 0px' }}>
                   <TextField
-                     sx={{ width: 350 }}
+                     sx={{ width: '100%', maxWidth: 350 }}
                      variant='standard'
                      type='string'
                      label='Payment Reference Number'
@@ -54,7 +54,7 @@ export default function PaymentOptions({ selectedItems, setSelectedItems, page }
 
             <Stack style={{ marginTop: '15px' }}>
                <TextField
-                  sx={{ width: 350 }}
+                  sx={{ width: '100%', maxWidth: 350 }}
                   variant='standard'
                   type='number'
                   label={page === 'editRetainer' ? 'Starting Amount' : 'Payment Amount'}
@@ -63,7 +63,7 @@ export default function PaymentOptions({ selectedItems, setSelectedItems, page }
                />
                {page === 'editRetainer' && (
                   <TextField
-                     sx={{ width: 350, marginTop: '15px' }}
+                     sx={{ width: '100%', maxWidth: 350, marginTop: '15px' }}
                      variant='standard'
                      type='number'
                      label='Remaining Amount'

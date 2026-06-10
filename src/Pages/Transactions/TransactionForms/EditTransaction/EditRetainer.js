@@ -104,7 +104,7 @@ export default function EditRetainer({ customerData, setCustomerData, retainerDa
             <InitialSelectionOptions customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} page='Retainer' initialState={initialState} />
 
             <TextField
-               sx={{ width: 350 }}
+               sx={{ width: '100%', maxWidth: 350 }}
                variant='standard'
                type='string'
                label='Label of Retainer Or Payment'
@@ -118,7 +118,7 @@ export default function EditRetainer({ customerData, setCustomerData, retainerDa
                <Autocomplete
                   required
                   size='small'
-                  sx={{ width: 350 }}
+                  sx={{ width: '100%', maxWidth: 350 }}
                   value={selectedItems.typeOfHold}
                   onChange={(e, value) => setSelectedItems({ ...selectedItems, typeOfHold: value })}
                   getOptionLabel={option => (option ? option.toString() : undefined)}
@@ -128,7 +128,7 @@ export default function EditRetainer({ customerData, setCustomerData, retainerDa
             </Stack>
 
             <Stack style={{ margin: '5px 0px' }}>
-               <TextField sx={{ width: 350 }} variant='standard' type='string' label='Note' value={selectedItems.note} onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />
+               <TextField sx={{ width: '100%', maxWidth: 350 }} variant='standard' type='string' label='Note' value={selectedItems.note} onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />
             </Stack>
 
             <Stack spacing={2}>

@@ -125,7 +125,7 @@ export default function EditPayment({ customerData, setCustomerData, paymentData
                <PaymentOptions selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 
                <Stack>
-                  <TextField sx={{ width: '350px' }} value={note} variant='standard' label='Optional Note' onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />
+                  <TextField sx={{ width: '100%', maxWidth: '350px' }} value={note} variant='standard' label='Optional Note' onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />
                </Stack>
 
                <Stack sx={{ marginTop: '10px' }}>

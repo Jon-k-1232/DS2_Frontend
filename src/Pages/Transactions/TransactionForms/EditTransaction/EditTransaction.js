@@ -103,7 +103,7 @@ export default function EditTransaction({ customerData, setCustomerData, transac
 
             <Autocomplete
                size='small'
-               sx={{ width: 350, marginTop: '10px' }}
+               sx={{ width: '100%', maxWidth: 350, marginTop: '10px' }}
                options={['Time', 'Charge']}
                getOptionLabel={option => option || ''}
                value={transactionType}

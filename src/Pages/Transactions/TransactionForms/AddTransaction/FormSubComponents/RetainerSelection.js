@@ -29,7 +29,7 @@ export default function RetainerSelection({ selectedItems, setSelectedItems }) {
          {customerRetainersAndPrePayments.length > 0 && (
             <Autocomplete
                size='small'
-               sx={{ width: 350, marginTop: '15px' }}
+               sx={{ width: '100%', maxWidth: 350, marginTop: '15px' }}
                value={selectedRetainer}
                onChange={(event, value) => setSelectedItems({ ...selectedItems, selectedRetainer: value })}
                getOptionLabel={option => `${option.display_name} Remaining: ${option.current_amount}`}

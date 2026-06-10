@@ -178,7 +178,7 @@ export default function InitialSelectionOptions({
          <LocalizationProvider dateAdapter={AdapterDayjs}>
             {/* Use local dateValue for DateTimePicker */}
             <DateTimePicker
-               sx={{ width: 350 }}
+               sx={{ width: '100%', maxWidth: 350 }}
                className='myDatePicker'
                required
                label='Select Transaction Date'
@@ -196,7 +196,7 @@ export default function InitialSelectionOptions({
 
             {/* Optionally show the job autocomplete if it's not certain pages */}
             {page !== 'Retainer' && page !== 'WriteOff' && page !== 'Payment' && (
-               <Stack direction='row' alignItems='center' spacing={0.5} sx={{ width: 350 }}>
+               <Stack direction='row' alignItems='center' spacing={0.5} sx={{ width: '100%', maxWidth: 350 }}>
                   <Box sx={{ flex: 1 }}>
                      <AutoCompleteWithDialog
                         dialogTitle='New Job'
@@ -241,7 +241,7 @@ export default function InitialSelectionOptions({
                <Box>
                   <Autocomplete
                      size='small'
-                     sx={{ width: 350 }}
+                     sx={{ width: '100%', maxWidth: 350 }}
                      value={selectedInvoice}
                      onChange={(event, value) => handleAutocompleteChange('selectedInvoice', value)}
                      getOptionLabel={option => `${option.invoice_number} Remaining:$${Number(option.remaining_balance_on_invoice).toFixed(2)}`}
@@ -261,7 +261,7 @@ export default function InitialSelectionOptions({
 
                   <Autocomplete
                      size='small'
-                     sx={{ width: 350, marginTop: '15px' }}
+                     sx={{ width: '100%', maxWidth: 350, marginTop: '15px' }}
                      value={selectedJob}
                      onChange={(event, value) => handleAutocompleteChange('selectedJob', value)}
                      getOptionLabel={option => option.job_description}
@@ -282,7 +282,7 @@ export default function InitialSelectionOptions({
             <Box>
                <Autocomplete
                   size='small'
-                  sx={{ width: 350 }}
+                  sx={{ width: '100%', maxWidth: 350 }}
                   value={selectedTeamMember}
                   onChange={(event, value) => handleAutocompleteChange('selectedTeamMember', value)}
                   getOptionLabel={option => option.user_name || option.display_name || ''}

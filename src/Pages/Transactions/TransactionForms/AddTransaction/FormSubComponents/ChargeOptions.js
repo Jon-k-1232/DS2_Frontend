@@ -25,7 +25,7 @@ export default function ChargeOptions({ customerData, selectedItems, setSelected
          <Autocomplete
             required
             size='small'
-            sx={{ width: 350, marginTop: '10px' }}
+            sx={{ width: '100%', maxWidth: 350, marginTop: '10px' }}
             value={selectedGeneralWorkDescription}
             onChange={(e, value) => {
                updateSelectedItems('selectedGeneralWorkDescription', value);
@@ -35,7 +35,7 @@ export default function ChargeOptions({ customerData, selectedItems, setSelected
             renderInput={params => <TextField {...params} label='General Work Description' variant='standard' />}
          />
          <TextField
-            sx={{ width: 350, marginTop: '10px' }}
+            sx={{ width: '100%', maxWidth: 350, marginTop: '10px' }}
             variant='standard'
             label='Work Completed On Job'
             value={detailedJobDescription}
@@ -51,7 +51,7 @@ export default function ChargeOptions({ customerData, selectedItems, setSelected
 
          {selectedCustomer?.is_recurring && (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 2, md: 8 }}>
-               <FormControl style={{ width: '350px' }} component='fieldset'>
+               <FormControl style={{ width: '100%', maxWidth: '350px' }} component='fieldset'>
                   <Typography variant='body1'>Is this in addition to the customers monthly base charge?</Typography>
                   <RadioGroup
                      row

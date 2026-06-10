@@ -8,7 +8,7 @@ export default function WriteOffOptions({ selectedItems, setSelectedItems }) {
     <>
       <Box sx={{ display: 'grid', gap: 3 }}>
         <TextField
-          sx={{ width: 350 }}
+          sx={{ width: '100%', maxWidth: 350 }}
           variant='standard'
           type='string'
           label='Reason For Write Off'
@@ -17,7 +17,7 @@ export default function WriteOffOptions({ selectedItems, setSelectedItems }) {
         />
 
         <TextField
-          sx={{ width: 350 }}
+          sx={{ width: '100%', maxWidth: 350 }}
           variant='standard'
           type='number'
           label='Write Off Amount'

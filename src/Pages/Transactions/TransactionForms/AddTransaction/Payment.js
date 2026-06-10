@@ -118,14 +118,14 @@ export default function Payment({ customerData, setCustomerData }) {
                <PaymentOptions selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 
                <Stack>
-                  <TextField sx={{ width: '350px' }} value={note} variant='standard' label='Optional Note' onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />
+                  <TextField sx={{ width: '100%', maxWidth: '350px' }} value={note} variant='standard' label='Optional Note' onChange={e => setSelectedItems({ ...selectedItems, note: e.target.value })} />
                </Stack>
 
                <Stack spacing={2}>
                   <Typography>Total: {formatTotal(quantity * unitCost)}</Typography>
                </Stack>
 
-               <Box style={{ textAlign: 'center', marginTop: '18px', width: '350px' }}>
+               <Box style={{ textAlign: 'center', marginTop: '18px', width: '100%', maxWidth: '350px' }}>
                   <Button onClick={handleSubmit} disabled={submitting}>
                      {submitting ? 'Submitting…' : 'Submit'}
                   </Button>
