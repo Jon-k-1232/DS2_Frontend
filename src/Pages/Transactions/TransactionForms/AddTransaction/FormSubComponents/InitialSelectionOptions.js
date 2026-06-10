@@ -8,6 +8,7 @@ import AutoCompleteWithDialog from '../../../../../Components/Dialogs/AutoComple
 import NewJob from '../../../../Jobs/JobForms/AddJob/NewJob';
 import NewCustomer from '../../../../Customer/CustomerForms/AddCustomer/NewCustomer';
 import { getCustomerJobsList } from '../../../../../Services/ApiCalls/FetchCalls';
+import { getOpenInvoicesForPayment } from '../../../../../Services/SharedFunctions';
 import { context } from '../../../../../App';
 import './Transactions.css';
 import SplitOptionLabel from '../../../../../Components/SplitOptionLabel';
@@ -80,7 +81,11 @@ export default function InitialSelectionOptions({
          setSelectedItems(prev => ({
             ...prev,
             [key]: value,
-            selectedJob: null
+            selectedJob: null,
+            // An invoice belongs to one customer — carrying the selection across
+            // a customer switch posted payments against the wrong customer's invoice.
+            selectedInvoice: null,
+            foundInvoiceID: null
             // preserve everything else
          }));
          return;
@@ -147,23 +152,10 @@ export default function InitialSelectionOptions({
       handleAutocompleteChange
    };
 
-   // Logic to find the most recent invoices
-   const findCustomerInvoices = () => {
-      const invoiceGroups = customerInvoiceData.reduce((acc, invoice) => {
-         const identifier = invoice.parent_invoice_id || invoice.customer_invoice_id;
-         if (!acc[identifier]) {
-            acc[identifier] = [];
-         }
-         acc[identifier].push(invoice);
-         return acc;
-      }, {});
-
-      const mostRecentInvoices = Object.values(invoiceGroups).map(group =>
-         group.reduce((mostRecent, invoice) => (!mostRecent || dayjs(invoice.created_at).isAfter(dayjs(mostRecent.created_at)) ? invoice : mostRecent))
-      );
-
-      return mostRecentInvoices.filter(inv => inv.remaining_balance_on_invoice > 0);
-   };
+   // Open invoices a payment may target — current chain(s) only. Older chains
+   // were absorbed into the newest invoice's beginning balance; offering them
+   // here is how payments used to vanish from future bills.
+   const findCustomerInvoices = () => getOpenInvoicesForPayment(customerInvoiceData);
 
    // Logic to find jobs associated with the selected invoice
    const findInvoiceJobs = () => {
@@ -252,13 +244,18 @@ export default function InitialSelectionOptions({
                      sx={{ width: 350 }}
                      value={selectedInvoice}
                      onChange={(event, value) => handleAutocompleteChange('selectedInvoice', value)}
-                     getOptionLabel={option => `${option.invoice_number} Remaining:$${option.remaining_balance_on_invoice}`}
+                     getOptionLabel={option => `${option.invoice_number} Remaining:$${Number(option.remaining_balance_on_invoice).toFixed(2)}`}
                      renderOption={(props, option) => (
                         <li {...props}>
-                           <SplitOptionLabel alignLeft={option.invoice_number} alignRight={`Remaining:$${option.remaining_balance_on_invoice}`} />
+                           <SplitOptionLabel alignLeft={option.invoice_number} alignRight={`Remaining:$${Number(option.remaining_balance_on_invoice).toFixed(2)}`} />
                         </li>
                      )}
                      options={findCustomerInvoices() || []}
+                     noOptionsText={
+                        selectedCustomer
+                           ? 'No open invoice — the current statement shows $0 due. Record the funds as a retainer/prepayment, or audit the account.'
+                           : 'Select a customer first'
+                     }
                      renderInput={params => <TextField {...params} label='Select Invoice For Invoice Payment' variant='standard' />}
                   />
 

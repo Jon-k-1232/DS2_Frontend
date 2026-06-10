@@ -8,6 +8,7 @@ import { postNewPayment } from '../../../../Services/ApiCalls/PostCalls';
 import { approvePendingPayment } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
 import { fetchCustomers, fetchCustomerProfileInformation } from '../../../../Services/ApiCalls/FetchCalls';
 import { formObjectForPaymentPost } from '../../../../Services/SharedPostObjects/SharedPostObjects';
+import { getOpenInvoicesForPayment } from '../../../../Services/SharedFunctions';
 import PaymentPdfPreview from './PaymentPdfPreview';
 
 const PAYMENT_METHODS = ['Cash', 'Check', 'Credit Card', 'Debit Card', 'ACH', 'Other'];
@@ -80,9 +81,10 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
          try {
             const profileData = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token);
             const invoices = profileData?.customerInvoiceData?.customerInvoices || [];
-            const outstandingInvoices = invoices.filter(inv =>
-               !inv.is_invoice_paid_in_full && Number(inv.remaining_balance_on_invoice) > 0
-            );
+            // Current chain(s) only — listing every row with a remaining balance
+            // offered absorbed chains and intermediate snapshots with stale
+            // amounts, and payments tagged to those never reached a bill.
+            const outstandingInvoices = getOpenInvoicesForPayment(invoices);
             setCustomerInvoices(outstandingInvoices);
 
             // Auto-match invoice if pending payment has one

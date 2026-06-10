@@ -59,3 +59,36 @@ export const formatTotal = value => {
       .toString()
       .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
+
+/**
+ * Open invoices a payment may be applied to — CURRENT chain(s) only.
+ *
+ * Rolling-balance contract: each new parent invoice absorbs all prior
+ * outstanding into its beginning_balance, so older chains must never be
+ * offered for payment — the billing engine's date gate ignores them, and a
+ * payment tagged there vanishes from every future bill. Duplicate same-day
+ * parents are all live, so each is offered.
+ *
+ * Returns the latest row of each current chain (the row carrying the
+ * authoritative remaining balance) with remaining > 0, largest balance first.
+ */
+export const getOpenInvoicesForPayment = invoiceRows => {
+   if (!Array.isArray(invoiceRows) || !invoiceRows.length) return [];
+
+   const parents = invoiceRows.filter(row => !row.parent_invoice_id);
+   if (!parents.length) return [];
+
+   const dateOf = row => (row.invoice_date ? new Date(row.invoice_date).toISOString().slice(0, 10) : '');
+   const newestDate = parents.map(dateOf).sort().slice(-1)[0];
+   const currentParents = parents.filter(parent => dateOf(parent) === newestDate);
+
+   return currentParents
+      .map(parent => {
+         const latestSnapshot = invoiceRows
+            .filter(row => row.parent_invoice_id === parent.customer_invoice_id)
+            .reduce((latest, row) => (!latest || new Date(row.created_at) > new Date(latest.created_at) ? row : latest), null);
+         return latestSnapshot || parent;
+      })
+      .filter(row => Number(row.remaining_balance_on_invoice) > 0)
+      .sort((a, b) => Number(b.remaining_balance_on_invoice) - Number(a.remaining_balance_on_invoice));
+};
