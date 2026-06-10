@@ -123,6 +123,23 @@ export const sidebarRoutes = [
       ]
    },
    {
+      title: 'Analytics',
+      path: '/analytics',
+      icon: getIcon(fileTextFill),
+      children: [
+         {
+            title: 'Client Rates',
+            path: '/analytics/clientRates',
+            icon: getIcon(clockFill)
+         },
+         {
+            title: 'Time Allocation',
+            path: '/analytics/timeAllocation',
+            icon: getIcon(clockFill)
+         }
+      ]
+   },
+   {
       title: 'Jobs',
       path: '/jobs',
       icon: getIcon(baselineWork),

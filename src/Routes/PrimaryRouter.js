@@ -9,6 +9,7 @@ import DashboardRoutes from './GroupedRoutes/DashboardRoutes';
 import CustomerRoutes from './GroupedRoutes/CustomerRoutes/CustomerRoutes';
 import TransactionsRoutes from './GroupedRoutes/TransactionRoutes/TransactionsRoutes';
 import InvoiceRoutes from './GroupedRoutes/InvoiceRoutes/InvoiceRoutes';
+import AnalyticsRoutes from './GroupedRoutes/AnalyticsRoutes/AnalyticsRoutes';
 import AccountRoutes from './GroupedRoutes/AccountRoutes/AccountRoutes';
 import JobRoutes from './GroupedRoutes/JobRoutes/JobRoutes';
 import TimeTrackingRoutes from './GroupedRoutes/TimeTrackingRoutes/TimeTrackingRoutes';
@@ -113,6 +114,15 @@ export default function Router() {
                element={
                   <ManagerAndAdminProtectedAccessRoute>
                      <InvoiceRoutes setPageTitle={setPageTitle} customerData={customerData} setCustomerData={handleSetCustomerData} />
+                  </ManagerAndAdminProtectedAccessRoute>
+               }
+            />
+
+            <Route
+               path='analytics/*'
+               element={
+                  <ManagerAndAdminProtectedAccessRoute>
+                     <AnalyticsRoutes setPageTitle={setPageTitle} />
                   </ManagerAndAdminProtectedAccessRoute>
                }
             />
