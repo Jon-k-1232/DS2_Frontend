@@ -1,5 +1,3 @@
-import TokenService from './Services/TokenService';
-
 const deriveApiEndpoint = () => {
    const env = process.env.REACT_APP_ENV;
    const productionEndpoint = process.env.REACT_APP_API_PROD_ENDPOINT;
@@ -21,8 +19,7 @@ const deriveApiEndpoint = () => {
 const config = {
    REACT_APP_ENV: process.env.REACT_APP_ENV,
    API_ENDPOINT: deriveApiEndpoint(),
-   GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-   JWT_TOKEN: `bearer ${TokenService.getAuthToken()}`
+   GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID
 };
 
 export default config;

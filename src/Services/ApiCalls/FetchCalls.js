@@ -1,12 +1,9 @@
 import axios from 'axios';
 import config from '../../config';
-import TokenService from '../TokenService';
 
 const headers = memoryToken => {
-   const token = memoryToken || TokenService.getAuthToken();
    return {
       headers: {
-         Authorization: `Bearer ${token}`
       }
    };
 };
@@ -452,7 +449,7 @@ export const fetchOutstandingTimesheetCounts = async (accountID, userID) => {
 export const fetchOutstandingEmployeeEntriesByID = async (accountID, userID, selectedUserID, token, page = 1, limit = 10) => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getTimesheetEntriesByUserID/${selectedUserID}/${accountID}/${userID}`, {
-         headers: { Authorization: `Bearer ${token}` },
+         headers: {},
          params: { page, limit }
       });
 
@@ -472,7 +469,7 @@ export const fetchOutstandingEmployeeEntriesByID = async (accountID, userID, sel
 export const fetchAllEmployeeTimesheetsByID = async (accountID, userID, selectedUserID, token, page = 1, limit = 10, filterQuery = '') => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/timesheets/getAllTimesheetsForEmployeeByUserID/${selectedUserID}/${accountID}/${userID}`, {
-         headers: { Authorization: `Bearer ${token}` },
+         headers: {},
          params: { page, limit, filterQuery }
       });
 
@@ -492,7 +489,7 @@ export const fetchAllEmployeeTimesheetsByID = async (accountID, userID, selected
 export const fetchTimesheetsByMonth = async (accountID, userID, selectedUserID, token, page = 1, limit = 10, filterQuery = '') => {
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/timesheets/fetchTimesheetsByMonth/${selectedUserID}/${accountID}/${userID}`, {
-         headers: { Authorization: `Bearer ${token}` },
+         headers: {},
          params: { page, limit, filterQuery }
       });
 

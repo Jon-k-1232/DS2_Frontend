@@ -1,71 +1,62 @@
-import jwtDecode from 'jwt-decode';
+// The session JWT now lives in an httpOnly cookie that JavaScript cannot read,
+// so an XSS can no longer steal it. The browser sends the cookie automatically
+// (axios is configured with withCredentials). Here we keep only a NON-sensitive
+// expiry marker in sessionStorage so the UI can gate protected routes and react
+// to session expiry without ever holding the token itself.
+
+const AUTH_MARKER = 'cookie-session';
+const DEFAULT_TTL_MS = 11 * 60 * 60 * 1000; // mirrors backend JWT_EXPIRATION (11h)
+
+const clearSessionKeys = () => {
+   ['userID', 'accountID', 'accessLevel', 'displayName', 'role', 'authExpiresAt', 'token'].forEach(key => window.sessionStorage.removeItem(key));
+};
 
 const TokenService = {
-  saveAuthToken(token) {
-    TokenService.clearAuthToken();
-    return window.sessionStorage.setItem('token', token);
-  },
-  getAuthToken() {
-    return window.sessionStorage.getItem('token');
-  },
-  clearAuthToken() {
-    window.sessionStorage.removeItem('token');
-  },
-  hasAuthToken() {
-    return !!TokenService.getAuthToken();
-  },
-  handleLogout() {
-    window.sessionStorage.removeItem('userID');
-    window.sessionStorage.removeItem('accountID');
-    window.sessionStorage.removeItem('token');
-    window.sessionStorage.removeItem('accessLevel');
-    window.sessionStorage.removeItem('displayName');
-    window.sessionStorage.removeItem('role');
-  },
-  tokenExpirationTime(memoryToken) {
-    const token = memoryToken || window.sessionStorage.getItem('token');
-    const decodedToken = jwtDecode(token);
-    const expirationTimeInSeconds = decodedToken.exp;
-    const expirationDate = new Date(expirationTimeInSeconds * 1000);
+   // Record (only) when the session should be considered expired client-side.
+   startSession(ttlMs = DEFAULT_TTL_MS) {
+      window.sessionStorage.setItem('authExpiresAt', String(Date.now() + ttlMs));
+      return AUTH_MARKER;
+   },
 
-    return expirationDate;
-  },
-  tokenTimeLeft(memoryToken) {
-    const token = memoryToken || window.sessionStorage.getItem('token');
-    const decodedToken = jwtDecode(token);
-    const expirationTimeInSeconds = decodedToken.exp;
-    const expirationDate = new Date(expirationTimeInSeconds * 1000);
+   // Non-sensitive sentinel placed in app context where a token used to live.
+   authMarker() {
+      return AUTH_MARKER;
+   },
 
-    const currentTime = new Date();
-    const timeLeft = expirationDate - currentTime;
+   getExpiresAt() {
+      const value = window.sessionStorage.getItem('authExpiresAt');
+      return value ? Number(value) : null;
+   },
 
-    return timeLeft;
-  },
-  isTokenExpired(memoryToken) {
-    const token = memoryToken || window.sessionStorage.getItem('token');
-    const decodedToken = jwtDecode(token);
-    const currentTime = Date.now() / 1000;
-    const isExpired = decodedToken.exp < currentTime;
+   // Authenticated if we have a known user and the session hasn't expired.
+   hasAuthToken() {
+      const expiresAt = TokenService.getExpiresAt();
+      return !!expiresAt && expiresAt > Date.now() && !!window.sessionStorage.getItem('userID');
+   },
 
-    const resetContext = {
-      accountID: null,
-      userID: null,
-      displayName: null,
-      role: null,
-      accessLevel: null,
-      token: null
-    };
+   // Retained for any defensive callers — there is no JS-readable token anymore.
+   getAuthToken() {
+      return TokenService.hasAuthToken() ? AUTH_MARKER : null;
+   },
 
-    if (isExpired) {
-      window.sessionStorage.removeItem('userID');
-      window.sessionStorage.removeItem('accountID');
-      window.sessionStorage.removeItem('token');
-      window.sessionStorage.removeItem('accessLevel');
-      window.sessionStorage.removeItem('displayName');
-      window.sessionStorage.removeItem('role');
-    }
-    return { isExpired, resetContext };
-  }
+   handleLogout() {
+      clearSessionKeys();
+   },
+
+   isTokenExpired() {
+      const expiresAt = TokenService.getExpiresAt();
+      const isExpired = !expiresAt || expiresAt <= Date.now();
+      const resetContext = {
+         accountID: null,
+         userID: null,
+         displayName: null,
+         role: null,
+         accessLevel: null,
+         token: null
+      };
+      if (isExpired) clearSessionKeys();
+      return { isExpired, resetContext };
+   }
 };
 
 export default TokenService;

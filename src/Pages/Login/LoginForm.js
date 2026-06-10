@@ -26,7 +26,9 @@ export default function LoginForm() {
       }
 
       const { account_id, user_id, display_name, job_title, access_level } = result.user;
-      TokenService.saveAuthToken(result.authToken);
+      // The JWT is delivered as an httpOnly cookie by the server; we only record
+      // a non-sensitive session-expiry marker and identity fields for the UI.
+      TokenService.startSession();
       window.sessionStorage.setItem('userID', user_id);
       window.sessionStorage.setItem('accountID', account_id);
       if (access_level) window.sessionStorage.setItem('accessLevel', access_level);
@@ -39,7 +41,7 @@ export default function LoginForm() {
          displayName: display_name,
          role: job_title,
          accessLevel: access_level,
-         token: result.authToken
+         token: TokenService.authMarker()
       });
       setErrorMessage(null);
       navigate(getDefaultLandingRoute(access_level));

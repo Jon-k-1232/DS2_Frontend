@@ -40,8 +40,8 @@ export default function Router() {
    }, []);
 
    useEffect(() => {
-      // With every route check if token is still good or not.
-      const checkedToken = token && TokenService.isTokenExpired(token);
+      // With every route check if the session marker is still good or not.
+      const checkedToken = token && TokenService.isTokenExpired();
       if (token && checkedToken.isExpired) {
          setLoggedInUser(checkedToken.resetContext);
          setCustomerData({});

@@ -6,6 +6,7 @@ import { alpha } from '@mui/material/styles';
 import { Button, Box, Divider, MenuItem, Typography, Avatar, IconButton } from '@mui/material';
 import MenuPopover from '../../Components/MenuPopover';
 import TokenService from '../../Services/TokenService';
+import { postLogout } from '../../Services/ApiCalls/PostCalls';
 import { useContext } from 'react';
 import { context } from '../../App';
 
@@ -30,7 +31,9 @@ export default function AccountPopover() {
       setOpen(false);
    };
 
-   const handleLogout = () => {
+   const handleLogout = async () => {
+      // Clear the server-side httpOnly cookie, then local state.
+      await postLogout();
       TokenService.handleLogout();
       setLoggedInUser({
          accountID: null,

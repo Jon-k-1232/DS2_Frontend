@@ -1,12 +1,9 @@
 import axios from 'axios';
 import config from '../../config';
-import TokenService from '../TokenService';
 
 const headers = memoryToken => {
-   const token = memoryToken || TokenService.getAuthToken();
    return {
       headers: {
-         Authorization: `Bearer ${token}`
       }
    };
 };

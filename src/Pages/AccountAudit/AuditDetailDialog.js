@@ -65,15 +65,22 @@ export default function AuditDetailDialog({ auditId, open, onClose }) {
       if (!node) return;
       const w = window.open('', '_blank', 'width=1000,height=800');
       if (!w) return;
-      w.document.write(`<!doctype html><html><head><title>Audit ${audit.audit_id}</title>
+      // Write ONLY the static page chrome (no untrusted content) — audit_id is a
+      // numeric DB id. The audit content is then moved across as a cloned DOM node
+      // via importNode rather than serializing node.innerHTML into the string. This
+      // avoids re-parsing already-rendered content as fresh HTML in a window that
+      // isn't covered by the app's CSP, which would let any markup execute there.
+      w.document.write(`<!doctype html><html><head><title>Audit ${Number(audit.audit_id) || ''}</title>
          <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; }
             table { border-collapse: collapse; width: 100%; font-size: 11px; }
             th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
             th { background: #eee; }
             @media print { @page { size: letter portrait; margin: 0.4in; } }
-         </style></head><body>${node.innerHTML}</body></html>`);
+         </style></head><body></body></html>`);
       w.document.close();
+      const importedNode = w.document.importNode(node, true);
+      w.document.body.appendChild(importedNode);
       w.focus();
       setTimeout(() => {
          w.print();

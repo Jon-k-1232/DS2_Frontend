@@ -1,12 +1,9 @@
 import axios from 'axios';
 import config from '../../config';
-import TokenService from '../TokenService';
 
 const headers = memoryToken => {
-   const token = memoryToken || TokenService.getAuthToken();
    return {
       headers: {
-         Authorization: `Bearer ${token}`,
          'Content-Type': 'application/json'
       }
    };
@@ -141,6 +138,19 @@ export const postGoogleAuth = async credential => {
    } catch (error) {
       console.error('Error while posting Google auth:', error);
       return error;
+   }
+};
+
+// Clears the server-side httpOnly session cookie. Best-effort: local state is
+// cleared regardless of the result.
+export const postLogout = async () => {
+   const url = `${config.API_ENDPOINT}/auth/logout`;
+   try {
+      const response = await axios.post(url, {});
+      return response.data;
+   } catch (error) {
+      console.error('Error while logging out:', error);
+      return null;
    }
 };
 

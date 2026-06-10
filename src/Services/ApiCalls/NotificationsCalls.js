@@ -1,10 +1,8 @@
 import axios from 'axios';
 import config from '../../config';
-import TokenService from '../TokenService';
 
 const _headers = memoryToken => {
-   const token = memoryToken || TokenService.getAuthToken();
-   return { headers: { Authorization: `Bearer ${token}` } };
+   return { headers: {} };
 };
 
 export const fetchNotifications = async (accountID, userID, token, { unreadOnly = false, limit = 30 } = {}) => {

@@ -11,7 +11,11 @@ let context = createContext();
 export default function App() {
    const windowUserID = window.sessionStorage.getItem('userID') || null;
    const windowAccountID = window.sessionStorage.getItem('accountID') || null;
-   const windowToken = window.sessionStorage.getItem('token') || null;
+   // The real JWT lives in an httpOnly cookie; context only carries a sentinel
+   // marker so existing `if (token)` gates keep working. Present only while a
+   // non-expired session marker exists.
+   const windowAuthExpiresAt = window.sessionStorage.getItem('authExpiresAt');
+   const windowToken = windowUserID && windowAuthExpiresAt && Number(windowAuthExpiresAt) > Date.now() ? 'cookie-session' : null;
    // Restore identity-derived fields so a page reload keeps protected routes
    // (e.g. /transactions/*) accessible without forcing a re-login. LoginForm
    // is responsible for writing these on a fresh login.

@@ -1,11 +1,8 @@
 import axios from 'axios';
 import config from '../../config';
-import TokenService from '../TokenService';
 
 const buildAuthHeaders = token => {
-   const authToken = token || TokenService.getAuthToken();
    return {
-      Authorization: `Bearer ${authToken}`
    };
 };
 

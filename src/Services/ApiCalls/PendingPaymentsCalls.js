@@ -1,20 +1,16 @@
 import axios from 'axios';
 import config from '../../config';
-import TokenService from '../TokenService';
 
 const headers = memoryToken => {
-   const token = memoryToken || TokenService.getAuthToken();
    return {
       headers: {
-         Authorization: `Bearer ${token}`,
          'Content-Type': 'application/json'
       }
    };
 };
 
 const getHeaders = memoryToken => {
-   const token = memoryToken || TokenService.getAuthToken();
-   return { headers: { Authorization: `Bearer ${token}` } };
+   return { headers: {} };
 };
 
 export const fetchPendingPayments = async (accountID, userID, token, { page = 1, limit = 20, search = '', status = 'new', month, year } = {}) => {
@@ -81,7 +77,6 @@ export const uploadPaymentFile = async (file, accountID, userID, token) => {
    try {
       const response = await axios.post(url, arrayBuffer, {
          headers: {
-            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/octet-stream',
             'x-file-name': encodeURIComponent(file.name),
             'x-file-type': file.type || 'application/pdf'
@@ -123,7 +118,7 @@ export const fetchPaymentFilePreview = async (fileName, accountID, userID, token
    const url = `${config.API_ENDPOINT}/pending-payments/file-preview/${accountID}/${userID}?fileName=${encodeURIComponent(fileName)}`;
    try {
       const response = await axios.get(url, {
-         headers: { Authorization: `Bearer ${token}` },
+         headers: {},
          responseType: 'blob'
       });
       return response.data;
