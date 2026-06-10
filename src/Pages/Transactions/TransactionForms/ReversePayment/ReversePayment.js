@@ -36,9 +36,12 @@ export default function ReversePayment({ paymentData, customerData, setCustomerD
          const result = await postReversePayment(accountID, userID, { paymentID: paymentData.payment_id, reason: reason.trim() }, token);
          setPostStatus(result);
          if (result.status === 200) {
+            // Clear the payments slice so the grid refetches its paginated
+            // page on mount — the mutation response carries the full
+            // unpaginated list, which the grid can't page.
             setCustomerData({
                ...customerData,
-               paymentsList: result.paymentsList,
+               paymentsList: null,
                invoicesList: result.invoicesList,
                accountRetainersList: result.accountRetainersList
             });

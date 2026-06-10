@@ -73,7 +73,11 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
       if (postedItem.status === 200) {
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
-         setCustomerData({ ...customerData, paymentsList: postedItem.paymentsList, invoicesList: postedItem.invoicesList });
+         setCustomerData({
+            ...customerData,
+            // Force the grid to refetch its paginated page (mutation responses
+            // carry the full unpaginated list, which the grid can't page).
+            paymentsList: null, invoicesList: postedItem.invoicesList });
          navigate('/transactions/customerPayments');
       }
    };
