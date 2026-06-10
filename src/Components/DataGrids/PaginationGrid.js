@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
@@ -106,7 +106,10 @@ const DataGridTable = ({
       loading
    };
 
-   const dynamicColumns = rows.length && columns.length ? getDynamicColumnWidths(rows, columns) : columns;
+   // Width measurement walks every row x column with canvas text metrics —
+   // recompute only when the data actually changes, not on every render.
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   const dynamicColumns = useMemo(() => (rows.length && columns.length ? getDynamicColumnWidths(rows, columns) : columns), [rows, columns]);
 
    // Build initial column visibility model: columns listed are hidden (false), others default to true
    const columnVisibilityModel = (initiallyHiddenColumns || []).reduce((acc, col) => {

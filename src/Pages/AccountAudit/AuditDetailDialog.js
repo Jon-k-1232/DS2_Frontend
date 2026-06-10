@@ -96,7 +96,7 @@ export default function AuditDetailDialog({ auditId, open, onClose }) {
                   #{audit.audit_id} — {audit.run_by_display_name}
                </Typography>
             )}
-            <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
+            <IconButton aria-label="Close dialog" onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
                <CloseIcon />
             </IconButton>
          </DialogTitle>

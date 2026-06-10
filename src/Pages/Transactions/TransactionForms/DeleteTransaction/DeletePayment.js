@@ -36,8 +36,10 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
    useEffect(() => {
       if (paymentData && Object.keys(paymentData).length) {
          // This block of code finds matching invoices based on user input to confirm and invoice exists.
-         const { customerInvoiceData = [] } = customerProfileData?.customerInvoiceData || {};
-         const invoiceObject = customerInvoiceData.find(invoice => invoice.customer_invoice_id === customer_invoice_id);
+         // The profile API returns the array under `customerInvoices` (same shape
+         // bug InvoiceConfirmation had — the lookup always missed before).
+         const { customerInvoices = [] } = customerProfileData?.customerInvoiceData || {};
+         const invoiceObject = customerInvoices.find(invoice => invoice.customer_invoice_id === customer_invoice_id);
          const invoiceNumber = invoiceObject?.invoice_number;
 
          setSelectedItems({

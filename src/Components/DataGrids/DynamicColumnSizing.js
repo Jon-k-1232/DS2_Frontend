@@ -1,6 +1,16 @@
+// One shared measuring context — creating a canvas per call added GC pressure
+// on grids that recompute widths during typing.
+let sharedCtx = null;
+const getMeasureContext = () => {
+   if (!sharedCtx) {
+      sharedCtx = document.createElement('canvas').getContext('2d');
+   }
+   sharedCtx.font = '14px Roboto';
+   return sharedCtx;
+};
+
 const getDynamicColumnWidths = (rows, columns) => {
-   const ctx = document.createElement('canvas').getContext('2d');
-   ctx.font = '14px Roboto';
+   const ctx = getMeasureContext();
 
    const basePadding = 20;
 

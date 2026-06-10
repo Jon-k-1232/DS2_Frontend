@@ -26,14 +26,18 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
          updateSelectedItems('isTransactionBillable', newBillableStatus);
       }
 
-      // 2) If we already have minutes, set local state & run calculation
-      if (selectedItems.minutes) {
+      // 2) If we already have minutes, set local state & run calculation.
+      // selectedTeamMember must be a dependency: switching team members after
+      // entering hours used to keep the OLD member's billing rate on the
+      // transaction. The member guard (instead of inside handleTimeCalculation)
+      // avoids its select-a-team-member alert firing on member clear.
+      if (selectedItems.minutes && selectedTeamMember) {
          setMinutes(selectedItems.minutes);
          setHoursInput((Number(selectedItems.minutes) / 60).toFixed(2));
          handleTimeCalculation(selectedItems.minutes, selectedTeamMember, startTime, endTime, updateSelectedItems);
       }
       // eslint-disable-next-line
-   }, [isInAdditionToMonthlyCharge, selectedItems.minutes]);
+   }, [isInAdditionToMonthlyCharge, selectedItems.minutes, selectedTeamMember, startTime, endTime]);
 
    return (
       <Box sx={{ display: 'grid', gap: 2 }}>

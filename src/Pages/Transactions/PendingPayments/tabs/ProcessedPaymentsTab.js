@@ -95,7 +95,7 @@ export default function ProcessedPaymentsTab() {
          <Dialog open={Boolean(viewFileName)} onClose={() => setViewFileName(null)} maxWidth='lg' fullWidth>
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                {viewFileName}
-               <IconButton onClick={() => setViewFileName(null)} size='small'>
+               <IconButton aria-label='Close preview' onClick={() => setViewFileName(null)} size='small'>
                   <CloseIcon />
                </IconButton>
             </DialogTitle>

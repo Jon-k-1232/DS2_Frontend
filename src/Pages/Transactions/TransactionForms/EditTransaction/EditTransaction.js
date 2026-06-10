@@ -107,7 +107,7 @@ export default function EditTransaction({ customerData, setCustomerData, transac
                options={['Time', 'Charge']}
                getOptionLabel={option => option || ''}
                value={transactionType}
-               isOptionEqualToValue={(option, value) => option === value || true}
+               isOptionEqualToValue={(option, value) => option === value || value === ''}
                onChange={(e, value) => setSelectedItems({ ...selectedItems, transactionType: value })}
                renderInput={params => <TextField {...params} label='Transaction Type' variant='standard' />}
             />

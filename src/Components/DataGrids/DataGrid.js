@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
@@ -76,7 +77,9 @@ const DataGridTable = ({
       getCellClassName: params => (matchingField(enableColumnsOnClick, params.field) || enableSingleRowClick ? 'clickable-column' : '')
    };
 
-   const dynamicColumns = rows && columns && getDynamicColumnWidths(rows, columns);
+   // Recompute widths only when the data changes (canvas-measures every cell).
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   const dynamicColumns = useMemo(() => rows && columns && getDynamicColumnWidths(rows, columns), [rows, columns]);
 
    // Build initial visibility model where listed columns are hidden
    const columnVisibilityModel = (initiallyHiddenColumns || []).reduce((acc, col) => {
