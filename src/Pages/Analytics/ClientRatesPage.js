@@ -24,6 +24,7 @@ import { Alert } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../App';
 import { fetchClientRates, downloadClientRatesCsv, saveRateAgreement } from '../../Services/ApiCalls/AnalyticsCalls';
+import useExcludedCustomers from './useExcludedCustomers';
 
 const fmtMoney = v => (v == null ? '—' : `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 const fmtRate = v => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
@@ -50,6 +51,7 @@ export default function ClientRatesPage() {
    const [savingAgreement, setSavingAgreement] = useState(false);
 
    const [reloadTick, setReloadTick] = useState(0);
+   const { ready, excludedIds, filter } = useExcludedCustomers();
 
    useEffect(() => {
       let cancelled = false;
@@ -57,7 +59,7 @@ export default function ClientRatesPage() {
          setLoading(true);
          setError(null);
          try {
-            const res = await fetchClientRates(accountID, userID, { yearsBack });
+            const res = await fetchClientRates(accountID, userID, { yearsBack, exclude: excludedIds });
             if (cancelled) return;
             if (res?.clientRates) setData(res.clientRates);
             else setError(res?.message || 'Unable to load client rates.');
@@ -68,11 +70,11 @@ export default function ClientRatesPage() {
             if (!cancelled) setLoading(false);
          }
       };
-      if (accountID && userID) load();
+      if (accountID && userID && ready) load();
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, yearsBack, reloadTick]);
+   }, [accountID, userID, yearsBack, reloadTick, ready, excludedIds]);
 
    const years = useMemo(() => data?.years || [], [data]);
    const firm = data?.firm;
@@ -169,7 +171,8 @@ export default function ClientRatesPage() {
                   Realized hourly rate per client per year (time billings ÷ hours). Hover a rate for billed totals.
                </Typography>
             </Box>
-            <Stack direction='row' spacing={1} alignItems='center'>
+            <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
+               {filter}
                <TextField select size='small' label='Years' value={yearsBack} onChange={e => setYearsBack(Number(e.target.value))} sx={{ width: 110 }}>
                   {[3, 4, 5, 6, 8, 10].map(n => (
                      <MenuItem key={n} value={n}>
@@ -186,7 +189,7 @@ export default function ClientRatesPage() {
                />
                <Button
                   startIcon={<DownloadIcon />}
-                  onClick={() => downloadClientRatesCsv(accountID, userID, { yearsBack }).catch(err => setError(err.message || 'CSV export failed.'))}
+                  onClick={() => downloadClientRatesCsv(accountID, userID, { yearsBack, exclude: excludedIds }).catch(err => setError(err.message || 'CSV export failed.'))}
                >
                   CSV
                </Button>

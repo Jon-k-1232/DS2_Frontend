@@ -17,6 +17,7 @@ import {
 import { Alert } from '@mui/material';
 import { context } from '../../App';
 import { fetchTaxSeasonCapacity } from '../../Services/ApiCalls/AnalyticsCalls';
+import useExcludedCustomers from './useExcludedCustomers';
 
 const fmtHours = v => (v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 1 }));
 
@@ -102,6 +103,7 @@ export default function TaxSeasonCapacityPage() {
    const [error, setError] = useState(null);
    const [year, setYear] = useState(new Date().getFullYear());
    const [data, setData] = useState(null);
+   const { ready, excludedIds, filter } = useExcludedCustomers();
 
    useEffect(() => {
       let cancelled = false;
@@ -109,7 +111,7 @@ export default function TaxSeasonCapacityPage() {
          setLoading(true);
          setError(null);
          try {
-            const res = await fetchTaxSeasonCapacity(accountID, userID, { year });
+            const res = await fetchTaxSeasonCapacity(accountID, userID, { year, exclude: excludedIds });
             if (cancelled) return;
             if (res?.taxSeasonCapacity) setData(res.taxSeasonCapacity);
             else setError(res?.message || 'Unable to load tax season capacity.');
@@ -120,11 +122,11 @@ export default function TaxSeasonCapacityPage() {
             if (!cancelled) setLoading(false);
          }
       };
-      if (accountID && userID) load();
+      if (accountID && userID && ready) load();
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, year]);
+   }, [accountID, userID, year, ready, excludedIds]);
 
    // Always include the selected year so the controlled Select never holds a
    // value missing from its options.
@@ -157,13 +159,16 @@ export default function TaxSeasonCapacityPage() {
                   Hours per employee per week, January 1 – April 15 — {year} vs {year - 1}.
                </Typography>
             </Box>
-            <TextField select size='small' label='Year' value={year} onChange={e => setYear(Number(e.target.value))} sx={{ width: 110 }}>
-               {yearOptions.map(y => (
-                  <MenuItem key={y} value={y}>
-                     {y}
-                  </MenuItem>
-               ))}
-            </TextField>
+            <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
+               {filter}
+               <TextField select size='small' label='Year' value={year} onChange={e => setYear(Number(e.target.value))} sx={{ width: 110 }}>
+                  {yearOptions.map(y => (
+                     <MenuItem key={y} value={y}>
+                        {y}
+                     </MenuItem>
+                  ))}
+               </TextField>
+            </Stack>
          </Stack>
 
          {error && <Alert severity='error' onClose={() => setError(null)}>{error}</Alert>}

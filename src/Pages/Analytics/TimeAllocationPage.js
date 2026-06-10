@@ -20,6 +20,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { Alert } from '@mui/material';
 import { context } from '../../App';
 import { fetchTimeAllocation, downloadTimeAllocationCsv, downloadYearEndPacket } from '../../Services/ApiCalls/AnalyticsCalls';
+import useExcludedCustomers from './useExcludedCustomers';
 
 const fmtMoney = v => (v == null ? '—' : `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`);
 const fmtHours = v => (v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 1 }));
@@ -57,6 +58,7 @@ export default function TimeAllocationPage() {
    const [error, setError] = useState(null);
    const [year, setYear] = useState(new Date().getFullYear() - 1);
    const [data, setData] = useState(null);
+   const { ready, excludedIds, filter } = useExcludedCustomers();
 
    useEffect(() => {
       let cancelled = false;
@@ -64,7 +66,7 @@ export default function TimeAllocationPage() {
          setLoading(true);
          setError(null);
          try {
-            const res = await fetchTimeAllocation(accountID, userID, { year });
+            const res = await fetchTimeAllocation(accountID, userID, { year, exclude: excludedIds });
             if (cancelled) return;
             if (res?.timeAllocation) setData(res.timeAllocation);
             else setError(res?.message || 'Unable to load time allocation.');
@@ -75,11 +77,11 @@ export default function TimeAllocationPage() {
             if (!cancelled) setLoading(false);
          }
       };
-      if (accountID && userID) load();
+      if (accountID && userID && ready) load();
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, year]);
+   }, [accountID, userID, year, ready, excludedIds]);
 
    // Always include the selected year so the controlled Select never holds a
    // value missing from its options.
@@ -101,7 +103,8 @@ export default function TimeAllocationPage() {
                   Where {year}'s hours went — client work vs administrative and everything else.
                </Typography>
             </Box>
-            <Stack direction='row' spacing={1} alignItems='center'>
+            <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
+               {filter}
                <TextField select size='small' label='Year' value={year} onChange={e => setYear(Number(e.target.value))} sx={{ width: 110 }}>
                   {yearOptions.map(y => (
                      <MenuItem key={y} value={y}>
@@ -111,14 +114,14 @@ export default function TimeAllocationPage() {
                </TextField>
                <Button
                   startIcon={<DownloadIcon />}
-                  onClick={() => downloadTimeAllocationCsv(accountID, userID, { year }).catch(err => setError(err.message || 'CSV export failed.'))}
+                  onClick={() => downloadTimeAllocationCsv(accountID, userID, { year, exclude: excludedIds }).catch(err => setError(err.message || 'CSV export failed.'))}
                >
                   CSV
                </Button>
                <Button
                   startIcon={<DownloadIcon />}
                   variant='outlined'
-                  onClick={() => downloadYearEndPacket(accountID, userID, { year }).catch(err => setError(err.message || 'Packet export failed.'))}
+                  onClick={() => downloadYearEndPacket(accountID, userID, { year, exclude: excludedIds }).catch(err => setError(err.message || 'Packet export failed.'))}
                >
                   Year-End Packet
                </Button>
@@ -173,32 +176,6 @@ export default function TimeAllocationPage() {
 
                   <Grid item xs={12} md={5}>
                      <Stack spacing={2}>
-                        <Paper variant='outlined' sx={{ p: 2 }}>
-                           <Typography variant='subtitle1' sx={{ mb: 1 }}>
-                              By Employee
-                           </Typography>
-                           <Table size='small'>
-                              <TableHead>
-                                 <TableRow>
-                                    <TableCell>Employee</TableCell>
-                                    <TableCell align='right'>Hours</TableCell>
-                                    <TableCell align='right'>Billable %</TableCell>
-                                    <TableCell align='right'>Billed</TableCell>
-                                 </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                 {data.byEmployee.map(r => (
-                                    <TableRow key={r.employee}>
-                                       <TableCell>{r.employee}</TableCell>
-                                       <TableCell align='right'>{fmtHours(r.hours)}</TableCell>
-                                       <TableCell align='right'>{r.utilization_pct == null ? '—' : `${r.utilization_pct}%`}</TableCell>
-                                       <TableCell align='right'>{fmtMoney(r.billed_amount)}</TableCell>
-                                    </TableRow>
-                                 ))}
-                              </TableBody>
-                           </Table>
-                        </Paper>
-
                         <Paper variant='outlined' sx={{ p: 2 }}>
                            <Typography variant='subtitle1' sx={{ mb: 1 }}>
                               By Month

@@ -13,6 +13,7 @@ import { Alert } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { context } from '../../App';
 import { fetchJobBudgets } from '../../Services/ApiCalls/AnalyticsCalls';
+import useExcludedCustomers from './useExcludedCustomers';
 
 const fmtMoney = v => (v == null ? '—' : `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 const fmtPct = v => (v == null ? '—' : `${Number(v).toFixed(0)}%`);
@@ -52,6 +53,7 @@ export default function JobBudgetsPage() {
    const [data, setData] = useState([]);
    const [search, setSearch] = useState('');
    const [openOnly, setOpenOnly] = useState(true);
+   const { ready, excludedIds, filter } = useExcludedCustomers();
 
    useEffect(() => {
       let cancelled = false;
@@ -59,7 +61,7 @@ export default function JobBudgetsPage() {
          setLoading(true);
          setError(null);
          try {
-            const res = await fetchJobBudgets(accountID, userID);
+            const res = await fetchJobBudgets(accountID, userID, { exclude: excludedIds });
             if (cancelled) return;
             if (res?.jobBudgets) setData(res.jobBudgets);
             else setError(res?.message || 'Unable to load job budgets.');
@@ -70,11 +72,11 @@ export default function JobBudgetsPage() {
             if (!cancelled) setLoading(false);
          }
       };
-      if (accountID && userID) load();
+      if (accountID && userID && ready) load();
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID]);
+   }, [accountID, userID, ready, excludedIds]);
 
    const rows = useMemo(() => {
       const term = search.trim().toLowerCase();
@@ -163,7 +165,8 @@ export default function JobBudgetsPage() {
                   Budget vs actual for jobs with an agreed amount. Jobs without an agreed amount don't appear — set agreed_job_amount on the job to track it here.
                </Typography>
             </Box>
-            <Stack direction='row' spacing={1} alignItems='center'>
+            <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
+               {filter}
                <TextField size='small' label='Search customer or job' value={search} onChange={e => setSearch(e.target.value)} sx={{ width: 220 }} />
                <Chip
                   label={openOnly ? 'Open jobs' : 'All jobs'}

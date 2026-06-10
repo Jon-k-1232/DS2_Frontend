@@ -5,6 +5,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import { context } from '../../App';
 import { fetchWipAging } from '../../Services/ApiCalls/AnalyticsCalls';
+import useExcludedCustomers from './useExcludedCustomers';
 
 const fmtMoney = v => (v == null ? '—' : `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 const fmtHours = v => (v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 1 }));
@@ -38,6 +39,7 @@ export default function WipAgingPage() {
    const [data, setData] = useState(null);
    const [search, setSearch] = useState('');
    const [activeOnly, setActiveOnly] = useState(true);
+   const { ready, excludedIds, filter } = useExcludedCustomers();
 
    useEffect(() => {
       let cancelled = false;
@@ -45,7 +47,7 @@ export default function WipAgingPage() {
          setLoading(true);
          setError(null);
          try {
-            const res = await fetchWipAging(accountID, userID);
+            const res = await fetchWipAging(accountID, userID, { exclude: excludedIds });
             if (cancelled) return;
             if (res?.wipAging) setData(res.wipAging);
             else setError(res?.message || 'Unable to load WIP aging.');
@@ -56,11 +58,11 @@ export default function WipAgingPage() {
             if (!cancelled) setLoading(false);
          }
       };
-      if (accountID && userID) load();
+      if (accountID && userID && ready) load();
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID]);
+   }, [accountID, userID, ready, excludedIds]);
 
    const rows = useMemo(() => {
       if (!data) return [];
@@ -131,7 +133,8 @@ export default function WipAgingPage() {
                   Billable work performed but not yet invoiced, aged from the transaction date.
                </Typography>
             </Box>
-            <Stack direction='row' spacing={1} alignItems='center'>
+            <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
+               {filter}
                <TextField size='small' label='Search client' value={search} onChange={e => setSearch(e.target.value)} sx={{ width: 200 }} />
                <Chip
                   label={activeOnly ? 'Active clients' : 'All clients'}
