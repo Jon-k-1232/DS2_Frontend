@@ -5,7 +5,10 @@ export default function InvoiceConfirmation({ selectedItems, setSelectedItems, c
   const [invoiceConfirmation, setInvoiceConfirmation] = useState('');
   const [invoicesMatch, setInvoicesMatch] = useState(true);
   const [invoiceExists, setInvoiceExists] = useState(true);
-  const { customerInvoiceData = [] } = customerProfileData?.customerInvoiceData || {};
+  // The profile API returns the array under `customerInvoices`; alias it so the
+  // existence check below has the real list (previously always empty, which made
+  // every invoice payment show "Invoice number not found in records").
+  const { customerInvoices: customerInvoiceData = [] } = customerProfileData?.customerInvoiceData || {};
   const { selectedInvoice } = selectedItems;
   const invoiceNumber = selectedInvoice?.invoice_number || '';
 
