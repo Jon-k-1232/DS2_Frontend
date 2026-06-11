@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, startTransition } from 'react';
 import PropTypes from 'prop-types';
 import { Icon } from '@iconify/react';
 import { NavLink as RouterLink, matchPath, useLocation, useNavigate } from 'react-router-dom';
@@ -52,7 +52,9 @@ function NavItem({ item, active }) {
   const handleOpen = () => {
     setOpen(prev => !prev);
     if (children) {
-      navigate(children[0].path);
+      // Transition the route change so the drawer expansion paints immediately
+      // even when the destination page's first render is heavy (e.g. Jobs grid).
+      startTransition(() => navigate(children[0].path));
     }
   };
 

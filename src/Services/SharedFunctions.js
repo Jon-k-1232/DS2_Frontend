@@ -14,17 +14,22 @@ export const filterGridByColumnName = (data, columns) => {
       })
       .filter(Boolean); // Remove undefined items
 
+   // Only strings shaped like an ISO date ("2026-05-22..." / "2026-05-22T10:30:00.000Z")
+   // are candidates for date formatting. Gating on this regex before calling dayjs
+   // matters: grids run this on every cell, and a 44k-row tree (Jobs) means ~600k
+   // cells — dayjs parse attempts on all of them blocked the UI for seconds.
+   const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}([T\s]|$)/;
+
    // Recursive function to filter and transform rows
    const filterRows = rows => {
       return rows.map(row => {
          const filteredRow = filteredColumns.reduce(
             (acc, col) => {
-               // Check if the value is a date string
-               if (dayjs(row[col.field], 'YYYY-MM-DDTHH:mm:ss.SSSZ').isValid()) {
-                  // If it is, format it to "MM DD YYYY h:mm A"
-                  acc[col.field] = dayjs(row[col.field]).format('MMMM D, YYYY hh:mm A');
+               const value = row[col.field];
+               if (typeof value === 'string' && ISO_DATE_PREFIX.test(value) && dayjs(value).isValid()) {
+                  acc[col.field] = dayjs(value).format('MMMM D, YYYY hh:mm A');
                } else {
-                  acc[col.field] = row[col.field];
+                  acc[col.field] = value;
                }
                return acc;
             },

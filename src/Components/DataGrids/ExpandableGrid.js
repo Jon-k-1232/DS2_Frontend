@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -30,16 +30,17 @@ const ExpandableGrid = ({
 
    const { activeInvoices, treeGrid } = tableData || {};
 
-   // rather than write over the json object, create a new one with the filtered data
-   const treeGridData = { rows: treeGrid.rows, columns: treeGrid.columns } || {};
-   let { rows, columns } = treeGridData || {};
-
-   // If displayColumnNames is passed, filter the grid to only show those columns
-   if (displayColumnNames && displayColumnNames.length) {
-      const filteredGrid = filterGridByColumnName(treeGrid, displayColumnNames);
-      rows = filteredGrid.rows;
-      columns = filteredGrid.columns;
-   }
+   // Column filtering + date formatting walks every cell of every row (children
+   // included — 44k rows on the Jobs grid), so it must only re-run when the data
+   // actually changes, never on expand/selection re-renders.
+   const { rows, columns } = useMemo(() => {
+      if (displayColumnNames && displayColumnNames.length) {
+         return filterGridByColumnName(treeGrid, displayColumnNames);
+      }
+      // rather than write over the json object, create a new one with the filtered data
+      return { rows: treeGrid.rows, columns: treeGrid.columns };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [treeGrid, displayColumnNames && displayColumnNames.join(',')]);
 
    const gridProps = {
       density: 'compact',
@@ -86,7 +87,7 @@ const ExpandableGrid = ({
    };
 
    // Modify the columns to include the expandable icon
-   const modifiedColumns = columns.map(column => {
+   const modifiedColumns = useMemo(() => columns.map(column => {
       if (column.field === idField) {
          return {
             ...column,
@@ -109,23 +110,30 @@ const ExpandableGrid = ({
          };
       }
       return column;
-   });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }), [columns, expandedRows, idField, parentColumnName]);
 
    // Flatten the tree for DataGrid.  For expanded parents, sort children descending
    // by ID (most recent first) and insert them immediately below the parent.
    // Use a copy for sorting so we never mutate the shared children array on the row.
-   const flattenedData = [];
-   rows.forEach(row => {
-      flattenedData.push(row);
-      if (expandedRows.has(row[idField]) && row.children && row.children.length > 0) {
-         const sortedChildren = [...row.children].sort((a, b) => b[idField] - a[idField]);
-         sortedChildren.forEach(childRow => {
-            flattenedData.push({ ...childRow });
-         });
-      }
-   });
+   const flattenedData = useMemo(() => {
+      const flattened = [];
+      rows.forEach(row => {
+         flattened.push(row);
+         if (expandedRows.has(row[idField]) && row.children && row.children.length > 0) {
+            const sortedChildren = [...row.children].sort((a, b) => b[idField] - a[idField]);
+            sortedChildren.forEach(childRow => {
+               flattened.push({ ...childRow });
+            });
+         }
+      });
+      return flattened;
+   }, [rows, expandedRows, idField]);
 
-   const dynamicColumns = flattenedData && modifiedColumns && getDynamicColumnWidths(flattenedData, modifiedColumns);
+   const dynamicColumns = useMemo(
+      () => getDynamicColumnWidths(flattenedData, modifiedColumns),
+      [flattenedData, modifiedColumns]
+   );
 
    return (
       <Box sx={{ height: passedHeight ? passedHeight : 680, width: 1 }}>
