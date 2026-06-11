@@ -15,15 +15,16 @@ const getIcon = name => <Icon icon={name} width={22} height={22} />;
 export const buildSidebarRoutes = loggedInUser => {
    const showAudit = canAccessAccountAudit(loggedInUser);
    const showSuperAdmin = isSuperAdmin(loggedInUser);
-   return sidebarRoutes.map(group => {
+   const allowed = entry => {
+      if (entry.requiresAuditor && !showAudit) return false;
+      if (entry.requiresSuperAdmin && !showSuperAdmin) return false;
+      return true;
+   };
+   return sidebarRoutes.filter(allowed).map(group => {
       if (!group.children) return group;
       return {
          ...group,
-         children: group.children.filter(child => {
-            if (child.requiresAuditor && !showAudit) return false;
-            if (child.requiresSuperAdmin && !showSuperAdmin) return false;
-            return true;
-         })
+         children: group.children.filter(allowed)
       };
    });
 };
@@ -126,6 +127,7 @@ export const sidebarRoutes = [
       title: 'Analytics',
       path: '/analytics',
       icon: getIcon(fileTextFill),
+      requiresSuperAdmin: true,
       children: [
          {
             title: 'Client Rates',

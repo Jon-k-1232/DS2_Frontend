@@ -17,6 +17,7 @@ import EmployeeTimeTrackerSubRoutes from './GroupedRoutes/TransactionRoutes/Empl
 import { context } from '../App';
 import { getInitialAppData, fetchSingleUser, fetchAppVersion } from '../Services/ApiCalls/FetchCalls';
 import ManagerAndAdminProtectedAccessRoute from './ManagerAndAdminProtectedAccess';
+import SuperAdminProtectedAccessRoute from './SuperAdminAccess';
 
 // loaders
 // https://awesome-loaders.netlify.app/docs/loaders/wifiloader/
@@ -121,9 +122,9 @@ export default function Router() {
             <Route
                path='analytics/*'
                element={
-                  <ManagerAndAdminProtectedAccessRoute>
+                  <SuperAdminProtectedAccessRoute>
                      <AnalyticsRoutes setPageTitle={setPageTitle} />
-                  </ManagerAndAdminProtectedAccessRoute>
+                  </SuperAdminProtectedAccessRoute>
                }
             />
 

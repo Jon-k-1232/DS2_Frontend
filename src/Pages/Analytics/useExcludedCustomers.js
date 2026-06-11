@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
-import { Autocomplete, TextField, Chip, Tooltip } from '@mui/material';
+import { Autocomplete, TextField, Checkbox, Tooltip } from '@mui/material';
 import { context } from '../../App';
 import { fetchExclusions } from '../../Services/ApiCalls/AnalyticsCalls';
 
@@ -81,6 +81,7 @@ export default function useExcludedCustomers() {
          <Autocomplete
             multiple
             size='small'
+            limitTags={1}
             sx={{ minWidth: 280, maxWidth: 460 }}
             options={customers}
             value={value}
@@ -88,11 +89,19 @@ export default function useExcludedCustomers() {
             disableCloseOnSelect
             getOptionLabel={option => option.display_name || ''}
             isOptionEqualToValue={(option, val) => option.customer_id === val.customer_id}
-            renderTags={(tagValue, getTagProps) =>
-               tagValue.map((option, index) => (
-                  <Chip size='small' label={option.display_name} {...getTagProps({ index })} key={option.customer_id} />
-               ))
-            }
+            ChipProps={{ size: 'small' }}
+            // Checkbox per option marks what's selected; multiple stays open while picking.
+            renderOption={(props, option, { selected }) => {
+               const { key, ...optionProps } = props;
+               return (
+                  <li key={option.customer_id} {...optionProps}>
+                     <Checkbox size='small' style={{ marginRight: 8 }} checked={selected} />
+                     {option.display_name}
+                  </li>
+               );
+            }}
+            // Collapsed (unfocused) the field shows the first name then "+N"; focus expands all.
+            getLimitTagsText={more => `+${more}`}
             renderInput={params => <TextField {...params} label='Filter out (exclude)' variant='outlined' placeholder={value.length ? '' : 'None'} />}
          />
       </Tooltip>
