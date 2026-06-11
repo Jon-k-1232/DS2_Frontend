@@ -148,7 +148,11 @@ export default function Customers({ customerData, setCustomerData }) {
          if (response?.customersList?.activeCustomerData) {
             const { customersList } = response;
             applyFilteredGrid(customersList.activeCustomerData);
-            setCustomerData(prev => ({ ...prev, customersList }));
+            // Page data stays local to this grid. Writing it into the shared
+            // customerData context replaced the full active-customers list
+            // (initialBlob) with the current 20-row page, which silently
+            // emptied the customer dropdowns on the payment/transaction/
+            // write-off forms until the next full reload.
          }
       } catch (error) {
          console.error('Error fetching customers:', error);

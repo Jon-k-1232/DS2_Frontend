@@ -61,6 +61,7 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
       is_transaction_billable,
       logged_for_user_id,
       unit_cost,
+      quantity: db_quantity,
       transaction_date,
       transaction_type,
       total_transaction,
@@ -80,6 +81,8 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
             detailedJobDescription: detailed_work_description,
             isInAdditionToMonthlyCharge: is_excess_to_subscription,
             unitCost: unit_cost,
+            // Without this the page shows initialState's quantity (1) for every transaction.
+            quantity: db_quantity ?? 1,
             totalTransaction: total_transaction,
             selectedDate: dayjs(transaction_date),
             transactionType: transaction_type,
