@@ -7,7 +7,6 @@ import TimeTrackerHistory from '../../../Pages/TimeTracking/History/TimeTrackerH
 import UpdateTimeTrackerTemplate from '../../../Pages/TimeTracking/TemplateUpdate/UpdateTimeTrackerTemplate';
 import TimeTrackingSettings from '../../../Pages/Account/TimeTrackingSettings/TimeTrackingSettings';
 import BillingReviewPage from '../../../Pages/Transactions/BillingReview/BillingReviewPage';
-import AdminProtectedAccessRoute from '../../AdminProtectedAccess';
 import ManagerAndAdminProtectedAccessRoute from '../../ManagerAndAdminProtectedAccess';
 import SuperAdminProtectedAccessRoute from '../../SuperAdminAccess';
 

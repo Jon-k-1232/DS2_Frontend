@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import { handleBillableStatus, handleTimeCalculation } from './SharedTransactionsFunctions';
 
 export default function TimeOptions({ customerData, selectedItems, setSelectedItems }) {
-   const [minutes, setMinutes] = useState('');
+   const [, setMinutes] = useState('');
    const [hoursInput, setHoursInput] = useState('');
    const [startTime, setStartTime] = useState(dayjs().format());
    const [endTime, setEndTime] = useState(dayjs().format());

@@ -1,5 +1,5 @@
 import { Box, Typography, Stack, Divider } from '@mui/material';
-import { formatCurrency, fmtDate, fmtDateTime } from './auditFormatters';
+import { formatCurrency, fmtDateTime } from './auditFormatters';
 
 const SectionHeader = ({ children }) => (
    <Typography variant='h6' sx={{ mt: 3, mb: 1, borderBottom: '2px solid #333', pb: 0.5 }}>
