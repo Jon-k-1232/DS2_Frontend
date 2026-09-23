@@ -1,0 +1,1 @@
+{"name":"ds2-browser-e2e","version":"1.0.0","private":true,"description":"Real UI regression suite for the local DS2 sandbox","scripts":{"test":"playwright test","test:headed":"playwright test --headed","report":"playwright show-report"},"devDependencies":{"@playwright/test":"^1.55.0"}}

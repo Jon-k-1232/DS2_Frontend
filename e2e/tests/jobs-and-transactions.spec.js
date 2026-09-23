@@ -1,0 +1,30 @@
+const { test, expect } = require('../lib/fixtures');
+const { createCustomer, createJob, addTransaction, submit, routes, deleteCustomer, expectGridValue, fillQuickFilter } = require('../lib/ui');
+const { rows } = require('../lib/db');
+test('create job, bill 0.3 hours at $75, add charge and delete through UI', async ({page,prefix}) => {
+  const c = await createCustomer(page,prefix);
+  await createJob(page,c);
+  const time = await addTransaction(page,c);
+  await expectGridValue(page,time,'quantity','0.30');
+  const persisted = rows(`SELECT quantity,unit_cost,total_transaction FROM customer_transactions WHERE account_id=9001 AND customer_id=${c.id}`);
+  expect(persisted).toHaveLength(1);
+  expect(Number(persisted[0].total_transaction)).toBe(0.3 * 75);
+  const charge = await addTransaction(page,c,'Charge');
+  await charge.click();
+  await page.getByRole('button',{name:'Delete Transaction',exact:true}).click();
+  await submit(page,page.getByRole('dialog'),'/transactions/delete','Delete');
+  await expect(page).toHaveURL(/customerTransactions$/);
+  await page.getByPlaceholder('Search transactions').fill(prefix);
+  await expect(charge).toHaveCount(0);
+  await expect(time).toBeVisible();
+  // Unbilled entities can be removed in the browser, in dependency order.
+  await time.click();
+  await page.getByRole('button',{name:'Delete Transaction',exact:true}).click();
+  await submit(page,page.getByRole('dialog'),'/transactions/delete','Delete');
+  await page.goto(routes.jobs);
+  await fillQuickFilter(page, prefix);
+  await page.getByRole('row').filter({hasText:c.name}).click();
+  await page.getByRole('button',{name:'Delete Job',exact:true}).click();
+  await submit(page,page.getByRole('dialog'),'/jobs/delete','Delete');
+  await deleteCustomer(page,c);
+});
