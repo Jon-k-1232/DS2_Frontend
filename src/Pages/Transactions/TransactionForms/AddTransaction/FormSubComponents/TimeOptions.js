@@ -66,7 +66,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
             sx={{ width: '100%', maxWidth: 350 }}
             type='number'
             label='Time (hours)'
-            helperText='Decimal hours from your tracker (e.g. 0.25 = 15 min, 1.05 = 1h 3m). No minute conversion.'
+            helperText='Decimal hours from your tracker (e.g. 0.25 = 15 min, 1.05 = 1h 3m). Rounded up to the next 0.1 hour (6-minute increments).'
             inputProps={{ step: '0.05', min: '0' }}
             value={hoursInput}
             disabled={!selectedTeamMember}

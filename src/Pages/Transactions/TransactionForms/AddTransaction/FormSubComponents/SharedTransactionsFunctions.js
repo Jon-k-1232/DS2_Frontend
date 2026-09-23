@@ -21,6 +21,10 @@ export const handleTimeCalculation = (minuteDuration, selectedTeamMember, startT
    if (!selectedTeamMember || !minuteDuration || isNaN(minuteDuration)) {
       updateSelectedItems('quantity', 1);
       updateSelectedItems('unitCost', 0);
+      // Clear the stale duration too, so a cleared/invalid hours field can't
+      // leave `minutes` (sent as duration_minutes on Manual Submission)
+      // pointing at a duration that no longer matches quantity/unitCost above.
+      updateSelectedItems('minutes', null);
 
       if (!selectedTeamMember) {
          alert('Please select a team member and enter a valid time duration');
@@ -34,6 +38,13 @@ export const handleTimeCalculation = (minuteDuration, selectedTeamMember, startT
    if (!isNaN(loggedTime) && !isNaN(employeeRate)) {
       updateSelectedItems('quantity', loggedTime);
       updateSelectedItems('unitCost', employeeRate);
+      // `minutes` must be derived from the SAME rounded hours the displayed
+      // Total uses (loggedTime), not the raw typed duration — Manual
+      // Submission (ReviewBillingDialog -> applyHeldEntry) sends `minutes` as
+      // duration_minutes, and the backend derives ITS OWN quantity/total from
+      // that value alone. Sending the pre-rounding raw minutes here would let
+      // the backend save a different quantity/total than what was on screen.
+      updateSelectedItems('minutes', Math.round(loggedTime * 60));
    }
 };
 

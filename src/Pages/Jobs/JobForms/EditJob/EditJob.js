@@ -89,6 +89,7 @@ export default function EditJob({ customerData, setCustomerData, jobData }) {
                <Box style={{ textAlign: 'center', marginTop: '18px', width: '350px' }}>
                   <Button onClick={handleSubmit}>Submit</Button>
                   {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
+                  {postStatus?.warning && <Alert severity='warning'>{postStatus.warning}</Alert>}
                </Box>
             </Box>
          </Box>

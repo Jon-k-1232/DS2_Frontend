@@ -4,8 +4,7 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { context } from '../../../../App';
-import { postNewPayment } from '../../../../Services/ApiCalls/PostCalls';
-import { approvePendingPayment } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
+import { approvePendingPaymentAtomic, isApprovalRouteMissing, APPROVAL_UNAVAILABLE_MESSAGE } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
 import { fetchCustomers, fetchCustomerProfileInformation } from '../../../../Services/ApiCalls/FetchCalls';
 import { formObjectForPaymentPost } from '../../../../Services/SharedPostObjects/SharedPostObjects';
 import { getOpenInvoicesForPayment } from '../../../../Services/SharedFunctions';
@@ -101,6 +100,11 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
    }, [selectedCustomer]);
 
    const handleSubmit = async () => {
+      // A second click while a request is in flight, or after the success
+      // message (the dialog closes itself 1.2 s later), must not send another
+      // approval: the backend would refuse it as already processed and that
+      // refusal would replace the success message the accountant just read.
+      if (submitting || feedback?.type === 'success') return;
       if (!selectedCustomer) {
          setFeedback({ type: 'error', message: 'Please select a customer.' });
          return;
@@ -135,25 +139,40 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
             note
          }, loggedInUser);
 
-         // Step 1: Create the real payment via existing endpoint
-         const paymentResult = await postNewPayment(paymentData, accountID, userID, token);
+         // ONE atomic request creates the payment and marks the pending record
+         // processed (POST /pending-payments/approve/:accountID/:userID). There is
+         // deliberately no two-step fallback any more: the old create-then-mark
+         // flow posted the payment first, and the legacy PUT it then relied on
+         // now answers 410 — a retry after that would have posted the receipt
+         // twice. A non-JSON 404 (route not deployed) is a hard stop, not a
+         // reason to try another path; the API's own business-logic 404 comes
+         // back as JSON with a numeric `status` like every other refusal.
+         let result;
+         try {
+            result = await approvePendingPaymentAtomic(accountID, userID, pendingPayment.payment_id, paymentData, token);
+         } catch (atomicError) {
+            if (isApprovalRouteMissing(atomicError)) {
+               setFeedback({ type: 'error', message: APPROVAL_UNAVAILABLE_MESSAGE });
+               setSubmitting(false);
+               return;
+            }
+            throw atomicError;
+         }
 
-         if (paymentResult.status !== 200) {
-            setFeedback({ type: 'error', message: paymentResult.message || 'Failed to create payment.' });
+         if (result.status !== 200) {
+            setFeedback({ type: 'error', message: result.message || 'Failed to approve payment.' });
             setSubmitting(false);
             return;
          }
 
-         // Step 2: Mark pending record as processed
-         await approvePendingPayment(pendingPayment.payment_id, accountID, userID, token);
-
-         // Update parent data
-         if (paymentResult.paymentsList) {
+         // Both the atomic endpoint and the legacy createPayment response carry
+         // the same refreshed-lists shape.
+         if (result.paymentsList) {
             setCustomerData(prev => ({
                ...prev,
-               paymentsList: paymentResult.paymentsList,
-               invoicesList: paymentResult.invoicesList,
-               accountRetainersList: paymentResult.accountRetainersList
+               paymentsList: result.paymentsList,
+               invoicesList: result.invoicesList,
+               accountRetainersList: result.accountRetainersList
             }));
          }
 
@@ -276,7 +295,7 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
                      </Typography>
 
                      <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                        <Button variant='contained' color='primary' onClick={handleSubmit} disabled={submitting}>
+                        <Button variant='contained' color='primary' onClick={handleSubmit} disabled={submitting || feedback?.type === 'success'}>
                            {submitting ? 'Processing...' : 'Approve & Submit Payment'}
                         </Button>
                         <Button variant='outlined' onClick={onClose} disabled={submitting}>

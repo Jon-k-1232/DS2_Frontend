@@ -20,7 +20,7 @@ export default function AddWorkDescription({ customerData, setCustomerData }) {
   const handleSubmit = async () => {
     const postedItem = await postWorkDescription(selectedItems, accountID, userID);
 
-    setPostStatus();
+    setPostStatus(postedItem);
     if (postedItem.status === 200) {
       setCustomerData({ ...customerData, workDescriptionsList: postedItem.workDescriptionsList });
       setSelectedItems(initialState);

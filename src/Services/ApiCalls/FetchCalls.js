@@ -59,7 +59,15 @@ export const fetchCustomerProfileInformation = async (accountID, userID, custome
       return customerContactInformation;
    } catch (error) {
       console.error('Error fetching customer contact information:', error);
-      return [];
+      // A real HTTP 404 (unknown/deleted customer) rejects this request —
+      // collapsing that into [] threw away the status/message entirely, so
+      // nothing downstream (CustomerProfileSubRoutes, the invoices/transactions/
+      // jobs tabs) could ever tell "still loading" apart from "this customer
+      // doesn't exist"; every consumer just spun on Loading… forever instead.
+      return {
+         status: error?.response?.data?.status || error?.response?.status || 500,
+         message: error?.response?.data?.message || error?.message || 'Unable to load customer.'
+      };
    }
 };
 
@@ -322,6 +330,20 @@ export const fetchSingleRetainer = async (retainerID, accountID, userID, token) 
       return retainer;
    } catch (error) {
       console.error('Error fetching single retainer:', error);
+      return [];
+   }
+};
+
+// quotes-router.js's list route is `/getActiveQuotes/:accountID/:quoteID` —
+// the handler only ever reads `accountID` off req.params, so the second
+// segment is unused; pass userID there to match every other endpoint's
+// .../:accountID/:userID URL shape instead of inventing a new convention.
+export const fetchQuotesList = async (accountID, userID, token) => {
+   try {
+      const response = await axios.get(`${config.API_ENDPOINT}/quotes/getActiveQuotes/${accountID}/${userID}`, headers(token));
+      return response.data;
+   } catch (error) {
+      console.error('Error fetching quotes:', error);
       return [];
    }
 };

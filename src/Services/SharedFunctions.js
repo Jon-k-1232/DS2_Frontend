@@ -74,26 +74,34 @@ export const formatTotal = value => {
  * payment tagged there vanishes from every future bill. Duplicate same-day
  * parents are all live, so each is offered.
  *
- * Returns the latest row of each current chain (the row carrying the
- * authoritative remaining balance) with remaining > 0, largest balance first.
+ * Returns non-absorbed current parents (each parent's own authoritative
+ * remaining balance — see below) with remaining > 0, largest balance first.
  */
 export const getOpenInvoicesForPayment = invoiceRows => {
    if (!Array.isArray(invoiceRows) || !invoiceRows.length) return [];
 
-   const parents = invoiceRows.filter(row => !row.parent_invoice_id);
+   // zeroOutAbsorbedInvoices (backend) stamps an absorbed same-day parent's
+   // notes with "[absorbed_by:...]" once a newer chain has rolled its balance
+   // forward — that parent is a rolled-forward ledger artifact, not a
+   // collectible statement, even though it's still a same-day root with
+   // child rows of its own. Excluding it here used to be done indirectly (by
+   // substituting each parent for its own latest child snapshot), which
+   // backfired: an absorbed parent's zeroed remaining got replaced by its
+   // still-positive HISTORICAL child balance, resurrecting exactly the
+   // obsolete statement this function exists to hide. Genuinely independent
+   // same-date roots (no absorption marker) are never touched by this filter
+   // and stay offered individually, same as before.
+   const parents = invoiceRows.filter(row => !row.parent_invoice_id && !(typeof row.notes === 'string' && row.notes.includes('[absorbed_by:')));
    if (!parents.length) return [];
 
    const dateOf = row => (row.invoice_date ? new Date(row.invoice_date).toISOString().slice(0, 10) : '');
    const newestDate = parents.map(dateOf).sort().slice(-1)[0];
    const currentParents = parents.filter(parent => dateOf(parent) === newestDate);
 
+   // Each parent's own remaining_balance_on_invoice IS its authoritative
+   // balance — no child-snapshot substitution needed once absorbed parents
+   // are excluded above.
    return currentParents
-      .map(parent => {
-         const latestSnapshot = invoiceRows
-            .filter(row => row.parent_invoice_id === parent.customer_invoice_id)
-            .reduce((latest, row) => (!latest || new Date(row.created_at) > new Date(latest.created_at) ? row : latest), null);
-         return latestSnapshot || parent;
-      })
       .filter(row => Number(row.remaining_balance_on_invoice) > 0)
       .sort((a, b) => Number(b.remaining_balance_on_invoice) - Number(a.remaining_balance_on_invoice));
 };

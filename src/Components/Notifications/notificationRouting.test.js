@@ -6,14 +6,18 @@ describe('notificationRouting routeFor', () => {
    });
 
    it('routes rows_held_for_review to billingReview needsReview tab', () => {
-      expect(routeFor('rows_held_for_review')).toBe('/transactions/billingReview?tab=needsReview');
+      expect(routeFor('rows_held_for_review')).toBe('/time-tracking/billingReview?tab=needsReview');
    });
 
    it('routes new_customer_needs_addition to billingReview needsReview tab', () => {
-      expect(routeFor('new_customer_needs_addition')).toBe('/transactions/billingReview?tab=needsReview');
+      expect(routeFor('new_customer_needs_addition')).toBe('/time-tracking/billingReview?tab=needsReview');
+   });
+
+   it('routes ai_processing_failed to billingReview needsReview tab', () => {
+      expect(routeFor('ai_processing_failed')).toBe('/time-tracking/billingReview?tab=needsReview');
    });
 
    it('falls back to billingReview root for unknown types', () => {
-      expect(routeFor('completely_unknown_type')).toBe('/transactions/billingReview');
+      expect(routeFor('completely_unknown_type')).toBe('/time-tracking/billingReview');
    });
 });

@@ -60,15 +60,35 @@ export const softDeletePendingPayment = async (paymentID, accountID, userID, tok
    }
 };
 
-export const approvePendingPayment = async (paymentID, accountID, userID, token) => {
-   const url = `${config.API_ENDPOINT}/pending-payments/approve/${paymentID}/${accountID}/${userID}`;
-   try {
-      const response = await axios.put(url, {}, headers(token));
-      return response.data;
-   } catch (error) {
-      console.error('Error approving pending payment:', error);
-      throw error;
-   }
+// The legacy two-step approval (PUT /pending-payments/approve/:paymentID/...)
+// is gone: the backend answers it with 410 because it marked money processed
+// without posting it. Approval is ONLY the atomic POST below.
+
+/**
+ * True when the atomic approval route itself is missing (an Express default,
+ * non-JSON 404) as opposed to the API's own business-logic 404, which arrives
+ * as JSON with a numeric `status`. Callers must treat this as a hard stop —
+ * never retry through another path.
+ */
+export const isApprovalRouteMissing = error => error?.response?.status === 404 && typeof error?.response?.data?.status !== 'number';
+
+export const APPROVAL_UNAVAILABLE_MESSAGE = 'The payment approval endpoint is unavailable (backend not deployed). Nothing was posted — do not retry; contact support.';
+
+// Single-request approve: creates the real payment AND marks the pending
+// record processed atomically (one db transaction backend-side). Matches
+// POST /pending-payments/approve/:accountID/:userID — body
+// { pendingPaymentId, payment: <same shape postNewPayment takes> }, response
+// { status, message, payment, pendingPayment, counts, paymentsList,
+// invoicesList, accountRetainersList }. Every error this route returns
+// (400/404/409/422/500, including a genuine "pending payment not found" 404)
+// comes back as JSON with a numeric `status` field. A 404 with a NON-JSON body
+// (Express's default not-found page) means approval is unavailable: callers
+// stop and show APPROVAL_UNAVAILABLE_MESSAGE (see isApprovalRouteMissing).
+// Never fall back to a separate payment POST or the retired approval PUT.
+export const approvePendingPaymentAtomic = async (accountID, userID, pendingPaymentId, payment, token) => {
+   const url = `${config.API_ENDPOINT}/pending-payments/approve/${accountID}/${userID}`;
+   const response = await axios.post(url, { pendingPaymentId, payment }, headers(token));
+   return response.data;
 };
 
 export const uploadPaymentFile = async (file, accountID, userID, token) => {

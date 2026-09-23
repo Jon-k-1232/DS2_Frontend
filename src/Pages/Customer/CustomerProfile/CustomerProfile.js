@@ -43,6 +43,11 @@ export default function CustomerProfile({ profileData }) {
 
    const { outstandingInvoices = {}, transactions = {}, payments = {}, retainers = {}, invoiceTotal, remainingRetainer, retainerAppliedToInvoice } = customerBalance || {};
 
+   // dayjs(undefined) resolves to "now", not "invalid" — for a paid-up customer
+   // with no outstandingInvoiceRecords, that silently rendered today's date as
+   // the Last Billed / Invoice Due Date instead of showing there is none.
+   const newestOutstandingInvoice = outstandingInvoices?.outstandingInvoiceRecords?.[0] || null;
+
    useEffect(() => {
       const fetchBalances = async () => {
          const configuration = {
@@ -189,11 +194,11 @@ export default function CustomerProfile({ profileData }) {
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Last Billed:</th>
-                     <td style={styles.tdStyle}>{Object.keys(customerBalance).length ? dayjs(outstandingInvoices?.outstandingInvoiceRecords[0]?.invoice_date).format('MMMM DD, YYYY') : 'N/A'}</td>
+                     <td style={styles.tdStyle}>{newestOutstandingInvoice?.invoice_date ? dayjs(newestOutstandingInvoice.invoice_date).format('MMMM DD, YYYY') : '—'}</td>
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Invoice Due Date:</th>
-                     <td style={styles.tdStyle}>{Object.keys(customerBalance).length ? dayjs(outstandingInvoices?.outstandingInvoiceRecords[0]?.due_date).format('MMMM DD, YYYY') : 'N/A'}</td>
+                     <td style={styles.tdStyle}>{newestOutstandingInvoice?.due_date ? dayjs(newestOutstandingInvoice.due_date).format('MMMM DD, YYYY') : '—'}</td>
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Last Statement Balance:</th>

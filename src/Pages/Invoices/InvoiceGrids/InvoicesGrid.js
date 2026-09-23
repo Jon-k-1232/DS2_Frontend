@@ -9,7 +9,11 @@ import { context } from '../../../App';
 const DEFAULT_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
 
-export default function InvoicesGrid({ customerData, setCustomerData }) {
+// setCustomerData is intentionally NOT accepted here — page fetches are
+// grid-local only (see fetchPageData) and must never write into the shared
+// customerData.invoicesList context; the caller may still pass it for
+// sibling routes that share the same customerData/setCustomerData pair.
+export default function InvoicesGrid({ customerData }) {
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
    const [gridData, setGridData] = useState({ rows: [], columns: [], totalCount: 0 });
@@ -18,6 +22,12 @@ export default function InvoicesGrid({ customerData, setCustomerData }) {
    const [searchInput, setSearchInput] = useState('');
    const [searchTerm, setSearchTerm] = useState('');
 
+   // Request counter + a ref mirroring the live search input: a page fetch
+   // resolving after a newer one (or after the user has since typed something
+   // else) must be dropped instead of overwriting fresher rows/input.
+   const requestRef = useRef(0);
+   const currentSearchRef = useRef(searchInput);
+   currentSearchRef.current = searchInput;
    const initializedRef = useRef(false);
    const previousSearchTermRef = useRef('');
    const searchInputRef = useRef(null);
@@ -60,6 +70,13 @@ export default function InvoicesGrid({ customerData, setCustomerData }) {
       [searchInput, stopToolbarKeyEvent]
    );
 
+   // Without an explicit getRowId, PaginationGrid's default falls back to
+   // row.timesheet_entry_id || row.id || `${row.user_id}-${...}` — none of
+   // which an invoice row has, so every row resolved to the SAME id
+   // ("undefined-undefined") and MUI DataGrid deduplicates rows by id,
+   // silently dropping every row but the last on the page.
+   const getRowId = useCallback(row => row.customer_invoice_id || row.id, []);
+
    const arrayOfColumnNames = [
       'customer_invoice_id',
       'parent_invoice_id',
@@ -80,12 +97,15 @@ export default function InvoicesGrid({ customerData, setCustomerData }) {
       'created_by_user_name'
    ];
 
-   const applyFilteredGrid = activeInvoiceData => {
+   const applyFilteredGrid = (activeInvoiceData, syncQuery = false) => {
       if (!activeInvoiceData?.grid) return;
       const filteredGrid = filterGridByColumnName(activeInvoiceData.grid, arrayOfColumnNames);
       const totalCount = activeInvoiceData.pagination?.totalItems ?? filteredGrid.rows.length ?? 0;
       setGridData({ rows: filteredGrid.rows, columns: filteredGrid.columns, totalCount });
 
+      // Query controls only hydrate from the initial context-supplied page —
+      // a later page response must not resync them out from under live input.
+      if (!syncQuery) return;
       const nextPageSize = activeInvoiceData.pagination?.limit || activeInvoiceData.pagination?.pageSize || DEFAULT_PAGE_SIZE;
       const nextPageIndex = (activeInvoiceData.pagination?.page || activeInvoiceData.pagination?.currentPage || 1) - 1;
       const normalizedSearch = activeInvoiceData.searchTerm ?? '';
@@ -100,9 +120,13 @@ export default function InvoicesGrid({ customerData, setCustomerData }) {
    };
 
    useEffect(() => {
+      if (initializedRef.current) {
+         fetchPageData(paginationModel.page + 1, paginationModel.pageSize, searchTerm);
+         return;
+      }
       const activeInvoiceData = customerData?.invoicesList?.activeInvoiceData;
       if (!activeInvoiceData) return;
-      applyFilteredGrid(activeInvoiceData);
+      applyFilteredGrid(activeInvoiceData, true);
       initializedRef.current = true;
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [customerData?.invoicesList]);
@@ -120,18 +144,20 @@ export default function InvoicesGrid({ customerData, setCustomerData }) {
 
    const fetchPageData = async (page = paginationModel.page + 1, pageSize = paginationModel.pageSize, searchValue = searchTerm) => {
       if (!accountID || !userID || !token) return;
+      const request = ++requestRef.current;
       setLoading(true);
       try {
          const response = await fetchInvoices(accountID, userID, token, page, pageSize, searchValue);
+         if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
          if (response?.invoicesList?.activeInvoiceData) {
             const { invoicesList } = response;
             applyFilteredGrid(invoicesList.activeInvoiceData);
-            setCustomerData?.(prev => ({ ...prev, invoicesList }));
+            // Grid-local only — never write a page into shared customerData.
          }
       } catch (error) {
          console.error('Error fetching invoices:', error);
       } finally {
-         setLoading(false);
+         if (request === requestRef.current) setLoading(false);
       }
    };
 
@@ -176,6 +202,7 @@ export default function InvoicesGrid({ customerData, setCustomerData }) {
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}
                loading={loading}
+               getRowId={getRowId}
                showQuickFilter={false}
                renderToolbarContent={() => searchField}
             />

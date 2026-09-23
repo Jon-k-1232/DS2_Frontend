@@ -4,6 +4,7 @@ import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageN
 import { fetchSingleJobType } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import DeleteJobTypes from '../../../Pages/Jobs/JobForms/DeleteJob/DeleteJobTypes';
+import EditJobTypes from '../../../Pages/Jobs/JobForms/EditJob/EditJobTypes';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 
 export default function JobTypeSubRoutes({ customerData, setCustomerData }) {
@@ -40,14 +41,14 @@ export default function JobTypeSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
-            {/* <Route
-          path='editJobType'
-          element={
-            <ErrorBoundary fallbackComponent='/jobs/jobTypesList'>
-              <EditJobTypes customerData={customerData} setCustomerData={data => setCustomerData(data)} jobTypeData={jobTypeData} />
-            </ErrorBoundary>
-          }
-        /> */}
+            <Route
+               path='editJobType'
+               element={
+                  <ErrorBoundary fallbackComponent='/jobs/jobTypesList'>
+                     <EditJobTypes customerData={customerData} setCustomerData={data => setCustomerData(data)} jobTypeData={jobTypeData} />
+                  </ErrorBoundary>
+               }
+            />
          </Routes>
       </>
    );
@@ -59,11 +60,11 @@ const fetchMenuOptions = navigate => [
       value: 'deleteJobType',
       route: '/jobs/jobTypesList/deleteJobType',
       onClick: () => navigate('/jobs/jobTypesList/deleteJobType')
+   },
+   {
+      display: 'Edit Job Type',
+      value: 'editJobType',
+      route: '/jobs/jobTypesList/editJobType',
+      onClick: () => navigate('/jobs/jobTypesList/editJobType')
    }
-   // {
-   //   display: 'Edit Job Type',
-   //   value: 'editJobType',
-   //   route: '/jobs/jobTypesList/editJobType',
-   //   onClick: () => navigate('/jobs/jobTypesList/editJobType')
-   // }
 ];

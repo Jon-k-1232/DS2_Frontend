@@ -60,20 +60,30 @@ const DataGridTable = ({
 
    const gridProps = {
       density: 'compact',
+      // Toolbar must be a STABLE component reference (CustomToolbar itself),
+      // not a new inline arrow function created on every render — DataGrid
+      // treats a changed slot-component identity as a different component
+      // type and unmounts/remounts it, which reset CustomToolbar's own
+      // openDialog state (silently closing an "Add X" dialog the instant any
+      // parent re-render happened, e.g. right after a successful submit
+      // updated context) and lost in-progress quick-filter typing. The extra,
+      // per-render data it needs still flows through — just as componentsProps
+      // instead of inline props — so this is a prop-value change on a stable
+      // component, which React updates in place instead of remounting.
       components: {
-         Toolbar: props => (
-            <CustomToolbar
-               {...props}
-               hideGridTools={hideGridTools}
-               showGridTools={!hideGridTools}
-               arrayOfButtons={arrayOfButtons}
-               title={title}
-               dialogSize={dialogSize}
-               showQuickFilter={showQuickFilter}
-               renderToolbarContent={renderToolbarContent}
-               renderExport={renderExport}
-            />
-         )
+         Toolbar: CustomToolbar
+      },
+      componentsProps: {
+         toolbar: {
+            hideGridTools,
+            showGridTools: !hideGridTools,
+            arrayOfButtons,
+            title,
+            dialogSize,
+            showQuickFilter,
+            renderToolbarContent,
+            renderExport
+         }
       },
       checkboxSelection,
       disableRowSelectionOnClick: !checkboxSelection,

@@ -24,18 +24,28 @@ const HOLD_EXPLANATIONS = {
    missing_required_field: 'A required field (customer / job / category) was missing from the AI suggestion.',
    bedrock_error: 'Bedrock returned an error while processing this row.',
    ai_cost_cap_reached: 'The per-account Bedrock cost cap was hit before this row could be processed.',
-   legacy_pre_ai: 'This row pre-dates the AI pipeline and was never processed.'
+   legacy_pre_ai: 'This row pre-dates the AI pipeline and was never processed.',
+   ambiguous_customer_match: "The tracker's customer name matched more than one plausible customer.",
+   missing_current_year_job: 'No job exists yet for the tax year this entry needs.'
+};
+
+// auto-ingest-orchestrator.js's _safePayload strips PII before persisting
+// ai_payload — candidates carry only { id, score } (no name), and hold detail
+// keys are snake_case (requested_tax_year, not requestedYear). Parse once and
+// reuse for every ai_payload-derived read on this entry.
+const parseAiPayload = aiPayload => {
+   try {
+      return typeof aiPayload === 'string' ? JSON.parse(aiPayload) : aiPayload || null;
+   } catch (_) {
+      return null;
+   }
 };
 
 const extractBedrockErrorMessage = aiPayload => {
-   try {
-      const payload = typeof aiPayload === 'string' ? JSON.parse(aiPayload) : aiPayload;
-      const customerReason = payload?.customer?.reason;
-      if (typeof customerReason === 'string' && customerReason.startsWith('bedrock_error:')) {
-         return customerReason.replace(/^bedrock_error:\s*/, '');
-      }
-   } catch (_) {
-      /* ignore parse failures */
+   const payload = parseAiPayload(aiPayload);
+   const customerReason = payload?.customer?.reason;
+   if (typeof customerReason === 'string' && customerReason.startsWith('bedrock_error:')) {
+      return customerReason.replace(/^bedrock_error:\s*/, '');
    }
    return null;
 };
@@ -434,6 +444,22 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
                   const explanation = HOLD_EXPLANATIONS[entry.hold_reason] || `Held: ${entry.hold_reason || 'unknown reason'}`;
                   const bedrockMsg = entry.hold_reason === 'bedrock_error' ? extractBedrockErrorMessage(entry.ai_payload) : null;
                   const aiCustomerGuess = entry.suggested_customer_display || entry.company_name || [entry.first_name, entry.last_name].filter(Boolean).join(' ') || null;
+
+                  // ai_payload isn't selected by the current /billing-review/pending
+                  // query, so entry.ai_payload is undefined for every entry today —
+                  // parseAiPayload(undefined) returns null and everything below
+                  // degrades to just the plain explanation line above. Once the
+                  // backend adds it to that query, this activates with no frontend
+                  // change needed.
+                  const aiPayload = parseAiPayload(entry.ai_payload);
+                  const allCustomers = customerData?.customersList?.activeCustomerData?.activeCustomers || [];
+                  const candidateNames =
+                     entry.hold_reason === 'ambiguous_customer_match' && Array.isArray(aiPayload?.customer?.candidates)
+                        ? aiPayload.customer.candidates
+                             .map(c => allCustomers.find(cust => cust.customer_id === c.id)?.display_name)
+                             .filter(Boolean)
+                        : [];
+                  const requestedTaxYear = entry.hold_reason === 'missing_current_year_job' ? aiPayload?.hold?.requested_tax_year : null;
                   return (
                      <Alert severity={hasMissing ? 'error' : 'warning'} icon={false} sx={{ '& .MuiAlert-message': { width: '100%' } }}>
                         <Typography variant='body2'>{explanation}</Typography>
@@ -463,6 +489,16 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
                         {bedrockMsg && (
                            <Typography variant='caption' component='div' sx={{ fontFamily: 'monospace', mt: 0.5 }}>
                               Bedrock error: {bedrockMsg}
+                           </Typography>
+                        )}
+                        {candidateNames.length > 0 && (
+                           <Typography variant='caption' component='div' sx={{ mt: 0.5 }}>
+                              <strong>Possible customers:</strong> {candidateNames.join(', ')}
+                           </Typography>
+                        )}
+                        {requestedTaxYear && (
+                           <Typography variant='caption' component='div' sx={{ mt: 0.5 }}>
+                              <strong>Requested tax year:</strong> {requestedTaxYear}
                            </Typography>
                         )}
                      </Alert>

@@ -45,6 +45,12 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
    const [searchInput, setSearchInput] = useState('');
    const [searchTerm, setSearchTerm] = useState('');
 
+   // Request counter + a ref mirroring the live search input: a page fetch
+   // resolving after a newer one (or after the user has since typed something
+   // else) must be dropped instead of overwriting fresher rows/input.
+   const requestRef = useRef(0);
+   const currentSearchRef = useRef(searchInput);
+   currentSearchRef.current = searchInput;
    const initializedRef = useRef(false);
    const previousSearchTermRef = useRef('');
    const searchInputRef = useRef(null);
@@ -107,7 +113,7 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
 
    const getTransactionRowId = useCallback(row => row.transaction_id || row.id, []);
 
-   const applyFilteredGrid = activeTransactionsData => {
+   const applyFilteredGrid = (activeTransactionsData, syncQuery = false) => {
       if (!activeTransactionsData?.grid) return;
 
       const filteredGrid = filterGridByColumnName(activeTransactionsData.grid, TRANSACTION_COLUMNS);
@@ -119,12 +125,21 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
          totalCount
       });
 
+      // Query controls only hydrate from the initial context-supplied page —
+      // a later page response must not resync them out from under live input.
+      if (!syncQuery) return;
       const nextPageSize = activeTransactionsData.pagination?.limit || activeTransactionsData.pagination?.pageSize || DEFAULT_PAGE_SIZE;
       const nextPageIndex = (activeTransactionsData.pagination?.page || activeTransactionsData.pagination?.currentPage || 1) - 1;
       const normalizedSearch = activeTransactionsData.searchTerm ?? '';
 
-      setSearchInput(prev => (prev === normalizedSearch ? prev : normalizedSearch));
       setSearchTerm(prev => (prev === normalizedSearch ? prev : normalizedSearch));
+      // Don't echo the server-trimmed term back into the live input — it drops
+      // a trailing space (or stomps characters typed since this fetch went
+      // out) on every keystroke's round trip. Only resync when the server's
+      // value reflects something other than our own request's trim.
+      if (normalizedSearch !== searchTerm.trim()) {
+         setSearchInput(normalizedSearch);
+      }
 
       setPaginationModel(prev => {
          const nextModel = {
@@ -136,11 +151,20 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
    };
 
    useEffect(() => {
+      // Already initialized: treat a later customerData?.transactionsList
+      // change as a signal that something mutated shared state elsewhere, and
+      // re-fetch this grid's own current page/search rather than rendering
+      // whatever page-shaped object that mutation happened to write.
+      if (initializedRef.current) {
+         fetchPageData(paginationModel.page + 1, paginationModel.pageSize, searchTerm);
+         return;
+      }
       const activeTransactionsData = customerData?.transactionsList?.activeTransactionsData;
       if (!activeTransactionsData) return;
 
-      applyFilteredGrid(activeTransactionsData);
+      applyFilteredGrid(activeTransactionsData, true);
       initializedRef.current = true;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [customerData?.transactionsList]);
 
    // Initial fetch on mount when there's no transactions data yet
@@ -195,19 +219,21 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
    const fetchPageData = async (page = paginationModel.page + 1, pageSize = paginationModel.pageSize, searchValue = searchTerm) => {
       if (!accountID || !userID || !token) return;
 
+      const request = ++requestRef.current;
       setLoading(true);
       try {
          const response = await fetchTransactions(accountID, userID, token, page, pageSize, searchValue);
+         if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
 
          if (response?.transactionsList?.activeTransactionsData) {
             const { transactionsList } = response;
             applyFilteredGrid(transactionsList.activeTransactionsData);
-            setCustomerData(prev => ({ ...prev, transactionsList }));
+            // Grid-local only — never write a page into shared customerData.
          }
       } catch (error) {
          console.error('Error fetching transactions:', error);
       } finally {
-         setLoading(false);
+         if (request === requestRef.current) setLoading(false);
       }
    };
 

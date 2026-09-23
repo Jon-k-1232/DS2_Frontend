@@ -32,8 +32,6 @@ export default function InitialSelectionOptions({
    const activeCustomers = combinedData.customersList?.activeCustomerData?.activeCustomers || [];
    const activeUsers = combinedData.teamMembersList?.activeUserData?.activeUsers || [];
    const customerInvoiceData = combinedData?.customerInvoiceData?.customerInvoices || [];
-   const customerTransactionData = combinedData?.customerTransactionData?.customerTransactionData || [];
-   const customerJobData = combinedData?.customerJobData?.customerJobData || [];
 
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
@@ -157,22 +155,6 @@ export default function InitialSelectionOptions({
    // here is how payments used to vanish from future bills.
    const findCustomerInvoices = () => getOpenInvoicesForPayment(customerInvoiceData);
 
-   // Logic to find jobs associated with the selected invoice
-   const findInvoiceJobs = () => {
-      if (!selectedInvoice) return [];
-      const { customer_invoice_id, parent_invoice_id } = selectedInvoice;
-
-      const invoiceJobIDs = customerTransactionData.reduce((prev, curr) => {
-         if (parent_invoice_id && curr.customer_invoice_id === parent_invoice_id && !prev.includes(curr.customer_job_id)) {
-            prev.push(curr.customer_job_id);
-         } else if (!parent_invoice_id && curr.customer_invoice_id === customer_invoice_id && !prev.includes(curr.customer_job_id)) {
-            prev.push(curr.customer_job_id);
-         }
-         return prev;
-      }, []);
-      return customerJobData.filter(job => invoiceJobIDs.includes(job.customer_job_id));
-   };
-
    return (
       <>
          <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -265,7 +247,13 @@ export default function InitialSelectionOptions({
                      value={selectedJob}
                      onChange={(event, value) => handleAutocompleteChange('selectedJob', value)}
                      getOptionLabel={option => option.job_description}
-                     options={findInvoiceJobs() || []}
+                     // Jobs for the selected customer (same source as the "Select Job"
+                     // dropdown above) — this used to derive options from the selected
+                     // invoice's transaction history, which relied on customerTransactionData
+                     // / customerJobData that aren't populated on the Payment form, so the
+                     // dropdown was always empty.
+                     options={customerJobs || []}
+                     noOptionsText={selectedCustomer ? 'No jobs found for this customer' : 'Select a customer first'}
                      renderInput={params => (
                         <TextField
                            {...params}

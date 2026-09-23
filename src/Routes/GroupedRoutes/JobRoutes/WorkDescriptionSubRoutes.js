@@ -4,6 +4,7 @@ import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageN
 import { fetchSingleWorkDescription } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import DeleteWorkDescription from '../../../Pages/WorkDescriptions/WorkDescriptionForms/DeleteWorkDescription/DeleteWorkDescription';
+import EditWorkDescription from '../../../Pages/WorkDescriptions/WorkDescriptionForms/EditWorkDescription/EditWorkDescription';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 
 export default function JobTypeSubRoutes({ customerData, setCustomerData }) {
@@ -40,18 +41,14 @@ export default function JobTypeSubRoutes({ customerData, setCustomerData }) {
                   </ErrorBoundary>
                }
             />
-            {/* <Route
-          path='editWorkDescription'
-          element={
-            <ErrorBoundary fallbackComponent='/jobs/workDescriptionsList'>
-              <EditWorkDescription
-                customerData={customerData}
-                setCustomerData={data => setCustomerData(data)}
-                workDescriptionData={workDescriptionData}
-              />
-            </ErrorBoundary>
-          }
-        /> */}
+            <Route
+               path='editWorkDescription'
+               element={
+                  <ErrorBoundary fallbackComponent='/jobs/workDescriptionsList'>
+                     <EditWorkDescription customerData={customerData} setCustomerData={data => setCustomerData(data)} workDescriptionData={workDescriptionData} />
+                  </ErrorBoundary>
+               }
+            />
          </Routes>
       </>
    );
@@ -63,11 +60,11 @@ const fetchMenuOptions = navigate => [
       value: 'deleteWorkDescription',
       route: '/jobs/workDescriptionsList/deleteWorkDescription',
       onClick: () => navigate('/jobs/workDescriptionsList/deleteWorkDescription')
+   },
+   {
+      display: 'Edit Work Description',
+      value: 'editWorkDescription',
+      route: '/jobs/workDescriptionsList/editWorkDescription',
+      onClick: () => navigate('/jobs/workDescriptionsList/editWorkDescription')
    }
-   // {
-   //   display: 'Edit Work Description',
-   //   value: 'editWorkDescription',
-   //   route: '/jobs/workDescriptionsList/editWorkDescription',
-   //   onClick: () => navigate('/jobs/workDescriptionsList/editWorkDescription')
-   // }
 ];

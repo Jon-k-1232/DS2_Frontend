@@ -33,4 +33,16 @@ describe('HoldReasonBadge', () => {
          unmount();
       }
    });
+
+   it('renders the two newer hold reasons (auto-ingest-orchestrator.js HOLD_REASONS)', () => {
+      const cases = [
+         ['ambiguous_customer_match', 'Ambiguous customer match'],
+         ['missing_current_year_job', 'No job for the requested tax year']
+      ];
+      for (const [reason, expected] of cases) {
+         const { unmount } = render(<HoldReasonBadge reason={reason} />);
+         expect(screen.getByText(expected)).toBeInTheDocument();
+         unmount();
+      }
+   });
 });

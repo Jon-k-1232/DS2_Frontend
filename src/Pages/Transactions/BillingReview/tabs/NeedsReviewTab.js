@@ -29,7 +29,9 @@ const HOLD_REASON_OPTIONS = [
    { value: 'employee_not_matched', label: 'Employee not matched' },
    { value: 'bedrock_error', label: 'Bedrock error' },
    { value: 'ai_cost_cap_reached', label: 'AI cost cap reached' },
-   { value: 'legacy_pre_ai', label: 'Legacy (pre-AI)' }
+   { value: 'legacy_pre_ai', label: 'Legacy (pre-AI)' },
+   { value: 'ambiguous_customer_match', label: 'Ambiguous customer match' },
+   { value: 'missing_current_year_job', label: 'No job for the requested tax year' }
 ];
 
 export default function NeedsReviewTab({ customerData, setCustomerData }) {
@@ -160,10 +162,27 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
    useEffect(() => {
       reload();
       refreshReprocessCount();
+      // NOTE: no interval cleanup here — reload's identity changes on every
+      // filter/sort/page change (it's a useCallback closed over that state),
+      // which re-runs this effect. A cleanup tied to THIS effect used to clear
+      // reprocessPollRef on every such change too, silently killing an
+      // in-flight reprocess poll the moment the user touched a filter. Poll
+      // teardown is handled by the mount/unmount-only effect below instead.
+   }, [reload, refreshReprocessCount]);
+
+   // Keep a live pointer to the latest reload so the poll (started once, kept
+   // running across filter/sort/page changes) fetches with current filters
+   // instead of whatever was in scope when the poll began.
+   const reloadRef = useRef(reload);
+   useEffect(() => {
+      reloadRef.current = reload;
+   }, [reload]);
+
+   useEffect(() => {
       return () => {
          if (reprocessPollRef.current) clearInterval(reprocessPollRef.current);
       };
-   }, [reload, refreshReprocessCount]);
+   }, []);
 
    const onEdit = entry => {
       setSelected(entry);
@@ -217,7 +236,11 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
 
       reprocessPollRef.current = setInterval(async () => {
          elapsed += POLL_INTERVAL_MS / 1000;
-         await reload();
+         // reloadRef, not reload directly — this closure was created once when
+         // the poll started, so calling reload() here would keep re-fetching
+         // with whatever filters/sort/page were active at that moment even
+         // after the user changed them.
+         await reloadRef.current();
          const r = await fetchReprocessCount(accountID, userID, token, { mode: 'all_held' });
          const currentCount = Number(r?.count || 0);
          setReprocessCount(currentCount);

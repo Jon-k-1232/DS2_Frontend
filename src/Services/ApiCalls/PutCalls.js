@@ -8,10 +8,16 @@ const headers = memoryToken => {
    };
 };
 
+// account-router.js's PUT /account/updateAccount takes no :accountID in the
+// path — it scopes to the caller's own account from the verified session
+// (req.user.account_id), and requires admin. Both the business-info form and
+// the address form persist through this same combined endpoint (it updates
+// the accounts + account_information tables together); the payload key is
+// `account` either way, matching req.body.account server-side.
 export const putUpdateAccount = async (data, token) => {
-   const url = `${config.API_ENDPOINT}/account/updateAccount/:accountID`;
+   const url = `${config.API_ENDPOINT}/account/updateAccount`;
    try {
-      const response = await axios.post(url, { account: data }, headers(token));
+      const response = await axios.put(url, { account: data }, headers(token));
       return response.data;
    } catch (error) {
       console.error('Error while posting update account:', error);
@@ -20,9 +26,9 @@ export const putUpdateAccount = async (data, token) => {
 };
 
 export const putUpdateAccountAddress = async (data, token) => {
-   const url = `${config.API_ENDPOINT}/account/updateAccountAddress/:accountID`;
+   const url = `${config.API_ENDPOINT}/account/updateAccount`;
    try {
-      const response = await axios.post(url, { accountAddress: data }, headers(token));
+      const response = await axios.put(url, { account: data }, headers(token));
       return response.data;
    } catch (error) {
       console.error('Error while posting update account address:', error);

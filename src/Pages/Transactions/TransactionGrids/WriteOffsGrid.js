@@ -21,6 +21,12 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
    const [searchInput, setSearchInput] = useState('');
    const [searchTerm, setSearchTerm] = useState('');
 
+   // Request counter + a ref mirroring the live search input: a page fetch
+   // resolving after a newer one (or after the user has since typed something
+   // else) must be dropped instead of overwriting fresher rows/input.
+   const requestRef = useRef(0);
+   const currentSearchRef = useRef(searchInput);
+   currentSearchRef.current = searchInput;
    const initializedRef = useRef(false);
    const previousSearchTermRef = useRef('');
    const searchInputRef = useRef(null);
@@ -89,19 +95,27 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
    ];
    const getRowId = useCallback(row => row.writeoff_id || row.id, []);
 
-   const applyFilteredGrid = activeWriteOffsData => {
+   const applyFilteredGrid = (activeWriteOffsData, syncQuery = false) => {
       if (!activeWriteOffsData?.grid) return;
       const filteredGrid = filterGridByColumnName(activeWriteOffsData.grid, arrayOfColumnNames);
       const totalCount = activeWriteOffsData.pagination?.totalItems ?? filteredGrid.rows.length ?? 0;
 
       setGridData({ rows: filteredGrid.rows, columns: filteredGrid.columns, totalCount });
 
+      // Query controls only hydrate from the initial context-supplied page.
+      if (!syncQuery) return;
       const nextPageSize = activeWriteOffsData.pagination?.limit || activeWriteOffsData.pagination?.pageSize || DEFAULT_PAGE_SIZE;
       const nextPageIndex = (activeWriteOffsData.pagination?.page || activeWriteOffsData.pagination?.currentPage || 1) - 1;
       const normalizedSearch = activeWriteOffsData.searchTerm ?? '';
 
-      setSearchInput(prev => (prev === normalizedSearch ? prev : normalizedSearch));
       setSearchTerm(prev => (prev === normalizedSearch ? prev : normalizedSearch));
+      // Don't echo the server-trimmed term back into the live input — it drops
+      // a trailing space (or stomps characters typed since this fetch went
+      // out) on every keystroke's round trip. Only resync when the server's
+      // value reflects something other than our own request's trim.
+      if (normalizedSearch !== searchTerm.trim()) {
+         setSearchInput(normalizedSearch);
+      }
 
       setPaginationModel(prev => {
          const nextModel = { page: nextPageIndex >= 0 ? nextPageIndex : 0, pageSize: nextPageSize };
@@ -110,9 +124,13 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
    };
 
    useEffect(() => {
+      if (initializedRef.current) {
+         fetchPageData(paginationModel.page + 1, paginationModel.pageSize, searchTerm);
+         return;
+      }
       const activeWriteOffsData = customerData?.writeOffsList?.activeWriteOffsData;
       if (!activeWriteOffsData) return;
-      applyFilteredGrid(activeWriteOffsData);
+      applyFilteredGrid(activeWriteOffsData, true);
       initializedRef.current = true;
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [customerData?.writeOffsList]);
@@ -129,18 +147,20 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
 
    const fetchPageData = async (page = paginationModel.page + 1, pageSize = paginationModel.pageSize, searchValue = searchTerm) => {
       if (!accountID || !userID || !token) return;
+      const request = ++requestRef.current;
       setLoading(true);
       try {
          const response = await fetchWriteOffs(accountID, userID, token, page, pageSize, searchValue);
+         if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
          if (response?.writeOffsList?.activeWriteOffsData) {
             const { writeOffsList } = response;
             applyFilteredGrid(writeOffsList.activeWriteOffsData);
-            setCustomerData(prev => ({ ...prev, writeOffsList }));
+            // Grid-local only — never write a page into shared customerData.
          }
       } catch (error) {
          console.error('Error fetching write-offs:', error);
       } finally {
-         setLoading(false);
+         if (request === requestRef.current) setLoading(false);
       }
    };
 

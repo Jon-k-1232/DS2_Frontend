@@ -238,6 +238,13 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    };
 
    const saveEdit = async transactionId => {
+      // Changing the customer clears customer_job_id (see the Customer select's
+      // onChange below) — require a job for the NEW customer be picked before
+      // saving, rather than silently sending null and losing the job link.
+      if (!edits.customer_job_id) {
+         setError('Select a job for this transaction before saving.');
+         return;
+      }
       try {
          const customerChanged = editingOriginal && Number(edits.customer_id) !== Number(editingOriginal.customer_id);
          const res = await updateFinalizedTransaction(
@@ -604,7 +611,19 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                        type='number'
                                        inputProps={{ step: '0.01', min: '0' }}
                                        value={edits.quantity != null ? edits.quantity : ''}
-                                       onChange={e => setEdits(p => ({ ...p, quantity: e.target.value === '' ? null : Number(e.target.value) }))}
+                                       onChange={e => {
+                                          const nextQuantity = e.target.value === '' ? null : Number(e.target.value);
+                                          setEdits(p => {
+                                             // Total = hours × rate — editing Hours alone used to leave a
+                                             // stale Total that no longer matched what was about to be saved.
+                                             const rate = Number(p.unit_cost);
+                                             const recomputedTotal =
+                                                nextQuantity != null && Number.isFinite(nextQuantity) && Number.isFinite(rate)
+                                                   ? Math.round(nextQuantity * rate * 100) / 100
+                                                   : p.total_transaction;
+                                             return { ...p, quantity: nextQuantity, total_transaction: recomputedTotal };
+                                          });
+                                       }}
                                        sx={{ width: 90 }}
                                     />
                                  ) : r.quantity != null ? (

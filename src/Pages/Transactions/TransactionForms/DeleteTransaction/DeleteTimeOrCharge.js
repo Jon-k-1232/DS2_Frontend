@@ -105,10 +105,20 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, transactionsList: postedItem.transactionsList });
-         navigate('/transactions/customerTransactions');
+         // A retainer-sync warning needs to actually be readable — the
+         // immediate navigate below used to yank the user to the list view
+         // in the same tick, before they could ever see it.
+         if (postedItem.warning) {
+            setTimeout(() => {
+               setPostStatus(null);
+               navigate('/transactions/customerTransactions');
+            }, 4000);
+         } else {
+            setTimeout(() => setPostStatus(null), 2000);
+            navigate('/transactions/customerTransactions');
+         }
       }
    };
 
@@ -173,6 +183,11 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
             <Box style={{ margin: '10px', textAlign: 'center' }}>
                <Button onClick={handleSubmit}>Delete Transaction</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
+               {postStatus?.warning && (
+                  <Alert severity='info' sx={{ mt: 1 }}>
+                     {postStatus.warning}
+                  </Alert>
+               )}
             </Box>
 
             <Dialog open={isConfirmationOpen} onClose={handleCancel}>

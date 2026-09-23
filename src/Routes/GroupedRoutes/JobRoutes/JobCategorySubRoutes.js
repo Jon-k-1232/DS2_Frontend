@@ -4,6 +4,7 @@ import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageN
 import { fetchSingleJobCategory } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 import DeleteJobCategory from '../../../Pages/Jobs/JobForms/DeleteJob/DeleteJobCategory';
+import EditJobCategory from '../../../Pages/Jobs/JobForms/EditJob/EditJobCategory';
 import ErrorBoundary from '../../../Components/ErrorBoundary';
 
 export default function JobCategorySubRoutes({ customerData, setCustomerData }) {
@@ -40,18 +41,14 @@ export default function JobCategorySubRoutes({ customerData, setCustomerData }) 
                   </ErrorBoundary>
                }
             />
-            {/* <Route
-          path='editJobCategory'
-          element={
-            <ErrorBoundary fallbackComponent='/jobs/jobCategoriesList'>
-              <EditJobCategory
-                customerData={customerData}
-                setCustomerData={data => setCustomerData(data)}
-                jobCategoryData={jobCategoryData}
-              />
-            </ErrorBoundary>
-          }
-        /> */}
+            <Route
+               path='editJobCategory'
+               element={
+                  <ErrorBoundary fallbackComponent='/jobs/jobCategoriesList'>
+                     <EditJobCategory customerData={customerData} setCustomerData={data => setCustomerData(data)} jobCategoryData={jobCategoryData} />
+                  </ErrorBoundary>
+               }
+            />
          </Routes>
       </>
    );
@@ -63,11 +60,11 @@ const fetchMenuOptions = navigate => [
       value: 'deleteJobCategory',
       route: '/jobs/jobCategoriesList/deleteJobCategory',
       onClick: () => navigate('/jobs/jobCategoriesList/deleteJobCategory')
+   },
+   {
+      display: 'Edit Job Category',
+      value: 'editJobCategory',
+      route: '/jobs/jobCategoriesList/editJobCategory',
+      onClick: () => navigate('/jobs/jobCategoriesList/editJobCategory')
    }
-   //  {
-   //     display: 'Edit Job Category',
-   //     value: 'editJobCategory',
-   //     route: '/jobs/jobCategoriesList/editJobCategory',
-   //     onClick: () => navigate('/jobs/jobCategoriesList/editJobCategory')
-   //  }
 ];

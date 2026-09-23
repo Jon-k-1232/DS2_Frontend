@@ -54,7 +54,15 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
    const { isCustomerRecurring } = selectedItems;
 
    useEffect(() => {
-      if (profileData && Object.keys(profileData).length) {
+      // profileData is only ever a real customer to edit when it's a
+      // successful load carrying the actual contact record — a body-shaped
+      // error ({status: 404, message: '...'}, no customerData at all) is a
+      // non-empty object too, so the old `Object.keys(profileData).length`
+      // check let it through into setInitialState()'s unguarded
+      // `profileData.customerData.customerData` destructure, throwing a
+      // TypeError instead of just navigating away like the "no profile at
+      // all" case already did.
+      if (profileData?.status === 200 && profileData?.customerData?.customerData) {
          setInitialState();
       } else {
          navigate('/customers/customersList');
@@ -67,11 +75,34 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
          customerData: { customerData: customerContactInformation }
       } = profileData;
 
-      const names = customerContactInformation.customer_name.split(' ');
-
-      // Assign the first name and last name to separate variables
-      const firstName = names[0];
-      const lastName = names[1];
+      // Prefer separately-stored first/last name fields if the profile ever
+      // provides them directly (customers only stores a single combined
+      // customer_name today, so this branch is currently always skipped —
+      // but it's the correct, lossless source the moment it exists).
+      let firstName;
+      let lastName;
+      if (customerContactInformation.customer_first_name != null || customerContactInformation.customer_last_name != null) {
+         firstName = customerContactInformation.customer_first_name || '';
+         lastName = customerContactInformation.customer_last_name || '';
+      } else {
+         const customerName = customerContactInformation.customer_name || '';
+         // Split on the LAST space instead of the first — a multi-word FIRST
+         // name ("Mary Ann Smith" -> first "Mary Ann", last "Smith")
+         // round-trips intact instead of being truncated to its first word.
+         // This is the mirror image of a multi-word LAST name (single-word
+         // first, multi-word last), which splitting on the first space
+         // already handles correctly. A name that is multi-word on BOTH
+         // sides can't be split unambiguously either way without a stored
+         // first/last field (see the branch above).
+         const lastSpaceIndex = customerName.lastIndexOf(' ');
+         if (lastSpaceIndex === -1) {
+            firstName = customerName;
+            lastName = '';
+         } else {
+            firstName = customerName.slice(0, lastSpaceIndex);
+            lastName = customerName.slice(lastSpaceIndex + 1);
+         }
+      }
 
       setSelectedItems({
          ...selectedItems,
@@ -130,22 +161,38 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
          // Causes the parent useEffect to run and update the profile data object
          setCallProfileData(new Date());
          setCustomerData({ ...customerData, customersList: postedItem.customersList });
 
-         if (selectedItems.isCustomerActive && !deleteCustomer) {
-            // Stay on the same customer's profile — pull the customerId out of the
-            // current URL so we don't depend on context/state to reconstruct it.
-            const customerIdFromPath = location.pathname.match(/customerProfile\/(\d+)/)?.[1];
-            if (customerIdFromPath) {
-               navigate(`/customers/customersList/customerProfile/${customerIdFromPath}/customerInvoices`);
+         const goToNextPage = () => {
+            if (selectedItems.isCustomerActive && !deleteCustomer) {
+               // Stay on the same customer's profile — pull the customerId out of the
+               // current URL so we don't depend on context/state to reconstruct it.
+               const customerIdFromPath = location.pathname.match(/customerProfile\/(\d+)/)?.[1];
+               if (customerIdFromPath) {
+                  navigate(`/customers/customersList/customerProfile/${customerIdFromPath}/customerInvoices`);
+               } else {
+                  navigate('/customers/customersList');
+               }
             } else {
                navigate('/customers/customersList');
             }
+         };
+
+         // Deactivation warnings (open balance / unbilled work) need to
+         // actually be readable — navigating away in the same tick they
+         // appear, as the code below used to for every successful save, meant
+         // they were never seen.
+         const hasWarnings = Array.isArray(postedItem.warnings) && postedItem.warnings.length > 0;
+         if (hasWarnings) {
+            setTimeout(() => {
+               setPostStatus(null);
+               goToNextPage();
+            }, 4000);
          } else {
-            navigate('/customers/customersList');
+            setTimeout(() => setPostStatus(null), 2000);
+            goToNextPage();
          }
       }
    };
@@ -170,6 +217,15 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
                </Box>
             </Box>
             <Box>{postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}</Box>
+            {Array.isArray(postStatus?.warnings) && postStatus.warnings.length > 0 && (
+               <Box>
+                  <Alert severity='info'>
+                     {postStatus.warnings.map((warning, index) => (
+                        <div key={index}>{warning}</div>
+                     ))}
+                  </Alert>
+               </Box>
+            )}
          </Stack>
       </>
    );

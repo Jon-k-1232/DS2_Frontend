@@ -44,17 +44,21 @@ const ExpandableGrid = ({
 
    const gridProps = {
       density: 'compact',
+      // Toolbar must stay a stable component reference (see PaginationGrid.js
+      // for the full explanation) — an inline arrow function here remounts
+      // CustomToolbar on every ExpandableGrid re-render, silently closing any
+      // open "Add X" dialog and dropping in-progress quick-filter typing.
       components: {
-         Toolbar: props => (
-            <CustomToolbar
-               {...props}
-               hideGridTools={hideGridTools}
-               showGridTools={!hideGridTools}
-               arrayOfButtons={arrayOfButtons}
-               title={title}
-               dialogSize={dialogSize}
-            />
-         )
+         Toolbar: CustomToolbar
+      },
+      componentsProps: {
+         toolbar: {
+            hideGridTools,
+            showGridTools: !hideGridTools,
+            arrayOfButtons,
+            title,
+            dialogSize
+         }
       },
       checkboxSelection: checkboxSelection,
       onRowSelectionModelChange: newSelection => {

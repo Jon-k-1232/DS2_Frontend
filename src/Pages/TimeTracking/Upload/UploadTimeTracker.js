@@ -19,6 +19,14 @@ const UploadTimeTracker = ({ setPageTitle }) => {
    const [feedback, setFeedback] = useState({ type: null, message: '' });
    const [validationErrors, setValidationErrors] = useState([]);
    const [validationMetadata, setValidationMetadata] = useState(null);
+   // Duplicate-upload detail. POST /time-tracking/upload can report this three
+   // ways: 409 "this exact tracker file was already uploaded" (duplicateOf —
+   // trackerDuplicates.js's identicalUpload), 409 "every row in it already
+   // exists" (duplicatesSkipped with nothing inserted), or 201 "uploaded, but
+   // some rows were already-seen duplicates and were skipped" (duplicatesSkipped
+   // alongside a real insertedCount). The response `message` already reads as a
+   // full sentence either way; this is the structured version shown alongside it.
+   const [duplicateInfo, setDuplicateInfo] = useState(null);
    const policyNote =
       'Managers and admins can submit on behalf of team members; all other users may only submit their own time tracker files.';
    const [validationNote, setValidationNote] = useState(policyNote);
@@ -108,6 +116,7 @@ const UploadTimeTracker = ({ setPageTitle }) => {
       setValidationErrors([]);
       setValidationMetadata(null);
       setValidationNote(policyNote);
+      setDuplicateInfo(null);
    };
 
    const handleUpload = async () => {
@@ -130,6 +139,7 @@ const UploadTimeTracker = ({ setPageTitle }) => {
          setUploading(true);
          setValidationErrors([]);
          setValidationMetadata(null);
+         setDuplicateInfo(null);
          const fileName = selectedFile.name;
          const response = await uploadTimeTrackerFile(
             selectedFile,
@@ -152,15 +162,42 @@ const UploadTimeTracker = ({ setPageTitle }) => {
          setFeedback({ type: 'success', message: successMessage });
          setValidationMetadata(responseMetadata);
          setValidationNote(response?.note || policyNote);
+         // 201 can still carry rows that were skipped as duplicates alongside
+         // the ones that were actually inserted.
+         if (Array.isArray(response?.duplicates_skipped) && response.duplicates_skipped.length > 0) {
+            setDuplicateInfo({
+               kind: 'partial',
+               insertedCount: response?.inserted_count ?? null,
+               duplicatesSkippedCount: response?.duplicates_skipped_count ?? response.duplicates_skipped.length,
+               duplicatesSkipped: response.duplicates_skipped
+            });
+         }
          setSelectedFile(null);
       } catch (error) {
-         const message = error?.response?.data?.message || 'Unable to upload the time tracker. Please try again.';
-         const errors = error?.response?.data?.errors || [];
-         const note = error?.response?.data?.note || policyNote;
+         const responseData = error?.response?.data || {};
+         const message = responseData.message || 'Unable to upload the time tracker. Please try again.';
+         const errors = responseData.errors || [];
+         const note = responseData.note || policyNote;
          setValidationErrors(errors);
          setValidationNote(note);
          setValidationMetadata(null);
          setFeedback({ type: 'error', message });
+
+         // Two distinct 409 duplicate shapes from POST /time-tracking/upload:
+         // the whole file exactly matches an earlier upload (duplicate_of), or
+         // every row in it was already uploaded individually (duplicates_skipped
+         // with nothing left to insert).
+         if (error?.response?.status === 409 && responseData.duplicate_of) {
+            setDuplicateInfo({ kind: 'identical', duplicateOf: responseData.duplicate_of });
+         } else if (error?.response?.status === 409 && Array.isArray(responseData.duplicates_skipped)) {
+            setDuplicateInfo({
+               kind: 'all_duplicates',
+               duplicatesSkippedCount: responseData.duplicates_skipped_count ?? responseData.duplicates_skipped.length,
+               duplicatesSkipped: responseData.duplicates_skipped
+            });
+         } else {
+            setDuplicateInfo(null);
+         }
       } finally {
          setUploading(false);
       }
@@ -301,6 +338,7 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                   setSelectedFile(null);
                   setValidationErrors([]);
                   setValidationMetadata(null);
+                  setDuplicateInfo(null);
                }}
                selectedFile={selectedFile}
                onClear={() => {
@@ -308,6 +346,7 @@ const UploadTimeTracker = ({ setPageTitle }) => {
                   setValidationErrors([]);
                   setValidationMetadata(null);
                   setValidationNote(policyNote);
+                  setDuplicateInfo(null);
                }}
             />
 
@@ -327,6 +366,38 @@ const UploadTimeTracker = ({ setPageTitle }) => {
             {feedback.message && (
                <Alert severity={feedback.type || 'info'} onClose={resetFeedback}>
                   {feedback.message}
+               </Alert>
+            )}
+
+            {duplicateInfo?.kind === 'identical' && (
+               <Alert severity='warning'>
+                  <Typography variant='body2'>
+                     Already uploaded as <strong>{duplicateInfo.duplicateOf?.timesheet_name || 'an earlier tracker'}</strong>
+                     {duplicateInfo.duplicateOf?.row_count != null
+                        ? ` (${duplicateInfo.duplicateOf.row_count} identical row${duplicateInfo.duplicateOf.row_count === 1 ? '' : 's'})`
+                        : ''}
+                     {duplicateInfo.duplicateOf?.uploaded_at ? ` on ${duplicateInfo.duplicateOf.uploaded_at}` : ''}. Nothing was saved.
+                  </Typography>
+               </Alert>
+            )}
+
+            {duplicateInfo?.kind === 'all_duplicates' && (
+               <Alert severity='warning'>
+                  <Typography variant='body2'>
+                     All {duplicateInfo.duplicatesSkippedCount} row{duplicateInfo.duplicatesSkippedCount === 1 ? '' : 's'} in this file
+                     {duplicateInfo.duplicatesSkippedCount === 1 ? ' was' : ' were'} already uploaded earlier. Nothing new was saved.
+                  </Typography>
+               </Alert>
+            )}
+
+            {duplicateInfo?.kind === 'partial' && (
+               <Alert severity='info'>
+                  <Typography variant='body2'>
+                     {duplicateInfo.insertedCount != null && `${duplicateInfo.insertedCount} new row${duplicateInfo.insertedCount === 1 ? '' : 's'} saved. `}
+                     {duplicateInfo.duplicatesSkippedCount} row{duplicateInfo.duplicatesSkippedCount === 1 ? '' : 's'}{' '}
+                     {duplicateInfo.duplicatesSkippedCount === 1 ? 'was' : 'were'} already uploaded earlier and skipped as duplicate
+                     {duplicateInfo.duplicatesSkippedCount === 1 ? '' : 's'}.
+                  </Typography>
                </Alert>
             )}
 

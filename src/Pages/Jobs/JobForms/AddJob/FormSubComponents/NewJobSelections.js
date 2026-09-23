@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Autocomplete, TextField, FormControlLabel, Checkbox } from '@mui/material';
 
-export default function NewJobSelections({ customerData, selectedItems, setSelectedItems, notes }) {
+export default function NewJobSelections({ customerData, selectedItems, setSelectedItems }) {
    const [filteredJobTypes, setFilteredJobTypes] = useState([]);
    const [selectedJobCategory, setSelectedJobCategory] = useState(null);
 
@@ -11,7 +11,13 @@ export default function NewJobSelections({ customerData, selectedItems, setSelec
       jobTypesList: { activeJobTypesData: { jobTypesData } = {} } = {}
    } = customerData ?? {};
 
-   const { selectedCustomer, selectedJobDescription, isQuote, quoteAmount, agreedJobAmount, isJobComplete } = selectedItems;
+   // `notes` lives on selectedItems like every other field here — it used to
+   // be read from a top-level `notes` prop instead, which neither NewJob.js
+   // nor EditJob.js ever passed, so this field always rendered blank on
+   // mount (typing still worked since an uncontrolled TextField just holds
+   // whatever the DOM has, and onChange did write into selectedItems.notes,
+   // but a pre-filled edit had nothing to show).
+   const { selectedCustomer, selectedJobDescription, isQuote, quoteAmount, agreedJobAmount, isJobComplete, notes } = selectedItems;
 
    const findJobTypes = (e, jobCategory) => {
       const jobs = jobTypesData.filter(type => type.customer_job_category_id === jobCategory.customer_job_category_id);

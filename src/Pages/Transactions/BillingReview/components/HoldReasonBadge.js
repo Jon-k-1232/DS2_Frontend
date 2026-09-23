@@ -9,7 +9,9 @@ const COLORS = {
    missing_required_field: { bg: '#6a1b9a', label: 'Missing field' },
    bedrock_error: { bg: '#7b1fa2', label: 'AI error' },
    ai_cost_cap_reached: { bg: '#455a64', label: 'Cost cap' },
-   legacy_pre_ai: { bg: '#9e9e9e', label: 'Legacy hold' }
+   legacy_pre_ai: { bg: '#9e9e9e', label: 'Legacy hold' },
+   ambiguous_customer_match: { bg: '#00796b', label: 'Ambiguous customer match' },
+   missing_current_year_job: { bg: '#5d4037', label: 'No job for the requested tax year' }
 };
 
 export default function HoldReasonBadge({ reason }) {

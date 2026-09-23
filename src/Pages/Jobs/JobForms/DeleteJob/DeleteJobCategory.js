@@ -104,7 +104,7 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
 
         <Box style={{ margin: '10px', textAlign: 'center' }}>
           <Button disabled={mappedJobs.rows.length > 0} onClick={handleSubmit}>
-            Delete Job Type
+            Delete Job Category
           </Button>
           {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
         </Box>
@@ -131,7 +131,7 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
 
         <Dialog open={isConfirmationOpen} onClose={handleCancel}>
           <DialogTitle>Confirmation</DialogTitle>
-          <DialogContent>Are you sure you want to delete this job type?</DialogContent>
+          <DialogContent>Are you sure you want to delete this job category?</DialogContent>
           <DialogActions>
             <Button onClick={handleCancel}>Cancel</Button>
             <Button onClick={handleConfirmation} color='error'>
