@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { BACKEND_DIR: backend } = require('./paths');
-const {rows,literal} = require('./db');
+const {rows,literal,sql} = require('./db');
 const pending = new Map();
 function rememberObject(prefix,key) {
   if (!key || typeof key !== 'string') return;
@@ -49,6 +49,13 @@ async function cleanupObjects(prefix) {
     for (const key of keys) {
       if ((!key.startsWith(invoicePrefix) && !uploadPrefixes.some(p => key.startsWith(p))) || key.includes('..')) throw new Error(`Refusing unexpected cleanup key: ${key}`);
       await client.send(new DeleteObjectCommand({Bucket:'ds2-local',Key:key}));
+    }
+    // Each real upload also records durable ownership of its object
+    // (tracker_file_owners, backend migration 021); remove those rows for the
+    // tracker keys just deleted, account 9001 only.
+    const trackerKeys = [...keys].filter(key => uploadPrefixes.some(p => key.startsWith(p)));
+    if (trackerKeys.length) {
+      sql(`DELETE FROM tracker_file_owners WHERE account_id=9001 AND s3_key IN (${trackerKeys.map(literal).join(',')})`);
     }
     pending.delete(prefix);
   } finally { client.destroy(); }
