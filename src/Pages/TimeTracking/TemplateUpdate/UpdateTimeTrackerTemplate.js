@@ -19,6 +19,7 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
    const [uploading, setUploading] = useState(false);
    const [feedback, setFeedback] = useState({ type: null, message: '' });
    const [templates, setTemplates] = useState([]);
+   const [managedByOwnerAccount, setManagedByOwnerAccount] = useState(false);
    const [loadingTemplates, setLoadingTemplates] = useState(false);
    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
    const [templateToDelete, setTemplateToDelete] = useState(null);
@@ -34,8 +35,9 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
 
          try {
             setLoadingTemplates(true);
-            const list = await fetchTimeTrackerTemplates(accountID, userID, token);
+            const { templates: list, managedByOwnerAccount: managed } = await fetchTimeTrackerTemplates(accountID, userID, token);
             setTemplates(list);
+            setManagedByOwnerAccount(managed);
          } catch (error) {
             const message = error?.response?.data?.message || 'Unable to load tracker templates.';
             setFeedback({ type: 'error', message });
@@ -70,8 +72,9 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
          await uploadTimeTrackerTemplate(selectedFile, accountID, userID, token);
          setFeedback({ type: 'success', message: 'Template updated successfully.' });
          setSelectedFile(null);
-         const list = await fetchTimeTrackerTemplates(accountID, userID, token);
+         const { templates: list, managedByOwnerAccount: managed } = await fetchTimeTrackerTemplates(accountID, userID, token);
          setTemplates(list);
+         setManagedByOwnerAccount(managed);
       } catch (error) {
          const message = error?.response?.data?.message || 'Unable to update the tracker template.';
          setFeedback({ type: 'error', message });
@@ -82,45 +85,53 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
 
    return (
       <Stack spacing={3}>
-         <Paper
-            sx={{
-               p: 4,
-               display: 'flex',
-               flexDirection: 'column',
-               gap: 3
-            }}
-         >
-            <Typography variant='h5'>Upload New Tracker Template</Typography>
-            <Typography variant='body2' color='text.secondary'>
-               Upload the latest time tracker template. Uploads are stored in S3 under the tracker versions directory and made available for download to your team.
-            </Typography>
+         {managedByOwnerAccount && (
+            <Alert severity='info'>
+               The shared tracker template is managed by the primary firm account. There is nothing to upload or delete here.
+            </Alert>
+         )}
 
-            <FileDropzone
-               acceptExtensions={acceptedExtensions}
-               maxSizeBytes={MAX_FILE_SIZE_BYTES}
-               label='Drag and drop the updated time tracker template'
-               helperText='Accepted formats: CSV, XLS, XLSX, XLSM • Max size 1MB'
-               onFileSelected={handleFileSelected}
-               onError={message => {
-                  setFeedback({ type: 'error', message });
-                  setSelectedFile(null);
+         {feedback.message && (
+            <Alert severity={feedback.type || 'info'} onClose={resetFeedback}>
+               {feedback.message}
+            </Alert>
+         )}
+
+         {!managedByOwnerAccount && (
+            <Paper
+               sx={{
+                  p: 4,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3
                }}
-               selectedFile={selectedFile}
-               onClear={() => setSelectedFile(null)}
-            />
+            >
+               <Typography variant='h5'>Upload New Tracker Template</Typography>
+               <Typography variant='body2' color='text.secondary'>
+                  Upload the latest time tracker template. Uploads are stored in S3 under the tracker versions directory and made available for download to your team.
+               </Typography>
 
-            <Stack direction='row' justifyContent='flex-end'>
-               <Button variant='contained' color='primary' startIcon={uploading ? <CircularProgress size={20} color='inherit' /> : <SaveIcon />} onClick={handleUpload} disabled={uploading || !selectedFile}>
-                  {uploading ? 'Saving...' : 'Upload Template'}
-               </Button>
-            </Stack>
+               <FileDropzone
+                  acceptExtensions={acceptedExtensions}
+                  maxSizeBytes={MAX_FILE_SIZE_BYTES}
+                  label='Drag and drop the updated time tracker template'
+                  helperText='Accepted formats: CSV, XLS, XLSX, XLSM • Max size 1MB'
+                  onFileSelected={handleFileSelected}
+                  onError={message => {
+                     setFeedback({ type: 'error', message });
+                     setSelectedFile(null);
+                  }}
+                  selectedFile={selectedFile}
+                  onClear={() => setSelectedFile(null)}
+               />
 
-            {feedback.message && (
-               <Alert severity={feedback.type || 'info'} onClose={resetFeedback}>
-                  {feedback.message}
-               </Alert>
-            )}
-         </Paper>
+               <Stack direction='row' justifyContent='flex-end'>
+                  <Button variant='contained' color='primary' startIcon={uploading ? <CircularProgress size={20} color='inherit' /> : <SaveIcon />} onClick={handleUpload} disabled={uploading || !selectedFile}>
+                     {uploading ? 'Saving...' : 'Upload Template'}
+                  </Button>
+               </Stack>
+            </Paper>
+         )}
 
          <Paper
             sx={{
@@ -132,7 +143,9 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
          >
             <Typography variant='h6'>Existing Tracker Templates</Typography>
             <Typography variant='body2' color='text.secondary'>
-               Older templates can be removed once they are no longer needed. Deleting a template permanently removes it from S3.
+               {managedByOwnerAccount
+                  ? 'Managed by the primary firm account — there are no templates to show here.'
+                  : 'Older templates can be removed once they are no longer needed. Deleting a template permanently removes it from S3.'}
             </Typography>
             <DataGrid
                autoHeight
@@ -234,8 +247,9 @@ const UpdateTimeTrackerTemplate = ({ setPageTitle }) => {
                         setDeleting(true);
                         await deleteTimeTrackerTemplate(accountID, userID, templateToDelete.key, token);
                         setFeedback({ type: 'success', message: `${templateToDelete.fileName} deleted.` });
-                        const list = await fetchTimeTrackerTemplates(accountID, userID, token);
+                        const { templates: list, managedByOwnerAccount: managed } = await fetchTimeTrackerTemplates(accountID, userID, token);
                         setTemplates(list);
+                        setManagedByOwnerAccount(managed);
                      } catch (error) {
                         const message = error?.response?.data?.message || 'Unable to delete the tracker template.';
                         setFeedback({ type: 'error', message });

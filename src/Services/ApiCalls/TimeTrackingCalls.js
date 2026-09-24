@@ -125,13 +125,20 @@ export const uploadTimeTrackerTemplate = async (file, accountID, userID, token) 
    return response.data;
 };
 
+// The shared tracker template is owned by one firm-wide account
+// (TEMPLATE_OWNER_ACCOUNT_ID on the backend); every other account gets back
+// `{ templates: [], managedByOwnerAccount: true }` instead of the owner's raw
+// S3 keys, so callers must read both fields rather than assuming an array.
 export const fetchTimeTrackerTemplates = async (accountID, userID, token) => {
    const url = `${config.API_ENDPOINT}/time-tracking/template/list/${accountID}/${userID}`;
    const response = await axios.get(url, {
       headers: buildAuthHeaders(token)
    });
 
-   return response.data?.templates || [];
+   return {
+      templates: response.data?.templates || [],
+      managedByOwnerAccount: !!response.data?.managedByOwnerAccount
+   };
 };
 
 export const deleteTimeTrackerTemplate = async (accountID, userID, key, token) => {
