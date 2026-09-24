@@ -1,15 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 
-// Resolve the DS2 project root and the backend checkout this suite belongs to.
+// Resolve the backend checkout this suite belongs to.
 //
-// The suite lives at DS2_Frontend/e2e. Walking up from here, a directory is the
-// DS2 root only when (a) its DS2_Frontend IS the checkout that contains this
-// file — not merely some frontend checkout — and (b) DS2_Backend exists as that
-// checkout's sibling. This stops a nested worktree (outer/worktrees/DS2_Frontend)
-// from silently borrowing the backend, dependencies and .env.local of an
-// unrelated outer checkout. Intentional alternate layouts set DS2_BACKEND_DIR
-// explicitly; it must point at a backend checkout (package.json present).
+// The suite lives at DS2_Frontend/e2e. Its own frontend checkout is the nearest
+// ancestor named DS2_Frontend; the backend is that checkout's sibling
+// DS2_Backend — never some other checkout's — unless DS2_BACKEND_DIR names one
+// explicitly (validated: it must contain package.json). A nested worktree
+// (outer/worktrees/DS2_Frontend) therefore fails clearly instead of borrowing
+// outer/DS2_Backend's dependencies and .env.local, and the override can rescue
+// it because the frontend is located before any backend is required.
 const isDir = p => {
   try {
     return fs.statSync(p).isDirectory();
@@ -18,36 +18,20 @@ const isDir = p => {
   }
 };
 
-const realpath = p => {
-  try {
-    return fs.realpathSync(p);
-  } catch (_) {
-    return path.resolve(p);
-  }
-};
-
-const isInside = (child, parent) => {
-  const rel = path.relative(realpath(parent), realpath(child));
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-};
-
-function findDs2Root(startDir) {
+// The frontend checkout that contains this suite: the nearest ancestor directory
+// named DS2_Frontend. Found first and independently of any backend, so that the
+// DS2_BACKEND_DIR override can be honoured even when no sibling backend exists.
+function findFrontendRoot(startDir) {
   let dir = startDir;
   while (true) {
-    const frontend = path.join(dir, 'DS2_Frontend');
-    const backend = path.join(dir, 'DS2_Backend');
-    if (isDir(frontend) && isInside(startDir, frontend) && isDir(backend)) return dir;
+    if (path.basename(dir) === 'DS2_Frontend') return dir;
     const parent = path.dirname(dir);
-    if (parent === dir) {
-      throw new Error(
-        `Could not locate the DS2 project root above ${startDir}: expected an ancestor whose DS2_Frontend contains this suite and whose DS2_Backend sits beside it. Set DS2_BACKEND_DIR to use a backend checkout elsewhere.`
-      );
-    }
+    if (parent === dir) throw new Error(`This suite must live inside a DS2_Frontend checkout (looked upward from ${startDir}).`);
     dir = parent;
   }
 }
 
-function resolveBackendDir(ds2Root) {
+function resolveBackendDir(frontendRoot) {
   const override = process.env.DS2_BACKEND_DIR;
   if (override) {
     const dir = path.resolve(override);
@@ -56,10 +40,19 @@ function resolveBackendDir(ds2Root) {
     }
     return dir;
   }
-  return path.join(ds2Root, 'DS2_Backend');
+  const sibling = path.join(path.dirname(frontendRoot), 'DS2_Backend');
+  if (!isDir(sibling)) {
+    throw new Error(
+      `No DS2_Backend beside ${frontendRoot}. This suite uses the backend checkout that sits next to its own frontend checkout; for another layout set DS2_BACKEND_DIR=/path/to/DS2_Backend.`
+    );
+  }
+  return sibling;
 }
 
-const DS2_ROOT = findDs2Root(__dirname);
-const BACKEND_DIR = resolveBackendDir(DS2_ROOT);
+const FRONTEND_ROOT = findFrontendRoot(__dirname);
+const BACKEND_DIR = resolveBackendDir(FRONTEND_ROOT);
+// The project root is the backend's parent (equal to the frontend's parent in the
+// standard layout); kept for callers that build paths from it.
+const DS2_ROOT = path.dirname(BACKEND_DIR);
 
-module.exports = { DS2_ROOT, BACKEND_DIR };
+module.exports = { DS2_ROOT, BACKEND_DIR, FRONTEND_ROOT };

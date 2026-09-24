@@ -77,13 +77,24 @@ test('payment, write-off, positive reversal and original-payment refusal refresh
   // data-rowindex (stable across horizontal scroll) rather than re-filtering
   // by Parent Invoice Id, which gets virtualized out of the DOM once the grid
   // scrolls right to materialize remaining_balance_on_invoice.
+  // The quick filter re-renders the grid asynchronously; under load the rows
+  // are not all on screen yet when the search value lands, so poll until the
+  // parent row (empty Parent Invoice Id) is actually rendered instead of
+  // reading whatever happens to be there on the first pass.
   const candidateRows = page.getByRole('grid').getByRole('row').filter({hasText:invoice.invoice_number});
+  const findParentRowIndex = async () => {
+    const n = await candidateRows.count();
+    for (let i = 0; i < n; i++) {
+      const cell = candidateRows.nth(i).locator('[data-field="parent_invoice_id"]');
+      if ((await cell.count()) === 0) continue; // column not materialized for this row yet
+      const content = cell.locator('.MuiDataGrid-cellContent');
+      const text = (await content.count()) ? ((await content.first().textContent()) ?? '') : '';
+      if (!text.trim()) return await candidateRows.nth(i).getAttribute('data-rowindex');
+    }
+    return null;
+  };
   let parentRowIndex = null;
-  for (let i = 0; i < await candidateRows.count(); i++) {
-    const parentCell = candidateRows.nth(i).locator('[data-field="parent_invoice_id"] .MuiDataGrid-cellContent');
-    if (!(await parentCell.textContent())?.trim()) { parentRowIndex = await candidateRows.nth(i).getAttribute('data-rowindex'); break; }
-  }
-  expect(parentRowIndex, 'expected one row with an empty Parent Invoice Id cell').not.toBeNull();
+  await expect.poll(async () => { parentRowIndex = await findParentRowIndex(); return parentRowIndex; }, { message: 'expected one row with an empty Parent Invoice Id cell', timeout: 20_000 }).not.toBeNull();
   const parentRow = page.getByRole('grid').locator(`[role="row"][data-rowindex="${parentRowIndex}"]`);
   await expectGridValueInRow(page,parentRow,'remaining_balance_on_invoice','20.50');
 });

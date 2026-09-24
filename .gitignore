@@ -41,7 +41,7 @@ yarn-error.log*
 
 # Playwright e2e suite (source under e2e/lib, e2e/tests, etc. IS tracked;
 # only its generated/installed artifacts are ignored)
-e2e/node_modules*/
+e2e/node_modules*
 e2e/.browsers
 e2e/.npm-cache
 e2e/test-results
