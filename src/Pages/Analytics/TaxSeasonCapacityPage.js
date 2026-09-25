@@ -32,8 +32,9 @@ const sumByWeek = rows => {
 const groupByEmployee = rows => {
    const map = {};
    (rows || []).forEach(r => {
-      if (!map[r.employee]) map[r.employee] = {};
-      map[r.employee][r.week] = (map[r.employee][r.week] || 0) + Number(r.hours);
+      const id = r.user_id ?? r.employee;
+      if (!map[id]) map[id] = {};
+      map[id][r.week] = (map[id][r.week] || 0) + Number(r.hours);
    });
    return map;
 };
@@ -144,6 +145,8 @@ export default function TaxSeasonCapacityPage() {
       ? Number(Object.keys(firmCurrentByWeek).reduce((a, b) => (firmCurrentByWeek[a] >= firmCurrentByWeek[b] ? a : b)))
       : null;
 
+   const employeeLabels = Object.fromEntries([...prior, ...current].map(r => [r.user_id ?? r.employee,
+      r.user_id != null ? `${r.employee} (#${r.user_id})` : r.employee]));
    const currentByEmployee = groupByEmployee(current);
    const priorByEmployee = groupByEmployee(prior);
    const employees = [...new Set([...Object.keys(currentByEmployee), ...Object.keys(priorByEmployee)])].sort(
@@ -202,7 +205,7 @@ export default function TaxSeasonCapacityPage() {
                   const priByWeek = priorByEmployee[employee] || {};
                   return (
                      <Paper key={employee} variant='outlined' sx={{ p: 2 }}>
-                        <Typography variant='subtitle1'>{employee}</Typography>
+                        <Typography variant='subtitle1'>{employeeLabels[employee]}</Typography>
                         <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
                            {fmtHours(totalOf(curByWeek))} hrs vs {fmtHours(totalOf(priByWeek))} last year
                         </Typography>

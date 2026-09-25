@@ -227,8 +227,8 @@ export default function TimeAllocationPage() {
                         <Table size='small'>
                            <TableBody>
                               {data.byCustomer.map(r => (
-                                 <TableRow key={r.customer}>
-                                    <TableCell>{r.customer}</TableCell>
+                                 <TableRow key={r.customer_id}>
+                                    <TableCell>{r.customer} (#{r.customer_id})</TableCell>
                                     <TableCell align='right'>{fmtHours(r.hours)}</TableCell>
                                     <TableCell align='right'>{fmtMoney(r.billed_amount)}</TableCell>
                                  </TableRow>

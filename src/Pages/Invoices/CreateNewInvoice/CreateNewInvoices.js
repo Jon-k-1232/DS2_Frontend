@@ -103,7 +103,7 @@ export default function CreateNewInvoices({ setCustomerData }) {
          const skippedIds = new Set((postedItem.skippedCustomers || []).map(row => Number(row.customer_id)));
          setCompletedCustomerIds((selectedRowsToInvoice.invoicesToCreate || []).filter(row => !skippedIds.has(Number(row.customer_id))).map(row => row.customer_id));
          setBatchRevision(revision => revision + 1);
-         setCustomerData(prev => ({ ...prev, invoicesList: postedItem.invoicesList }));
+         if (postedItem.invoicesList) setCustomerData(prev => ({ ...prev, invoicesList: postedItem.invoicesList }));
 
          const warnings = [...(postedItem.warnings || [])];
 

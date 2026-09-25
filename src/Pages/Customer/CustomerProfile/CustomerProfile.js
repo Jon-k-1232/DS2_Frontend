@@ -71,12 +71,12 @@ export default function CustomerProfile({ profileData }) {
    const currentRetainer = <Typography variant='caption'>The current total of all retainers. If a transaction in this cycle used a retainer, the amount is reflected.</Typography>;
    const paymentsSinceLastBill = (
       <Box>
-         <Typography variant='caption'>The total amount that has been collected via payment, and through retainers used on transactions this cycle.</Typography>
+         <Typography variant='caption'>All receipts since the last statement, including invoice-linked payments and retainer applications, counted once. Retainer payments below are included in the receipts total.</Typography>
          <table style={styles.tableWrapper}>
             <tbody>
                <tr>
-                  <th style={styles.thStyle}>Payments Total:</th>
-                  <td style={styles.tdStyle}>{payments?.paymentTotal}</td>
+                  <th style={styles.thStyle}>Receipts Total:</th>
+                  <td style={styles.tdStyle}>{payments?.paymentsReceivedTotal ?? 0}</td>
                </tr>
                <tr>
                   <th style={styles.thStyle}>Retainer Payment Total:</th>
@@ -235,7 +235,7 @@ export default function CustomerProfile({ profileData }) {
                   <FloatingTooltip tooltipContent={paymentsSinceLastBill}>
                      <tr>
                         <th style={styles.thStyle}>Payments Since Last Bill:</th>
-                        <td style={styles.tdStyleNumbers}>{payments?.paymentTotal + retainerAppliedToInvoice}</td>
+                        <td style={styles.tdStyleNumbers}>{payments?.paymentsReceivedTotal ?? 0}</td>
                      </tr>
                   </FloatingTooltip>
 

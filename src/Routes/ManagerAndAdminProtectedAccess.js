@@ -8,7 +8,7 @@ const ManagerAndAdminProtectedAccessRoute = ({ children }) => {
 
    const hasAccess = () => {
       const access = accessLevel?.toLowerCase();
-      const allowedAccessLevels = ['admin', 'manager', 'super admin'];
+      const allowedAccessLevels = ['admin', 'manager', 'super admin', 'owner'];
       return allowedAccessLevels.includes(access);
    };
 
