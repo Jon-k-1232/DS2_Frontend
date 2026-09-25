@@ -47,3 +47,6 @@ e2e/.npm-cache
 e2e/test-results
 e2e/playwright-report
 e2e/artifacts
+
+# iCloud-safe dependency folder (node_modules is a symlink into it)
+node_modules.nosync/
