@@ -1,3 +1,4 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useEffect, useContext } from 'react';
 import { Box, Alert, Button, TextField, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
@@ -101,6 +102,8 @@ export default function EditPayment({ customerData, setCustomerData, paymentData
          navigate('/transactions/customerPayments');
       }
    };
+
+   if (paymentData?.sent_locked) return <SentInvoiceNotice row={paymentData} />;
 
    return (
       <>

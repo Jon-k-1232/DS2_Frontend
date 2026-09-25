@@ -1,6 +1,7 @@
 const { expect } = require('@playwright/test');
 const { rows, literal } = require('./db');
 const { rememberObject } = require('./storage');
+const { saveDownload } = require('./download');
 const routes = { customers: '/customers/customersList', jobs: '/jobs/jobsList', transactions: '/transactions/customerTransactions', payments: '/transactions/customerPayments', writeoffs: '/transactions/customerWriteOffs', retainers: '/transactions/customerRetainers', createInvoice: '/invoices/createInvoice', invoices: '/invoices/invoices' };
 async function choose(page, scope, label, text) {
   const input = scope.getByRole('combobox', { name: label, exact: true });
@@ -30,20 +31,8 @@ async function openForm(page, route, button) {
   await page.getByRole('button', { name: button, exact: true }).click();
   return page.getByRole('dialog');
 }
-// A successful submit updates the shared context data that the grid's toolbar
-// buttons close over. Components/DataGrids/DataGrid.js still rebuilds its
-// DataGrid Toolbar slot as a fresh inline component reference on every parent
-// render, so a mutation there remounts the toolbar and its dialog-open state
-// resets to closed on its own — no Cancel click needed.
-// PaginationGrid.js and ExpandableGrid.js (both edited 2026-09-23, same
-// session) were fixed to pass CustomToolbar a STABLE component reference
-// instead (componentsProps carries the per-render data), specifically so an
-// unrelated parent re-render no longer nukes an open dialog's state or
-// in-progress quick-filter typing — see PaginationGrid.js's own comment. One
-// side effect: on those two grids the dialog now stays open (reset to a
-// blank form) after a successful submit and needs an explicit close. Handle
-// both: try a short, race-safe Cancel click (harmless/no-op if the dialog
-// already closed itself the old way), then wait for it to be gone either way.
+// Stable grid toolbars preserve the open form after a successful save.
+// Close explicitly, while tolerating a form already closed by its own flow.
 async function closeForm(page) {
   try { await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click({ timeout: 3000 }); } catch {}
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -171,7 +160,7 @@ async function finalize(page, customer, { duplicate=false, testInfo } = {}) {
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.zip$/i);
     expect(await download.failure()).toBeNull();
-    const file = await download.path();
+    const file = await saveDownload(download);
     const entries = require('child_process').execFileSync('unzip',['-Z1',file],{encoding:'utf8'});
     expect(entries).toMatch(/\.pdf(?:\r?\n|$)/i);
     if (testInfo) await testInfo.attach('finalized-invoice.zip',{path:file,contentType:'application/zip'});
@@ -233,7 +222,7 @@ async function invoicePreview(page, customer, testInfo) {
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.zip$/i);
   expect(await download.failure()).toBeNull();
-  const file = await download.path();
+  const file = await saveDownload(download);
   const entries = require('child_process').execFileSync('unzip',['-Z1',file],{encoding:'utf8'}).trim().split('\n');
   expect(entries.some(name => name.endsWith('.csv'))).toBe(true);
   if (testInfo) await testInfo.attach('csv-preview.zip',{path:file,contentType:'application/zip'});

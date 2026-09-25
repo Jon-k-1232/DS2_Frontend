@@ -249,9 +249,10 @@ export default function CreateNewInvoices({ setCustomerData }) {
             <DialogContent>
                <DialogContentText>
                   {allowSameDayRebill
-                     ? "You are finalizing these invoices. This REPLACES one or more customers' statements already issued today — their earlier statement will be absorbed into this new one instead of staying outstanding on its own. Please confirm."
-                     : 'You are finalizing these invoices, please confirm.'}
+                     ? "You are finalizing these invoices. Finalize means sent and locked. This carries forward one or more customers' statements already issued today — their earlier statement will be absorbed into this new one instead of staying outstanding on its own. Please confirm."
+                     : 'Finalizing means sent. These statements and their items will be locked. Drafts stay editable and write nothing to the ledger.'}
                </DialogContentText>
+               {invoicesToCreate.some(row => row.includeCreditStatement) && <DialogContentText>Selected credit statements show no payment due and carry the credit forward. Unselected credit customers keep their pending activity.</DialogContentText>}
             </DialogContent>
             <DialogActions>
                <Button onClick={submitInvoice} disabled={isLoading}>

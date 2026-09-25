@@ -179,15 +179,7 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [paginationModel.page, paginationModel.pageSize, searchTerm]);
 
-   useEffect(() => {
-      if (!initializedRef.current) return;
-      const input = searchInputRef.current;
-      if (input && document.activeElement !== input) {
-         input.focus({ preventScroll: true });
-         const caret = input.value.length;
-         input.setSelectionRange(caret, caret);
-      }
-   }, [gridData.rows, searchInput]);
+
 
    return (
       <>

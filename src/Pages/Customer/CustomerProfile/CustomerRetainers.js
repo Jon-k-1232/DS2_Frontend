@@ -1,7 +1,8 @@
+import RetainerEvents from './RetainerEvents';
 import { Stack } from '@mui/material';
 import ExpandableGrid from '../../../Components/DataGrids/ExpandableGrid';
 
-export default function CustomerRetainers({ profileData }) {
+export default function CustomerRetainers({ profileData, onChanged }) {
    const { customerRetainerData = {} } = profileData || {};
 
    if (!profileData || !profileData.customerRetainerData) {
@@ -28,6 +29,7 @@ export default function CustomerRetainers({ profileData }) {
    return (
       <>
          <Stack spacing={3}>
+            <RetainerEvents rows={customerRetainerData.customerRetainers || customerRetainerData.grid?.rows || []} onChanged={onChanged} />
             <ExpandableGrid
                idField='retainer_id'
                parentColumnName='parent_retainer_id'

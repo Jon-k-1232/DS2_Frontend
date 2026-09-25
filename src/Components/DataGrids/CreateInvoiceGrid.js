@@ -9,7 +9,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 const fmtCurrency = v => (v == null ? '' : `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 // Fields present in row data for logic purposes but not rendered as visible columns
-const HIDDEN_FIELDS = new Set(['customer_id', 'write_off_count', 'customer_name', 'last_audit_at', 'billed_today']);
+const HIDDEN_FIELDS = new Set(['customer_id', 'write_off_count', 'customer_name', 'last_audit_at', 'billed_today', 'is_credit_statement']);
 
 const CURRENCY_FIELDS = {
    outstanding_invoice_total: 'Outstanding Balance',
@@ -21,6 +21,7 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
    const [checkboxes, setCheckboxes] = useState({});
    const [textValues, setTextValues] = useState({});
    const [selectedRowIds, setSelectedRowIds] = useState([]);
+   const [selectedCreditIds, setSelectedCreditIds] = useState([]);
 
    // A committed batch (the parent bumps batchRevision) clears the selection so
    // checked rows always equal the submitted batch — but only the drafts (per-row
@@ -34,11 +35,16 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
       const completed = new Set((completedCustomerIds || []).map(String));
       const keepSkippedDrafts = values => Object.fromEntries(Object.entries(values).filter(([id]) => !completed.has(String(id))));
       setSelectedRowIds([]);
+      setSelectedCreditIds([]);
       setCheckboxes(keepSkippedDrafts);
       setTextValues(keepSkippedDrafts);
       // completedCustomerIds always arrives together with a new batchRevision.
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [batchRevision]);
+
+   useEffect(() => {
+      setSelectedCreditIds(prev => prev.filter(id => selectedRowIds.includes(id)));
+   }, [selectedRowIds]);
 
    // Filter controls — hide-zero ON by default
    const [searchText, setSearchText] = useState('');
@@ -60,7 +66,12 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
       // provenance no longer needs to be inferred from how many ids changed at
       // once — the header checkbox is a separate, eligible-only control below.
       rowSelectionModel: selectedRowIds,
-      onRowSelectionModelChange: newSelection => setSelectedRowIds(newSelection || []),
+      onRowSelectionModelChange: selection => {
+         const next = selection || [];
+         const addedCredits = next.filter(id => !selectedRowIds.includes(id) && gridData.rows.some(row => row.customer_id === id && Number(row.invoice_total) < 0));
+         setSelectedCreditIds(prev => [...new Set([...prev.filter(id => next.includes(id)), ...addedCredits])]);
+         setSelectedRowIds(next);
+      },
       checkboxSelection: true,
       pageSize: 25
    };
@@ -178,7 +189,7 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
          // Hide-zero uses the real invoice_total from the backend calculation
          // engine. Must compare the MAGNITUDE — a credit balance (negative
          // invoice_total) is not "zero" and shouldn't be swept away with it.
-         if (hideZero && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
+         if (hideZero && !Number(row.retainer_event_count) && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
 
          // Name search
          const term = searchText.trim().toLowerCase();
@@ -253,6 +264,7 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
 
    // Splice custom columns in after display_name:
    //   display_name → Show Write Offs → Write Offs → Audit Status → Invoice Note → …
+   const creditColumn = { field: 'statement_type', headerName: 'Statement', width: 190, renderCell: ({ row }) => Number(row.invoice_total) < 0 ? <Chip size='small' color='info' label='Credit — no payment due' /> : null };
    const allColumns = [...visibleAutoColumns];
    // Override just the header of the checkbox-selection column DataGrid injects
    // for checkboxSelection: true (GRID_CHECKBOX_SELECTION_COL_DEF's field,
@@ -266,12 +278,12 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
    allColumns.unshift({
       ...GRID_CHECKBOX_SELECTION_COL_DEF,
       renderHeader: () => {
-         const eligibleIds = filteredRows.filter(row => !row.billed_today).map(row => row.customer_id);
+         const eligibleIds = filteredRows.filter(row => !row.billed_today && Number(row.invoice_total) >= 0).map(row => row.customer_id);
          const selectedEligibleCount = eligibleIds.filter(id => selectedRowIds.includes(id)).length;
          return (
             <Checkbox
                inputProps={{
-                  'aria-label': 'Select all visible customers not billed today',
+                  'aria-label': 'Select all visible debit or zero customers not billed today',
                   // Explicit tri-state ARIA value — DataGrid's own header
                   // checkbox derives this automatically, but this replacement
                   // Checkbox does not, so screen readers previously heard only
@@ -310,7 +322,7 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
    });
    const displayNameIndex = allColumns.findIndex(col => col.field === 'display_name');
    const insertAt = displayNameIndex >= 0 ? displayNameIndex + 1 : allColumns.length;
-   allColumns.splice(insertAt, 0, showWriteOffsColumn, writeOffsPresentColumn, auditColumn, invoiceNoteColumn);
+   allColumns.splice(insertAt, 0, creditColumn, showWriteOffsColumn, writeOffsPresentColumn, auditColumn, invoiceNoteColumn);
 
    // Apply currency formatters and friendly header names
    const formattedColumns = allColumns.map(col => {
@@ -335,23 +347,26 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
             if (!selectedRowIds.includes(row.customer_id)) return false;
             // Double-guard: strip zero-balance rows from submission when filter is
             // active — by magnitude, so a credit balance is never swept out.
-            if (hideZero && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
+            if (hideZero && !Number(row.retainer_event_count) && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
             return true;
          })
          .map(row => ({
             ...row,
+            includeCreditStatement: selectedCreditIds.includes(row.customer_id),
+            issueReason: Number(row.invoice_total) < 0 ? 'Finalize explicitly selected credit statement (sent and locked).' : 'Finalize selected statement (sent and locked).',
             showWriteOffs: checkboxes[row.customer_id]?.showWriteOffs || false,
             invoiceNote: textValues[row.customer_id]?.invoiceNote || ''
          }));
 
       setSelectedRowsToInvoice(selectedData);
       // eslint-disable-next-line
-   }, [selectedRowIds, checkboxes, textValues, filteredRows, hideZero]);
+   }, [selectedRowIds, selectedCreditIds, checkboxes, textValues, filteredRows, hideZero]);
 
    const hiddenCount = rows.length - filteredRows.length;
 
    return (
       <Box>
+         <Typography variant='body2' sx={{ mb: 1 }}>Credit balances are not selected by Select all. Select each credit customer to issue a credit statement; skipped activity stays pending. Drafts stay editable. Finalize means sent and locks the statement and its items.</Typography>
          {/* Filter toolbar */}
          <Stack direction='row' spacing={2} alignItems='center' sx={{ mb: 1 }}>
             <TextField

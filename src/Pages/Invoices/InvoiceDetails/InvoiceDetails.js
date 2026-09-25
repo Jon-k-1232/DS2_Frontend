@@ -1,4 +1,5 @@
-import { useContext } from 'react';
+import InvoiceHistory from './InvoiceHistory';
+import { useContext, useState } from 'react';
 import { Stack, Divider, Button, Box, Alert } from '@mui/material';
 import { fetchFileDownload } from '../../../Services/ApiCalls/FetchCalls';
 import dayjs from 'dayjs';
@@ -9,6 +10,7 @@ export default function InvoiceDetails({ invoiceData, postStatus, setPostStatus 
       loggedInUser: { accountID, userID }
    } = useContext(context);
 
+   const [currentBalance, setCurrentBalance] = useState(null);
    const { invoiceDetails = {} } = invoiceData ?? {};
 
    const {
@@ -46,6 +48,7 @@ export default function InvoiceDetails({ invoiceData, postStatus, setPostStatus 
 
    return (
       <>
+         {Number(total_amount_due) < 0 && <Alert severity='info'>Credit statement — no payment due at issuance. Finalize means sent and locked; later activity appears in the current balance.</Alert>}
          <Stack style={styles.tableContainer}>
             <table style={styles.tableWrapper}>
                <tbody>
@@ -92,7 +95,7 @@ export default function InvoiceDetails({ invoiceData, postStatus, setPostStatus 
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Invoice Due Date:</th>
-                     <td style={styles.tdStyle}>{dayjs(due_date).format('MMMM DD, YYYY')}</td>
+                     <td style={styles.tdStyle}>{Number(total_amount_due) < 0 ? 'No payment due' : dayjs(due_date).format('MMMM DD, YYYY')}</td>
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Data Start Date:</th>
@@ -136,12 +139,12 @@ export default function InvoiceDetails({ invoiceData, postStatus, setPostStatus 
                      <td style={styles.tdStyle}>{total_write_offs}</td>
                   </tr>
                   <tr>
-                     <th style={styles.thStyle}>Total Amount Due:</th>
+                     <th style={styles.thStyle}>{Number(total_amount_due) < 0 ? 'Issued credit balance:' : 'Total Amount Due:'}</th>
                      <td style={styles.tdStyle}>{total_amount_due}</td>
                   </tr>
                   <tr>
-                     <th style={styles.thStyle}>Amount Remaining:</th>
-                     <td style={styles.tdStyle}>{remaining_balance_on_invoice}</td>
+                     <th style={styles.thStyle}>Current balance:</th>
+                     <td style={styles.tdStyle}>{currentBalance ?? invoiceDetails.current_remaining_balance ?? remaining_balance_on_invoice}</td>
                   </tr>
                </tbody>
             </table>
@@ -150,6 +153,7 @@ export default function InvoiceDetails({ invoiceData, postStatus, setPostStatus 
             </Box>
          </Stack>
          {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
+         <InvoiceHistory invoiceID={customer_invoice_id} onBalanceChange={setCurrentBalance} />
          <Divider style={styles.divider} />
       </>
    );

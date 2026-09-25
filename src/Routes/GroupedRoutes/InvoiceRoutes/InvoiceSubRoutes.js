@@ -30,13 +30,14 @@ export default function InvoiceRoutes({ customerData, setCustomerData }) {
    useEffect(() => {
       if (rowData || contextRowData || invoiceID) {
          const apiCall = async () => {
-            const customerInvoiceID = rowData?.parent_invoice_id || contextRowData?.parent_invoice_id || rowData?.customer_invoice_id || contextRowData?.customer_invoice_id || invoiceID;
+            const selected = rowData || contextRowData;
+            const customerInvoiceID = selected?.parent_invoice_id || selected?.customer_invoice_id || invoiceID;
 
             const fetchInvoiceInformation = await fetchCustomerInvoiceInformation(accountID, userID, customerInvoiceID, token);
 
             if (fetchInvoiceInformation.status !== 200) setPostStatus(fetchInvoiceInformation);
             setInvoiceData({ ...fetchInvoiceInformation });
-            setInvoiceID(invoiceID);
+            setInvoiceID(customerInvoiceID);
          };
          apiCall();
       } else {

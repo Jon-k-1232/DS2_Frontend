@@ -84,7 +84,7 @@ export const deleteRetainer = async (retainerID, accountID, userID, token) => {
       });
       return response.data;
    } catch (error) {
-      console.log(error);
+      throw error;
    }
 };
 
@@ -131,4 +131,3 @@ export const deleteCustomer = async (customerID, accountID, userID, token) => {
       console.log(error);
    }
 };
-

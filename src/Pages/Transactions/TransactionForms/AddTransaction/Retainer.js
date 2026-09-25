@@ -1,3 +1,4 @@
+import useFinancialSubmit, { validateFinancialForm } from './FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext } from 'react';
 import { Box, Button, Typography, Alert, Stack, Autocomplete, TextField } from '@mui/material';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
@@ -27,21 +28,21 @@ export default function Retainer({ customerData, setCustomerData }) {
    const { accountID, userID } = loggedInUser;
 
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [selectedItems, setSelectedItems] = useState(initialState);
    const { unitCost, quantity } = selectedItems;
 
-   const handleSubmit = async () => {
+   const handleSubmit = () => submit(async () => {
       const dataToPost = formObjectForRetainerPost(selectedItems, loggedInUser);
       const postedItem = await postNewRetainer(dataToPost, accountID, userID);
 
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, accountRetainersList: postedItem.accountRetainersList });
       }
-   };
+   }, validateFinancialForm(selectedItems, 'Retainer'));
 
    const formatTotal = value => {
       return value
@@ -88,7 +89,7 @@ export default function Retainer({ customerData, setCustomerData }) {
             </Stack>
 
             <Box style={{ textAlign: 'center', marginTop: '18px' }}>
-               <Button onClick={handleSubmit}>Submit</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit'}</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
             </Box>
          </Box>

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, Link } from 'react-router-dom';
-import CustomerProfileSubRoutes from './CustomerProfileSubRoutes';
+import CustomerProfileSubRoutes, {fetchMenuOptions} from './CustomerProfileSubRoutes';
 import { context } from '../../../App';
 import { fetchCustomerProfileInformation } from '../../../Services/ApiCalls/FetchCalls';
 
@@ -16,9 +16,18 @@ jest.mock('../../../Pages/Customer/CustomerProfile/CustomerProfileJobs', () => (
 jest.mock('../../../Pages/Customer/CustomerProfile/CustomerProfilePayments', () => () => <div>PaymentsTab</div>);
 jest.mock('../../../Pages/Customer/CustomerProfile/CustomerRetainers', () => () => <div>RetainersTab</div>);
 jest.mock('../../../Pages/Customer/CustomerProfile/CustomerProfileAIAudit', () => () => <div>AiAuditTab</div>);
+jest.mock('../../../Pages/Customer/CustomerProfile/CustomerProfileAuditRecord', () => () => <div>HardAuditTab</div>);
 jest.mock('../../../Pages/Customer/CustomerProfile/EditCustomerProfile', () => () => <div>EditTab</div>);
 
 const loggedInUser = { accountID: 9001, userID: 90013, token: 'session', accessLevel: 'Admin' };
+
+it('adds Audit Record next to AI Audit with separate admin visibility',()=>{
+ const navigate=jest.fn();const both=fetchMenuOptions(navigate,true,'/client/7',true);
+ expect(both.map(x=>x.display).slice(-3)).toEqual(['AI Audit','Audit Record','Edit Customer Profile']);
+ both.find(x=>x.value==='auditRecord').onClick();expect(navigate).toHaveBeenCalledWith('/client/7/auditRecord');
+ expect(fetchMenuOptions(navigate,false,'/client/7',true).map(x=>x.display)).toContain('Audit Record');
+ expect(fetchMenuOptions(navigate,false,'/client/7',false).map(x=>x.display)).not.toContain('Audit Record');
+});
 
 const renderAt = customerId =>
    render(

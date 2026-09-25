@@ -1,3 +1,5 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
+import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
 import { Box, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableRow, Paper } from '@mui/material';
 import { deleteChargeOrTimeTransaction } from '../../../../Services/ApiCalls/DeleteCalls';
@@ -30,6 +32,7 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
 
    const [selectedItems, setSelectedItems] = useState(initialState);
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
    const {
@@ -46,11 +49,9 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
       totalTransaction
    } = selectedItems || {};
 
-   const {
-      customersList: { activeCustomerData: { activeCustomers } = [] } = [],
-      teamMembersList: { activeUserData: { activeUsers } = [] } = [],
-      accountJobsList: { activeJobData: { activeJobs } = [] } = []
-   } = { ...customerData };
+   const activeCustomers = customerData?.customersList?.activeCustomerData?.activeCustomers || [];
+   const activeUsers = customerData?.teamMembersList?.activeUserData?.activeUsers || [];
+   const activeJobs = customerData?.accountJobsList?.activeJobData?.activeJobs || [];
 
    const {
       transaction_id,
@@ -70,13 +71,15 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
    } = transactionData || {};
 
    useEffect(() => {
-      if (transactionData) {
+      if (transaction_id && !transactionData.sent_locked) {
          setSelectedItems({
-            ...selectedItems,
+            ...initialState,
             transactionID: transaction_id,
-            selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
-            selectedJob: activeJobs.find(job => job.customer_job_id === customer_job_id),
-            selectedTeamMember: activeUsers.find(user => user.user_id === logged_for_user_id),
+            // The record can arrive before the shared lookups. Its saved IDs
+            // remain authoritative, including for inactive customers/jobs.
+            selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id) || { customer_id, display_name: transactionData.customer_name },
+            selectedJob: activeJobs.find(job => job.customer_job_id === customer_job_id) || { customer_job_id },
+            selectedTeamMember: activeUsers.find(user => user.user_id === logged_for_user_id) || { user_id: logged_for_user_id },
             isTransactionBillable: is_transaction_billable,
             detailedJobDescription: detailed_work_description,
             isInAdditionToMonthlyCharge: is_excess_to_subscription,
@@ -91,13 +94,13 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
          });
       }
       // eslint-disable-next-line
-   }, [transactionData]);
+   }, [transactionData, customerData]);
 
    const handleSubmit = () => {
       setIsConfirmationOpen(true);
    };
 
-   const handleConfirmation = async () => {
+   const handleConfirmation = () => submit(async () => {
       setIsConfirmationOpen(false);
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser);
       const postedItem = await deleteChargeOrTimeTransaction(dataToPost, accountID, userID);
@@ -120,11 +123,13 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
             navigate('/transactions/customerTransactions');
          }
       }
-   };
+   });
 
    const handleCancel = () => {
       setIsConfirmationOpen(false);
    };
+
+   if (transactionData?.sent_locked) return <SentInvoiceNotice row={transactionData} />;
 
    return (
       <>
@@ -181,7 +186,7 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
             </TableContainer>
 
             <Box style={{ margin: '10px', textAlign: 'center' }}>
-               <Button onClick={handleSubmit}>Delete Transaction</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>Delete Transaction</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
                {postStatus?.warning && (
                   <Alert severity='info' sx={{ mt: 1 }}>
@@ -195,7 +200,7 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
                <DialogContent>Are you sure you want to delete?</DialogContent>
                <DialogActions>
                   <Button onClick={handleCancel}>Cancel</Button>
-                  <Button onClick={handleConfirmation} color='error'>
+                  <Button onClick={handleConfirmation} disabled={submitting} color='error'>
                      Delete
                   </Button>
                </DialogActions>

@@ -1,3 +1,4 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Typography, Alert, Stack, Autocomplete, TextField } from '@mui/material';
@@ -97,6 +98,8 @@ export default function EditRetainer({ customerData, setCustomerData, retainerDa
          .toString()
          .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
    };
+
+   if (retainerData?.sent_locked) return <SentInvoiceNotice row={retainerData} />;
 
    return (
       <>

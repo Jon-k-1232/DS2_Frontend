@@ -1,6 +1,6 @@
 # DS2 browser end-to-end suite
 
-This Playwright project drives the running DS2 React UI against the local backend and Postgres sandbox. All creation, editing, finalization, reversal, deletion attempts, and uploads use real browser controls. There are no mocked API responses or API shortcuts for test setup.
+This Playwright project drives the running DS2 React UI against the local backend and Postgres sandbox. All creation, editing, finalization, reversal, deletion attempts, and uploads use real browser controls. There are no mocked successful API responses or API shortcuts for test setup. Pass 4 also sends direct refusal probes through the authenticated browser request context and aborts selected requests to test transport-error messages. Database/storage fault injection runs in the separate backend scenario suite.
 
 It lives at `DS2_Frontend/e2e`, version-controlled as part of the frontend repo (moved there from a standalone `DS2/e2e` directory outside both repos). It remains logically independent of the frontend's own CRA/Jest unit tests — see "Relationship to the frontend's Jest suite" below — and still exercises both DS2_Backend and DS2_Frontend from that one location.
 
@@ -8,14 +8,16 @@ It lives at `DS2_Frontend/e2e`, version-controlled as part of the frontend repo 
 
 With the existing sandbox stack running (start the sandbox backend with `DISABLE_RATE_LIMIT=true` — a full run issues well over the API limiter's 300 requests a minute from one client and otherwise fails on 429s; the flag is honoured only when set explicitly and must never be set in a deployed environment):
 
+The sandbox cannot launch Chromium directly. Use the existing external Playwright 1.63.0 browser server; do not start or stop it or either app server:
+
 ```sh
 cd DS2_Frontend/e2e
-npm install --cache .npm-cache
-PLAYWRIGHT_BROWSERS_PATH="$PWD/.browsers" npx playwright install chromium --only-shell
-npm test
+export PLAYWRIGHT_BROWSERS_PATH=/Users/jonkimmel/Desktop/Code/JKA_stuff/DS2/DS2_Frontend/e2e/.browsers
+export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:3334/
+npm test -- --reporter=list
 ```
 
-Dependencies and the headless Chromium binary have already been installed in this checkout. For subsequent runs: `cd DS2_Frontend/e2e && npm test`.
+Keep both variables set for every Playwright invocation, including the examples below. Dependencies are installed. The configuration uses one worker; the external browser accepts at most four concurrent clients. If port 3334 stops answering, report the browser run as OPEN rather than attempting a sandbox workaround.
 
 Requires Node 20+, `psql`, `unzip`, and installed backend dependencies. The suite imports the backend's `jsonwebtoken`, `dotenv`, XLSX parser, and S3 SDK straight out of `DS2_Backend/node_modules`, and reads `DS2_Backend/.env.local` without printing the JWT secret. It never starts or edits either application. `lib/paths.js` first locates the suite's own frontend checkout (the nearest ancestor named `DS2_Frontend`) and then uses the `DS2_Backend` beside it (a nested worktree can therefore never borrow an unrelated outer checkout's backend, dependencies or `.env.local`; it fails with a clear error instead). `DS2_BACKEND_DIR=/path/to/DS2_Backend` selects another backend checkout explicitly and works even when no sibling backend exists; the override must contain `package.json`. `lib/auth.js`, `lib/storage.js`, `lib/tracker.js`, and `lib/preflight.js` (the modules that reach into the backend checkout) use it, rather than assuming a fixed relative depth.
 
@@ -42,7 +44,7 @@ One worker and no automatic retries are intentional: financial flows must not be
 
 ## Coverage
 
-69 tests total: 69 active, 0 `test.fixme`. All nine of the product defects previously tracked here as `test.fixme` were fixed this session — see REVIEW_RESULTS.md for what changed. Two consecutive full `npm test` runs are green (0 failed) as of this table.
+114 active tests, no `test.fixme`: the original 69, five owner-decision checks, and 40 Pass 4 mistake cases. The current hand-computed oracles, defects, backend refusal mapping and fresh execution counts are in [ui-mistakes.md](../../DS2_Backend/docs/scenarios/ui-mistakes.md) and [RESULTS-PASS4.md](../../DS2_Backend/docs/scenarios/RESULTS-PASS4.md). REVIEW_RESULTS.md retains the earlier 69-test execution history.
 
 | Spec | Pass | Fixme | Browser coverage |
 | --- | ---: | ---: | --- |
@@ -51,8 +53,8 @@ One worker and no automatic retries are intentional: financial flows must not be
 | `auth-and-navigation.spec.js` | 23 | 0 | Cookie/session restoration, reload, all 21 admin sidebar leaves, console/page errors, error Alerts, expired-marker redirect |
 | `customer-profile.spec.js` | 3 | 0 | Invoices/Transactions/Jobs/Payments/Retainers and PrePayments/Edit Customer Profile sub-tabs all render the right rows for a customer created in-test; a two-word first name splits into the correct First/Last Name fields; a nonexistent customer id shows an error state instead of hanging on Loading |
 | `customers.spec.js` | 1 | 0 | Create, profile, edit city while preserving a multi-word name, search, delete |
-| `edit-flows.spec.js` | 2 | 0 | Billed time-entry delete refusal ("Transaction is attached to an invoice…"); Pending Payments' Processed/All Payments/Upload tabs |
-| `invoices-quotes.spec.js` | 4 | 0 | Invoice detail (number, Total Amount Due, Amount Remaining, Payments/Write Offs sub-tabs); the Quotes list renders (not stuck on Loading) with an empty-state grid; Accounts Receivable age-filter chips for account 9001; Account Audit admin refusal (super-admin gate) |
+| `edit-flows.spec.js` | 2 | 0 | Sent time-entry lock notice and invoice-history link; Pending Payments' Processed/All Payments/Upload tabs |
+| `invoices-quotes.spec.js` | 4 | 0 | Frozen invoice detail and membership, separately updated current balance; the Quotes list renders (not stuck on Loading) with an empty-state grid; Accounts Receivable age-filter chips for account 9001; Account Audit admin refusal (super-admin gate) |
 | `jobs-and-transactions.spec.js` | 1 | 0 | Create job, 0.3 hours at Eliza Smith's $75 rate = $22.50, $20 charge, grid totals, charge/time/job/customer UI deletion |
 | `jobs-list.spec.js` | 2 | 0 | Delete guard ("re-parent…") + disabled Delete Job while a transaction is linked, then a clean delete once cleared; edit a job (rename via Job Notes, mark complete) through the "Edit Job" tab |
 | `master-data.spec.js` | 7 | 0 | Job Categories/Types/Work Descriptions add + delete through their dialogs (duplicate-name behavior documented — no refusal exists, see Coverage notes); each type's edit through its "Edit ..." tab; a failed Work Description submission shows its error Alert |
@@ -62,6 +64,12 @@ One worker and no automatic retries are intentional: financial flows must not be
 | `role-matrix.spec.js` | 3 | 0 | Employee identity: sidebar leaf links stay visible but Customers/Transactions/Invoices/Jobs are refused; backend independently 403s the same request; Time Tracking upload/history stay reachable while Settings/Transaction Review/Employee Trackers do not |
 | `time-tracker-upload.spec.js` | 1 | 0 | XLSX browser upload for 90013, success message, history row, all entries unprocessed/pending with AI off |
 | `time-tracking-admin.spec.js` | 4 | 0 | Update Master Tracker Template admin refusal (super-admin gate); customer AI Audit tab refusal + hidden tab; 404 page; Dashboard renders its "Welcome" heading exactly once |
+| `path-matrix-owner-decisions.spec.js` | 5 | 0 | Draft versus sent boundary, refund limits, locked duplicate removal, immutable Audit Record and employee refusal |
+| `user-mistakes-financial.spec.js` | 19 | 0 | Five financial forms: pending doubles, invalid/empty values, abandon/back, transport failure/retry; signed credit inputs, long note, month-boundary date |
+| `user-mistakes-decisions.spec.js` | 7 | 0 | Double finalize; stale delete/payment; explicit credit; duplicate review; exception/revision preserving original bytes; all four sent detail screens |
+| `user-mistakes-audit.spec.js` | 6 | 0 | Both PDF print/list/reopen/verify options; readable tab and collapsed client archive lines; dates; API validation/tamper/tenant/employee refusal; transport failure; read-only super-admin tab |
+| `user-mistakes-navigation.spec.js` | 2 | 0 | 26-charge pagination/filter edges and audit balance; retainer adjustments and stale refund refusal |
+| `user-mistakes-delete.spec.js` | 6 | 0 | Eligible financial deletion: cancel, transport failure and explicit retry; failed retainer linked-payment lookup keeps Delete unavailable; linked root disables Delete and used draw refuses |
 
 The app makes CSV-only and finalization mutually exclusive. Month-end therefore downloads a CSV preview first, verifies it creates no invoice parent, then finalizes and checks the PDF archive. The same-day guard is tested using a second browser submission, not a fabricated HTTP request.
 
@@ -74,7 +82,7 @@ The upload helper copies `DS2_Backend/test/fixtures/timetrackers/clean.xlsx` in 
 - **Transaction/Payment/Retainer/Write-Off edit flows**: `TransactionSubRoutes.js`, `PaymentSubRoutes.js`, `RetainerSubRoutes.js` and `WriteOffSubRoutes.js` each comment out their `editX` route with an explicit "Edit ... is not implemented yet" — a deliberate, acknowledged gap, not a defect. Delete-refusal coverage exists for the transaction case (`edit-flows.spec.js`); payment's own refusal (superseded-by-reversal) is covered by `payments-writeoffs-retainers.spec.js`.
 - **Quotes create/delete**: no UI path exists at all (`QuotesGrid.js` has no buttons, no row click); the backend's quote create/update/delete endpoints are never called from the frontend, and no form exists to build one from — genuinely unsupported in the UI today, not fabricated here. (The separate "stuck on permanent Loading" defect on `/invoices/quotes` itself was fixed this session — see REVIEW_RESULTS.md — so the read-only list now renders correctly; only create/delete remain uncovered.)
 - **Pending Payments review dialog**: needs real pending-payment rows from a separate bank-feed/CSV subsystem this task didn't otherwise touch; not constructed. The page's other three tabs are confirmed reachable.
-- **Retainer/write-off "drawn upon" delete refusal**: `retainer-logic.js`'s `deleteRetainerCore` has a real, different refusal ("This retainer has already been drawn on…") for a retainer that funded a transaction/payment; not covered due to time and the backend's payments/retainer ledger code being under active concurrent revision during this session.
+- **Used-retainer deletion**: now covered in `user-mistakes-delete.spec.js`: $25 funds $20 work, leaves $5 available, disables Delete on the linked root and refuses deleting the draw with originating-entry guidance. The backend suites separately cover child/reference/cancellation/event/sent refusals.
 
 ## Identity and cleanup
 
@@ -90,7 +98,7 @@ After an interrupted process, use the exact prefix from the report:
 node lib/cleanup.js E2E_1234567890123_abcdef
 ```
 
-This recovers database-linked invoice images and uploads. A hard kill before a batch ZIP response is recorded can leave that unattached MinIO ZIP; normal teardown tracks and deletes response keys.
+This recovers database-linked invoice images/revisions, Audit Record PDFs/evidence and uploads. Local teardown disables immutable-table triggers only inside its guarded account 9001 E2E-prefix transaction; audit_events and audit_chain_heads remain intact. A hard kill before a batch ZIP response is recorded can leave that unattached MinIO ZIP; normal teardown tracks and deletes response keys.
 
 ## Reports and product defects
 

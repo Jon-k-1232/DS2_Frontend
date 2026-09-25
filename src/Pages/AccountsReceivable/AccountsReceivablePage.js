@@ -48,7 +48,7 @@ const COLUMNS = [
    { field: 'bucket_61_90', label: '61–90 days', align: 'right' },
    { field: 'bucket_over_90', label: '> 90 days', align: 'right' },
    { field: 'oldest_days', label: 'Days old', align: 'right' },
-   { field: 'total_outstanding', label: 'Total owed', align: 'right' },
+   { field: 'total_outstanding', label: 'Balance / credit', align: 'right' },
    { field: 'last_payment_date', label: 'Last payment', align: 'left' },
    { field: 'has_work_since_last_payment', label: 'Work since pmt', align: 'center' }
 ];
@@ -64,7 +64,7 @@ const fmtDate = v => {
 };
 
 const bucketCell = amount => {
-   if (!amount || Number(amount) <= 0.005) {
+   if (!amount || Math.abs(Number(amount)) < 0.005) {
       return (
          <Typography variant='body2' color='text.disabled' sx={{ fontVariantNumeric: 'tabular-nums' }}>
             —
@@ -292,13 +292,13 @@ export default function AccountsReceivablePage() {
                               <TableCell align='right'>{bucketCell(r.bucket_31_60)}</TableCell>
                               <TableCell align='right'>{bucketCell(r.bucket_61_90)}</TableCell>
                               <TableCell align='right'>
-                                 {r.bucket_over_90 > 0.005 ? (
+                                 {Math.abs(r.bucket_over_90) > 0.005 ? (
                                     <Typography
                                        variant='body2'
                                        sx={{
                                           fontVariantNumeric: 'tabular-nums',
                                           fontWeight: 600,
-                                          color: 'error.main'
+                                          color: r.total_outstanding < 0 ? 'info.main' : 'error.main'
                                        }}
                                     >
                                        {fmtCurrency(r.bucket_over_90)}
@@ -314,7 +314,7 @@ export default function AccountsReceivablePage() {
                                     variant='body2'
                                     sx={{
                                        fontVariantNumeric: 'tabular-nums',
-                                       color: r.oldest_days > 90 ? 'error.main' : r.oldest_days > 60 ? 'warning.main' : 'text.primary'
+                                       color: r.total_outstanding < 0 ? 'info.main' : r.oldest_days > 90 ? 'error.main' : r.oldest_days > 60 ? 'warning.main' : 'text.primary'
                                     }}
                                  >
                                     {r.oldest_days ?? '—'}
@@ -325,6 +325,7 @@ export default function AccountsReceivablePage() {
                                  sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
                               >
                                  {fmtCurrency(r.total_outstanding)}
+                                 {r.total_outstanding < 0 && <Typography variant='caption' display='block' color='info.main'>Credit — no payment due</Typography>}
                               </TableCell>
                               <TableCell>
                                  <Stack spacing={0}>

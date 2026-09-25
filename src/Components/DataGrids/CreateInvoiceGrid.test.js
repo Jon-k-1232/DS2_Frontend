@@ -24,7 +24,7 @@ const gridData = {
 // entirely (guard only fired when more than one id was added at once) and
 // submitted it anyway.
 describe('CreateInvoiceGrid — bulk selection excludes billed-today rows, individual selection does not', () => {
-   const headerCheckbox = () => screen.getByRole('checkbox', { name: 'Select all visible customers not billed today' });
+   const headerCheckbox = () => screen.getByRole('checkbox', { name: 'Select all visible debit or zero customers not billed today' });
 
    it('header select-all with one fresh and one billed-today row submits only the fresh one, and the UI shows the same', () => {
       const setSelectedRowsToInvoice = jest.fn();
@@ -92,7 +92,7 @@ describe('CreateInvoiceGrid — header checkbox keyboard operation and accessibl
          { customer_id: 20, display_name: 'Billed', invoice_total: 100, billed_today: true }
       ]
    };
-   const headerCheckbox = () => screen.getByRole('checkbox', { name: 'Select all visible customers not billed today' });
+   const headerCheckbox = () => screen.getByRole('checkbox', { name: 'Select all visible debit or zero customers not billed today' });
 
    it('Space on the focused header checkbox selects all eligible rows, and Space again deselects them', () => {
       const setSelectedRowsToInvoice = jest.fn();
@@ -172,4 +172,48 @@ describe('CreateInvoiceGrid — header checkbox keyboard operation and accessibl
       expect(setSelectedRowsToInvoice.mock.calls.at(-1)[0].map(row => row.customer_id)).toEqual([10]);
       expect(headerCheckbox()).toHaveAttribute('aria-checked', 'mixed');
    });
+});
+
+it('keeps zero-dollar customers with pending retainer events selectable',()=>{
+ const selected=jest.fn();
+ const data={columns:[{field:'customer_id',headerName:'ID'},{field:'display_name',headerName:'Customer'},{field:'invoice_total',headerName:'Total'}],rows:[{customer_id:55,display_name:'Refund statement',invoice_total:0,retainer_event_count:1,billed_today:false}]};
+ render(<CreateInvoiceGridTable gridData={data} setSelectedRowsToInvoice={selected}/>);
+ const row=screen.getByRole('row',{name:/Refund statement/});fireEvent.click(within(row).getByRole('checkbox',{name:'Select row'}));
+ expect(selected.mock.calls.at(-1)[0].map(r=>r.customer_id)).toEqual([55]);
+});
+
+describe('owner decision 2: explicit credit selection', () => {
+   const creditGrid = {columns:[{field:'display_name',headerName:'Customer'},{field:'invoice_total',headerName:'Total'}],rows:[
+      {customer_id:1,display_name:'Debit client',invoice_total:100},
+      {customer_id:2,display_name:'Credit client',invoice_total:-25,is_credit_statement:true}
+   ]};
+   it('shows credit, excludes it from bulk selection and includes it only after an individual choice',()=>{
+      const onSelect=jest.fn();render(<CreateInvoiceGridTable gridData={creditGrid} setSelectedRowsToInvoice={onSelect}/>);
+      expect(onSelect.mock.calls.at(-1)[0]).toEqual([]);
+      expect(screen.getByText(/Credit balances are not selected/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('checkbox',{name:'Select all visible debit or zero customers not billed today'}));
+      expect(onSelect.mock.calls.at(-1)[0].map(r=>r.customer_id)).toEqual([1]);
+      const row=screen.getByRole('row',{name:/Credit client/});
+      fireEvent.click(within(row).getByRole('checkbox',{name:'Select row'}));
+      expect(onSelect.mock.calls.at(-1)[0].find(r=>r.customer_id===2)).toMatchObject({includeCreditStatement:true,invoice_total:-25});
+      expect(onSelect.mock.calls.at(-1)[0].find(r=>r.customer_id===2).issueReason).toMatch(/explicitly selected credit/);
+      fireEvent.click(within(row).getByRole('checkbox',{name:'Unselect row'}));
+      expect(onSelect.mock.calls.at(-1)[0].map(r=>r.customer_id)).toEqual([1]);
+   });
+   it('never selects a sole credit by keyboard bulk selection',()=>{
+      const onSelect=jest.fn();render(<CreateInvoiceGridTable gridData={{...creditGrid,rows:[creditGrid.rows[1]]}} setSelectedRowsToInvoice={onSelect}/>);
+      const header=screen.getByRole('checkbox',{name:'Select all visible debit or zero customers not billed today'});
+      expect(header).toBeDisabled();fireEvent.keyDown(header,{key:' '});expect(onSelect.mock.calls.at(-1)[0]).toEqual([]);
+   });
+});
+
+it('a selected debit becoming credit after refresh does not silently gain credit authorization',()=>{
+ const onSelect=jest.fn();const positive={columns:[{field:'display_name',headerName:'Customer'}],rows:[{customer_id:1,display_name:'Changing balance',invoice_total:25}]};
+ const {rerender}=render(<CreateInvoiceGridTable gridData={positive} setSelectedRowsToInvoice={onSelect}/>);
+ fireEvent.click(screen.getByRole('checkbox',{name:'Select all visible debit or zero customers not billed today'}));
+ const credit={...positive,rows:[{...positive.rows[0],invoice_total:-25}]};
+ rerender(<CreateInvoiceGridTable gridData={credit} setSelectedRowsToInvoice={onSelect}/>);
+ expect(onSelect.mock.calls.at(-1)[0][0].includeCreditStatement).toBe(false);
+ const row=screen.getByRole('row',{name:/Changing balance/});fireEvent.click(within(row).getByRole('checkbox',{name:'Unselect row'}));fireEvent.click(within(row).getByRole('checkbox',{name:'Select row'}));
+ expect(onSelect.mock.calls.at(-1)[0][0].includeCreditStatement).toBe(true);
 });

@@ -1,3 +1,5 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
+import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Table, TableBody, TableCell, TableContainer, TableRow, Alert } from '@mui/material';
 import { deleteWriteOff } from '../../../../Services/ApiCalls/DeleteCalls';
@@ -23,36 +25,38 @@ export default function DeleteWriteOff({ customerData, setCustomerData, writeOff
 
    const [selectedItems, setSelectedItems] = useState(initialState);
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
    const { writeoffID, writeoffDate, writeoffAmount, customerID, customerTransactionID, customerInvoiceID, customerJobID } = selectedItems || {};
 
-   const { customersList: { activeCustomerData: { activeCustomers } = [] } = [], accountJobsList: { activeJobData: { activeJobs } = [] } = [] } = { ...customerData };
+   const activeCustomers = customerData?.customersList?.activeCustomerData?.activeCustomers || [];
+   const activeJobs = customerData?.accountJobsList?.activeJobData?.activeJobs || [];
 
    const { writeoff_id, writeoff_date, writeoff_amount, transaction_type, customer_id, transaction_id, customer_invoice_id, customer_job_id } = writeOffData || {};
 
    useEffect(() => {
-      if (writeOffData) {
+      if (writeoff_id && !writeOffData.sent_locked) {
          setSelectedItems({
-            ...selectedItems,
+            ...initialState,
             writeoffID: writeoff_id,
             writeoffDate: dayjs(writeoff_date),
             writeoffAmount: writeoff_amount,
             transactionType: transaction_type,
-            customerID: activeCustomers.find(customer => customer.customer_id === customer_id),
+            customerID: activeCustomers.find(customer => customer.customer_id === customer_id) || { customer_id, display_name: writeOffData.customer_name },
             customerTransactionID: transaction_id,
             customerInvoiceID: customer_invoice_id,
-            customerJobID: activeJobs.find(job => job.customer_job_id === customer_job_id)
+            customerJobID: activeJobs.find(job => job.customer_job_id === customer_job_id) || { customer_job_id }
          });
       }
       // eslint-disable-next-line
-   }, [writeOffData]);
+   }, [writeOffData, customerData]);
 
    const handleSubmit = () => {
       setIsConfirmationOpen(true);
    };
 
-   const handleConfirmation = async () => {
+   const handleConfirmation = () => submit(async () => {
       setIsConfirmationOpen(false);
       const dataToPost = formObjectForWriteOffPost(selectedItems, loggedInUser);
       const postedItem = await deleteWriteOff(dataToPost, accountID, userID);
@@ -65,11 +69,13 @@ export default function DeleteWriteOff({ customerData, setCustomerData, writeOff
          setCustomerData({ ...customerData, writeOffsList: postedItem.writeOffsList, invoicesList: postedItem.invoicesList });
          navigate('/transactions/customerWriteOffs');
       }
-   };
+   });
 
    const handleCancel = () => {
       setIsConfirmationOpen(false);
    };
+
+   if (writeOffData?.sent_locked) return <SentInvoiceNotice row={writeOffData} />;
 
    return (
       <>
@@ -110,7 +116,7 @@ export default function DeleteWriteOff({ customerData, setCustomerData, writeOff
             </TableContainer>
 
             <Box style={{ margin: '10px', textAlign: 'center' }}>
-               <Button onClick={handleSubmit}>Delete Write-off</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>Delete Write-off</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
             </Box>
 
@@ -119,7 +125,7 @@ export default function DeleteWriteOff({ customerData, setCustomerData, writeOff
                <DialogContent>Are you sure you want to delete this write-off?</DialogContent>
                <DialogActions>
                   <Button onClick={handleCancel}>Cancel</Button>
-                  <Button onClick={handleConfirmation} color='error'>
+                  <Button onClick={handleConfirmation} disabled={submitting} color='error'>
                      Delete
                   </Button>
                </DialogActions>

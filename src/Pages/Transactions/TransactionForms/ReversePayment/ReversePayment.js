@@ -1,3 +1,4 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useContext } from 'react';
 import { Box, Stack, Typography, TextField, Button, Alert, Paper } from '@mui/material';
 import dayjs from 'dayjs';
@@ -57,6 +58,8 @@ export default function ReversePayment({ paymentData, customerData, setCustomerD
    if (!hasPayment) {
       return <Alert severity='info'>Select a payment from the Payments grid first.</Alert>;
    }
+
+   if (paymentData?.sent_locked) return <SentInvoiceNotice row={paymentData} />;
 
    return (
       <Box sx={{ maxWidth: 480 }}>

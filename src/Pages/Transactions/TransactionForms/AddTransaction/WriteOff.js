@@ -1,3 +1,4 @@
+import useFinancialSubmit, { validateFinancialForm } from './FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext } from 'react';
 import { Box, Button, Typography, Alert } from '@mui/material';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
@@ -27,22 +28,22 @@ export default function WriteOff({ customerData, setCustomerData }) {
    const { accountID, userID } = loggedInUser;
 
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [selectedItems, setSelectedItems] = useState(initialState);
 
    const { unitCost, quantity } = selectedItems;
 
-   const handleSubmit = async () => {
+   const handleSubmit = () => submit(async () => {
       const dataToPost = formObjectForWriteOffPost(selectedItems, loggedInUser);
       const postedItem = await postNewWriteOff(dataToPost, accountID, userID);
 
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, writeOffsList: postedItem.writeOffsList, invoicesList: postedItem.invoicesList });
       }
-   };
+   }, validateFinancialForm(selectedItems, 'WriteOff'));
 
    return (
       <>
@@ -78,7 +79,7 @@ export default function WriteOff({ customerData, setCustomerData }) {
             <Typography>Total: {formatTotal(quantity * unitCost)}</Typography>
 
             <Box style={{ textAlign: 'center' }}>
-               <Button onClick={handleSubmit}>Submit</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit'}</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
             </Box>
          </Box>

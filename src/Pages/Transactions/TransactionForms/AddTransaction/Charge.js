@@ -1,3 +1,5 @@
+import useFinancialSubmit, { validateFinancialForm } from './FormSubComponents/useFinancialSubmit';
+import { priceQuantity } from './FormSubComponents/TimeTrackingIncrements';
 import React, { useState, useContext } from 'react';
 import { Box, Button, Typography, Alert } from '@mui/material';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
@@ -29,17 +31,17 @@ export default function Charge({ customerData, setCustomerData }) {
    const { accountID, userID } = loggedInUser;
 
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [selectedItems, setSelectedItems] = useState(initialState);
    const { unitCost, quantity } = selectedItems;
 
-   const handleSubmit = async () => {
+   const handleSubmit = () => submit(async () => {
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser, 'Charge');
       const postedItem = await postTransaction(dataToPost, accountID, userID);
 
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({
             ...customerData,
@@ -49,7 +51,7 @@ export default function Charge({ customerData, setCustomerData }) {
             paymentsList: postedItem.paymentsList
          });
       }
-   };
+   }, validateFinancialForm(selectedItems, 'Charge'));
 
    return (
       <>
@@ -65,10 +67,10 @@ export default function Charge({ customerData, setCustomerData }) {
 
          <ChargeOptions customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 
-         <Typography variant='body1'>Total: {formatTotal(quantity * unitCost)}</Typography>
+         <Typography variant='body1'>Total: {formatTotal(priceQuantity(quantity, unitCost))}</Typography>
 
          <Box style={{ textAlign: 'center' }}>
-            <Button onClick={handleSubmit}>Submit</Button>
+            <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit'}</Button>
             {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
          </Box>
       </>

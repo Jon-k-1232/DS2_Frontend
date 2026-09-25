@@ -30,14 +30,7 @@ describe('handleTimeCalculation', () => {
       expect(updatesAfterSwitch.quantity).toBeCloseTo(1.1);
    });
 
-   it('derives minutes from the SAME rounded hours used for quantity/total, not the raw typed duration', () => {
-      // Manual Submission (ReviewBillingDialog -> applyHeldEntry) sends
-      // `minutes` as duration_minutes, and the backend derives its OWN
-      // hours/total from that value alone (billingReview-service.js:
-      // hours = round2(duration_minutes / 60)). If minutes were left as the
-      // raw 63, the backend would compute 1.05h — a different number than the
-      // 1.1h quantity/Total already shown on screen from the 6-minute-
-      // increment rounding below.
+   it('preserves raw minutes while every billing path applies the six-minute rule', () => {
       const updates = {};
       const updateSelectedItems = (key, value) => {
          updates[key] = value;
@@ -46,8 +39,8 @@ describe('handleTimeCalculation', () => {
       handleTimeCalculation(63, memberAt(150), dayjs(), dayjs(), updateSelectedItems);
 
       expect(updates.quantity).toBeCloseTo(1.1);
-      expect(updates.minutes).toBe(Math.round(updates.quantity * 60));
-      expect(updates.minutes).toBe(66);
+      expect(updates.minutes).toBe(63);
+      expect(updates.quantity).toBe(1.1);
    });
 
    it('resets minutes (not just quantity/unitCost) when the duration is cleared', () => {

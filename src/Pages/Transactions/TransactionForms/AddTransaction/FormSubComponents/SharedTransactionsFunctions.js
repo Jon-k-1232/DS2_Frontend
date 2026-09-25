@@ -18,7 +18,7 @@ export const handleBillableStatus = (customer, isInAdditionToMonthlyCharge, curr
  * Perform the time calculation and update the parent state's quantity & unitCost
  */
 export const handleTimeCalculation = (minuteDuration, selectedTeamMember, startTime, endTime, updateSelectedItems) => {
-   if (!selectedTeamMember || !minuteDuration || isNaN(minuteDuration)) {
+   if (!selectedTeamMember || !(Number(minuteDuration) > 0) || !Number.isFinite(Number(minuteDuration))) {
       updateSelectedItems('quantity', 1);
       updateSelectedItems('unitCost', 0);
       // Clear the stale duration too, so a cleared/invalid hours field can't
@@ -38,13 +38,9 @@ export const handleTimeCalculation = (minuteDuration, selectedTeamMember, startT
    if (!isNaN(loggedTime) && !isNaN(employeeRate)) {
       updateSelectedItems('quantity', loggedTime);
       updateSelectedItems('unitCost', employeeRate);
-      // `minutes` must be derived from the SAME rounded hours the displayed
-      // Total uses (loggedTime), not the raw typed duration — Manual
-      // Submission (ReviewBillingDialog -> applyHeldEntry) sends `minutes` as
-      // duration_minutes, and the backend derives ITS OWN quantity/total from
-      // that value alone. Sending the pre-rounding raw minutes here would let
-      // the backend save a different quantity/total than what was on screen.
-      updateSelectedItems('minutes', Math.round(loggedTime * 60));
+      // Preserve the entered duration; every billing path applies the same
+      // six-minute rule, while tracker analytics can still show actual time.
+      updateSelectedItems('minutes', Number(minuteDuration));
    }
 };
 

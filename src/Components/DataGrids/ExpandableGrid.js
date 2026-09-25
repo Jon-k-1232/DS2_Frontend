@@ -1,3 +1,4 @@
+import { withSentLockColumn } from './sentLockColumn';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
@@ -141,7 +142,7 @@ const ExpandableGrid = ({
 
    return (
       <Box sx={{ height: passedHeight ? passedHeight : 680, width: 1 }}>
-         <DataGrid rows={flattenedData ? flattenedData : []} columns={columns ? dynamicColumns : []} {...gridProps} />
+         <DataGrid rows={flattenedData ? flattenedData : []} columns={withSentLockColumn(columns ? dynamicColumns : [], flattenedData || [])} {...gridProps} />
       </Box>
    );
 };

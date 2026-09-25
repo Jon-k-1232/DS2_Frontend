@@ -1,3 +1,4 @@
+import PossibleDuplicates from '../../../Pages/Transactions/Duplicates/PossibleDuplicates';
 import React, { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import TransactionsGrid from '../../../Pages/Transactions/TransactionGrids/TransactionsGrid';
@@ -24,6 +25,7 @@ export default function TransactionsRoutes({ setPageTitle, customerData, setCust
       <Page style={{ paddingTop: 0 }}>
          <Stack style={{ padding: '20px' }}>
             <Routes>
+               <Route path='possibleDuplicates' element={<ManagerAndAdminProtectedAccessRoute><PossibleDuplicates /></ManagerAndAdminProtectedAccessRoute>} />
                <Route path='customerTransactions' element={<TransactionsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='customerPayments' element={<PaymentsGrid customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />
                <Route path='pendingPayments' element={<PendingPaymentsPage customerData={customerData} setCustomerData={data => setCustomerData(data)} />} />

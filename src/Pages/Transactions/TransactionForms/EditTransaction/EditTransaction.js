@@ -1,3 +1,5 @@
+import { priceQuantity } from '../AddTransaction/FormSubComponents/TimeTrackingIncrements';
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { context } from '../../../../App';
@@ -66,6 +68,7 @@ export default function EditTransaction({ customerData, setCustomerData, transac
          setSelectedItems({
             ...selectedItems,
             transactionID: transaction_id,
+            quantity: Number(transactionData.quantity),
             selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
             selectedJob: activeJobs.find(job => job.customer_job_id === customer_job_id),
             selectedTeamMember: activeUsers.find(user => user.user_id === logged_for_user_id),
@@ -107,6 +110,8 @@ export default function EditTransaction({ customerData, setCustomerData, transac
       }
    };
 
+   if (transactionData?.sent_locked) return <SentInvoiceNotice row={transactionData} />;
+
    return (
       <>
          <Box style={{ width: 'fit-content' }}>
@@ -130,7 +135,7 @@ export default function EditTransaction({ customerData, setCustomerData, transac
             {transactionType.toUpperCase() === 'TIME' && <TimeOptions customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />}
 
             <Typography style={{ marginTop: '10px', fontSize: '18px' }} variant='body1'>
-               Total: {formatTotal(quantity * unitCost)}
+               Total: {formatTotal(priceQuantity(quantity, unitCost))}
             </Typography>
 
             <Box style={{ margin: '10px', textAlign: 'center' }}>

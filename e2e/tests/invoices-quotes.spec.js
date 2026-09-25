@@ -3,10 +3,10 @@ const { billedCustomer, finalize, openForm, closeForm, choose, submit, routes } 
 const { rows } = require('../lib/db');
 
 test.describe('Invoice detail', () => {
-  test('a finalized statement shows its number, amount due, and lists its payment and write-off', async ({ page, prefix }) => {
+  test('an issued statement stays frozen while later receipts change its separately displayed current balance', async ({ page, prefix }) => {
     const customer = await billedCustomer(page, prefix);
     await finalize(page, customer);
-    const [invoice] = rows(`SELECT invoice_number FROM customer_invoices WHERE account_id=9001 AND customer_id=${customer.id} AND parent_invoice_id IS NULL`);
+    const [invoice] = rows(`SELECT customer_invoice_id,invoice_number FROM customer_invoices WHERE account_id=9001 AND customer_id=${customer.id} AND parent_invoice_id IS NULL`);
 
     let d = await openForm(page, routes.payments, 'New Payment');
     await choose(page, d, 'Select Customer', customer.name);
@@ -31,35 +31,30 @@ test.describe('Invoice detail', () => {
 
     await page.goto(routes.invoices);
     await page.getByPlaceholder('Search invoices').fill(invoice.invoice_number);
-    // InvoicesGrid.js never passes getRowId, so every row's data-id is the
-    // literal string "undefined-undefined" (see lib/ui.js's own note on this)
-    // — .first() is fine here since the search narrows to just this number's
-    // parent + child snapshot rows, and routeToPass is a fixed string, not
-    // keyed by which specific row you click.
-    await page.getByRole('row').filter({ hasText: invoice.invoice_number }).first().click();
+    await page.locator(`[role="row"][data-id="${invoice.customer_invoice_id}"]`).click();
     await expect(page).toHaveURL(/invoiceDetail\/invoiceTransactions$/);
     // InvoiceDetails.js renders three side-by-side <table>s: contact info
     // (customer name/address), invoice identity (invoice number/dates), and
     // totals (beginning balance..amount due) — the invoice number is in the
     // second one.
     await expect(page.getByRole('table').nth(1)).toContainText(invoice.invoice_number);
-    // Total Amount Due (22.50) is the gross original charge and does not
-    // move; Amount Remaining is the live post-payment/write-off balance.
+    // These receipts arrived after finalize. They change current debt but
+    // cannot rewrite the original issued totals or its frozen membership.
     const totals = page.getByRole('table').nth(2);
     await expect(totals).toContainText('Total Amount Due:22.50');
-    await expect(totals).toContainText('Total Payments:-5.00');
-    await expect(totals).toContainText('Total Write Offs:-2.00');
-    await expect(totals).toContainText('Amount Remaining:15.50');
+    await expect(totals).toContainText('Total Payments:0.00');
+    await expect(totals).toContainText('Total Write Offs:0.00');
+    await expect(totals).toContainText('Current balance:15.5');
 
     await page.getByRole('tab', { name: 'Payments', exact: true }).click();
     await expect(page).toHaveURL(/invoiceDetail\/invoicePayments$/);
-    await expect(page.getByRole('grid').locator('[role="row"][data-id]')).toHaveCount(1);
-    await expect(page.getByRole('grid')).toContainText('-5.00');
+    await expect(page.getByRole('grid').locator('[role="row"][data-id]')).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Write Offs', exact: true }).click();
     await expect(page).toHaveURL(/invoiceDetail\/invoiceWriteOffs$/);
-    await expect(page.getByRole('grid').locator('[role="row"][data-id]')).toHaveCount(1);
-    await expect(page.getByRole('grid')).toContainText('-2.00');
+    await expect(page.getByRole('grid').locator('[role="row"][data-id]')).toHaveCount(0);
+    expect(rows(`SELECT payment_amount FROM customer_payments WHERE account_id=9001 AND customer_id=${customer.id}`).map(r=>Number(r.payment_amount))).toEqual([-5]);
+    expect(rows(`SELECT writeoff_amount FROM customer_writeoffs WHERE account_id=9001 AND customer_id=${customer.id}`).map(r=>Number(r.writeoff_amount))).toEqual([-2]);
   });
 });
 

@@ -69,6 +69,11 @@ export const sidebarRoutes = [
             icon: getIcon(clockFill)
          },
          {
+            title: 'Possible duplicates',
+            path: '/transactions/possibleDuplicates',
+            icon: getIcon(clockFill)
+         },
+         {
             title: 'Pending Payments',
             path: '/transactions/pendingPayments',
             icon: getIcon(clockFill)

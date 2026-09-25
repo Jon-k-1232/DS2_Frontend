@@ -1,3 +1,4 @@
+import { priceQuantity } from '../../Pages/Transactions/TransactionForms/AddTransaction/FormSubComponents/TimeTrackingIncrements';
 import dayjs from 'dayjs';
 
 // Calendar-date-only formatter. A raw dayjs object (or a `.format()` call with
@@ -59,7 +60,7 @@ export const formObjectForTransactionPost = (selectedItems, loggedInUser) => {
       customerJobID: filteredItems.selectedJob?.customer_job_id,
       loggedForUserID: filteredItems.selectedTeamMember?.user_id,
       transactionDate: formatCalendarDate(filteredItems.selectedDate),
-      totalTransaction: (filteredItems.quantity * filteredItems.unitCost).toFixed(2),
+      totalTransaction: priceQuantity(filteredItems.quantity, filteredItems.unitCost).toFixed(2),
       selectedRetainerID: filteredItems?.selectedRetainer?.retainer_id || null,
       transactionType: filteredItems?.transactionType,
       quantity: filteredItems?.quantity,

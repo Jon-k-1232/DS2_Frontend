@@ -11,6 +11,8 @@ import EditCustomerProfile from '../../../Pages/Customer/CustomerProfile/EditCus
 import CustomerRetainers from '../../../Pages/Customer/CustomerProfile/CustomerRetainers';
 import CustomerProfilePayments from '../../../Pages/Customer/CustomerProfile/CustomerProfilePayments';
 import CustomerProfileAIAudit from '../../../Pages/Customer/CustomerProfile/CustomerProfileAIAudit';
+import CustomerProfileAuditRecord from '../../../Pages/Customer/CustomerProfile/CustomerProfileAuditRecord';
+import AuditRecordProtectedAccess, { canAccessAuditRecord } from '../../AuditRecordProtectedAccess';
 import AuditorProtectedAccessRoute, { canAccessAccountAudit } from '../../AuditorProtectedAccess';
 import { context } from '../../../App';
 
@@ -35,7 +37,7 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
    const basePath = customerID ? `/customers/customersList/customerProfile/${customerID}` : '/customers/customersList/customerProfile';
 
    const menuOptions = useMemo(
-      () => fetchMenuOptions(navigate, canAccessAccountAudit(loggedInUser), basePath),
+      () => fetchMenuOptions(navigate, canAccessAccountAudit(loggedInUser), basePath, canAccessAuditRecord(loggedInUser)),
       [navigate, loggedInUser, basePath]
    );
 
@@ -93,7 +95,7 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
             <Route path='customerTransactions' element={<CustomerProfileTransactions profileData={profileData} />} />
             <Route path='customerJobs' element={<CustomerProfileJobs profileData={profileData} setCustomerData={setCustomerData} />} />
             <Route path='customerPayments' element={<CustomerProfilePayments profileData={profileData} />} />
-            <Route path='retainersAndPrePayments' element={<CustomerRetainers profileData={profileData} />} />
+            <Route path='retainersAndPrePayments' element={<CustomerRetainers profileData={profileData} onChanged={() => setCallProfileData(new Date())} />} />
             <Route
                path='aiAudit'
                element={
@@ -114,12 +116,13 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
                   />
                }
             />
+            <Route path='auditRecord' element={<AuditRecordProtectedAccess><CustomerProfileAuditRecord profileData={profileData} /></AuditRecordProtectedAccess>} />
          </Routes>
       </>
    );
 }
 
-const fetchMenuOptions = (navigate, showAudit, basePath) => [
+export const fetchMenuOptions = (navigate, showAudit, basePath, showAuditRecord = false) => [
    {
       display: 'Invoices',
       value: 'customerInvoices',
@@ -160,6 +163,7 @@ const fetchMenuOptions = (navigate, showAudit, basePath) => [
            }
         ]
       : []),
+   ...(showAuditRecord ? [{display:'Audit Record',value:'auditRecord',route:`${basePath}/auditRecord`,onClick:()=>navigate(`${basePath}/auditRecord`)}] : []),
    {
       display: 'Edit Customer Profile',
       value: 'editCustomerProfile',

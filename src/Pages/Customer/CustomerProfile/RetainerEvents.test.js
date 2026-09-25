@@ -1,0 +1,28 @@
+import {render,screen,fireEvent,waitFor} from '@testing-library/react';
+import RetainerEvents from './RetainerEvents';
+import {context} from '../../../App';
+import {retainerEventsCall} from '../../../Services/ApiCalls/LedgerReviewCalls';
+jest.mock('../../../App',()=>({context:require('react').createContext({})}));
+jest.mock('../../../Services/ApiCalls/LedgerReviewCalls',()=>({retainerEventsCall:jest.fn()}));
+const data={status:200,available:80,lockedInvoice:'INV-1',events:[{event_id:1,event_date:'2026-09-25',kind:'adjustment',direction:'increase',amount:10,available_before:70,available_after:80,reason:'Opening correction',actor_id:2,created_at:'2026-09-25T12:00:00Z'}]};
+const draw=(more={})=>render(<context.Provider value={{loggedInUser:{accountID:1,userID:2}}}><RetainerEvents rows={[{retainer_id:7,display_name:'Funds'}]} {...more}/></context.Provider>);
+const fill=async()=>{await screen.findByText('Available credit: $80.00');for(const [label,value] of [['Amount','30'],['Method','Check'],['Reference','REF-1'],['Reason','Client refund']])fireEvent.change(screen.getByLabelText(new RegExp(`^${label}`)),{target:{value}});};
+beforeEach(()=>{jest.clearAllMocks();retainerEventsCall.mockImplementation(a=>Promise.resolve(a.body?{status:200,message:'Recorded'}:data));});
+it.each(['garbage','-1','0','1.001'])('explains invalid amount %s without showing a NaN balance',async value=>{
+ draw();await screen.findByText('Available credit: $80.00');fireEvent.change(screen.getByLabelText('Amount'),{target:{value}});
+ expect(screen.getByText(/Enter a positive amount with at most two decimal places/)).toBeInTheDocument();
+ expect(screen.queryByText(/\$NaN/)).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Review event'})).toBeDisabled();
+});
+it('shows the sent boundary and immutable event history',async()=>{draw();expect(await screen.findByText(/Original records are locked to INV-1/)).toBeInTheDocument();expect(screen.getByText('Opening correction')).toBeInTheDocument();expect(screen.getByRole('button',{name:'Review event'})).toBeDisabled();});
+it('requires confirmation and records actor-attributed refund fields then refreshes',async()=>{const onChanged=jest.fn();draw({onChanged});await fill();fireEvent.click(screen.getByRole('button',{name:'Review event'}));expect(screen.getByText(/Availability changes from \$80.00 to \$50.00/)).toBeInTheDocument();expect(retainerEventsCall).toHaveBeenCalledTimes(1);fireEvent.click(screen.getByRole('button',{name:'Confirm record event'}));await waitFor(()=>expect(onChanged).toHaveBeenCalledTimes(1));expect(retainerEventsCall).toHaveBeenCalledWith(expect.objectContaining({retainerID:7,body:expect.objectContaining({kind:'refund',amount:'30',direction:'decrease',method:'Check',reference:'REF-1',reason:'Client refund'})}));});
+it('does not submit unavailable funds and invalidates confirmation when amount changes',async()=>{draw();await fill();fireEvent.click(screen.getByRole('button',{name:'Review event'}));fireEvent.change(screen.getByLabelText('Amount'),{target:{value:'81'}});expect(screen.queryByRole('button',{name:'Confirm record event'})).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'Review event'})).toBeDisabled();expect(screen.getByText(/amount exceeds available credit/)).toBeInTheDocument();});
+it('supports increasing an exhausted chain without refund evidence',async()=>{retainerEventsCall.mockResolvedValue({...data,available:0});draw();await screen.findByText('Available credit: $0.00');fireEvent.mouseDown(screen.getByLabelText('Event type'));fireEvent.click(screen.getByRole('option',{name:'Adjustment'}));fireEvent.mouseDown(screen.getByLabelText('Direction'));fireEvent.click(screen.getByRole('option',{name:'Increase credit'}));fireEvent.change(screen.getByLabelText('Amount'),{target:{value:'50'}});fireEvent.change(screen.getByLabelText(/^Reason/),{target:{value:'Restore credit'}});expect(screen.getByText(/Available after event: \$50.00/)).toBeInTheDocument();expect(screen.getByRole('button',{name:'Review event'})).not.toBeDisabled();});
+it('keeps failed submissions reviewable and shows load failures',async()=>{retainerEventsCall.mockImplementation(a=>Promise.resolve(a.body?{status:409,message:'Credit changed; retry'}:data));draw();await fill();fireEvent.click(screen.getByRole('button',{name:'Review event'}));fireEvent.click(screen.getByRole('button',{name:'Confirm record event'}));expect(await screen.findByText('Credit changed; retry')).toBeInTheDocument();expect(screen.getByLabelText('Amount')).toHaveValue('30');});
+it('shows read errors and empty retainer guidance',async()=>{retainerEventsCall.mockResolvedValue({status:500,message:'Unable to load'});const result=draw();expect(await screen.findByText('Unable to load')).toBeInTheDocument();result.unmount();draw({rows:[]});expect(screen.getByText(/Record a retainer receipt/)).toBeInTheDocument();});
+it('selects newly loaded roots and replaces a selection when the customer changes',async()=>{
+ const view=rows=><context.Provider value={{loggedInUser:{accountID:1,userID:2}}}><RetainerEvents rows={rows}/></context.Provider>;
+ const result=render(view([]));expect(retainerEventsCall).not.toHaveBeenCalled();
+ result.rerender(view([{retainer_id:7,display_name:'First client'}]));await screen.findByText('Available credit: $80.00');expect(retainerEventsCall).toHaveBeenLastCalledWith(expect.objectContaining({retainerID:7}));
+ result.rerender(view([{retainer_id:8,display_name:'Next client'}]));await waitFor(()=>expect(retainerEventsCall).toHaveBeenLastCalledWith(expect.objectContaining({retainerID:8})));
+});

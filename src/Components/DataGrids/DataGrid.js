@@ -1,3 +1,4 @@
+import { withSentLockColumn } from './sentLockColumn';
 import { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -31,8 +32,9 @@ const DataGridTable = ({
    const gridProps = {
       density: 'compact',
       components: {
-         Toolbar: props => <CustomToolbar {...props} hideGridTools={hideGridTools} showGridTools={!hideGridTools} arrayOfButtons={arrayOfButtons} title={title} dialogSize={dialogSize} />
+         Toolbar: CustomToolbar
       },
+      componentsProps: { toolbar: { hideGridTools, showGridTools: !hideGridTools, arrayOfButtons, title, dialogSize } },
       checkboxSelection: checkboxSelection,
       onRowSelectionModelChange: newSelection => {
          if (checkboxSelection && !rowSelectionOnly) {
@@ -97,7 +99,7 @@ const DataGridTable = ({
             }
          }}
       >
-         <DataGrid rows={rows ? rows : []} columns={columns ? dynamicColumns : []} initialState={{ columns: { columnVisibilityModel } }} {...gridProps} />
+         <DataGrid rows={rows ? rows : []} columns={withSentLockColumn(columns ? dynamicColumns : [], rows || [])} initialState={{ columns: { columnVisibilityModel } }} {...gridProps} />
       </Box>
    );
 };

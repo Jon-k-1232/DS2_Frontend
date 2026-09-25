@@ -1,4 +1,4 @@
-import { Stack } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
 import ExpandableGrid from '../../../Components/DataGrids/ExpandableGrid';
 
 export default function InvoiceRetainers({ invoiceData }) {
@@ -28,6 +28,7 @@ export default function InvoiceRetainers({ invoiceData }) {
    return (
       <>
          <Stack spacing={3}>
+            {(customerRetainers.events || []).map(e => <Typography key={e.event_id}>{String(e.event_date).slice(0,10)} · {e.kind} {e.direction} ${Number(e.amount).toFixed(2)} · Available after: ${Number(e.available_after).toFixed(2)} · {e.reason} · {e.method} {e.reference}</Typography>)}
             <ExpandableGrid title='Retainers' idField='retainer_id' parentColumnName='parent_retainer_id' tableData={customerRetainers} displayColumnNames={displayColumnNames} />
          </Stack>
       </>

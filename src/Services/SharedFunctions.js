@@ -65,43 +65,19 @@ export const formatTotal = value => {
       .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-/**
- * Open invoices a payment may be applied to — CURRENT chain(s) only.
- *
- * Rolling-balance contract: each new parent invoice absorbs all prior
- * outstanding into its beginning_balance, so older chains must never be
- * offered for payment — the billing engine's date gate ignores them, and a
- * payment tagged there vanishes from every future bill. Duplicate same-day
- * parents are all live, so each is offered.
- *
- * Returns non-absorbed current parents (each parent's own authoritative
- * remaining balance — see below) with remaining > 0, largest balance first.
- */
+/** Current parent choices with the latest snapshot balance; issued parents stay immutable. */
 export const getOpenInvoicesForPayment = invoiceRows => {
    if (!Array.isArray(invoiceRows) || !invoiceRows.length) return [];
-
-   // zeroOutAbsorbedInvoices (backend) stamps an absorbed same-day parent's
-   // notes with "[absorbed_by:...]" once a newer chain has rolled its balance
-   // forward — that parent is a rolled-forward ledger artifact, not a
-   // collectible statement, even though it's still a same-day root with
-   // child rows of its own. Excluding it here used to be done indirectly (by
-   // substituting each parent for its own latest child snapshot), which
-   // backfired: an absorbed parent's zeroed remaining got replaced by its
-   // still-positive HISTORICAL child balance, resurrecting exactly the
-   // obsolete statement this function exists to hide. Genuinely independent
-   // same-date roots (no absorption marker) are never touched by this filter
-   // and stay offered individually, same as before.
-   const parents = invoiceRows.filter(row => !row.parent_invoice_id && !(typeof row.notes === 'string' && row.notes.includes('[absorbed_by:')));
+   const parents = invoiceRows.filter(r => !r.parent_invoice_id);
    if (!parents.length) return [];
-
-   const dateOf = row => (row.invoice_date ? new Date(row.invoice_date).toISOString().slice(0, 10) : '');
+   const dateOf = r => r.invoice_date ? new Date(r.invoice_date).toISOString().slice(0, 10) : '';
    const newestDate = parents.map(dateOf).sort().slice(-1)[0];
-   const currentParents = parents.filter(parent => dateOf(parent) === newestDate);
-
-   // Each parent's own remaining_balance_on_invoice IS its authoritative
-   // balance — no child-snapshot substitution needed once absorbed parents
-   // are excluded above.
-   return currentParents
-      .filter(row => Number(row.remaining_balance_on_invoice) > 0)
-      .sort((a, b) => Number(b.remaining_balance_on_invoice) - Number(a.remaining_balance_on_invoice));
+   const absorbed = r => typeof r.notes === 'string' && r.notes.includes('[absorbed_by:');
+   return parents.filter(p => dateOf(p) === newestDate && !absorbed(p)).map(parent => {
+      const chain = invoiceRows.filter(r => r.customer_invoice_id === parent.customer_invoice_id || r.parent_invoice_id === parent.customer_invoice_id);
+      const latest = chain.slice().sort((a,b) => (Date.parse(b.created_at || '') || 0) - (Date.parse(a.created_at || '') || 0) || b.customer_invoice_id - a.customer_invoice_id)[0];
+      if (absorbed(latest)) return null;
+      return { ...parent, remaining_balance_on_invoice: latest.remaining_balance_on_invoice, is_invoice_paid_in_full: latest.is_invoice_paid_in_full };
+   }).filter(r => r && Number(r.remaining_balance_on_invoice) > 0)
+      .sort((a,b) => Number(b.remaining_balance_on_invoice) - Number(a.remaining_balance_on_invoice));
 };

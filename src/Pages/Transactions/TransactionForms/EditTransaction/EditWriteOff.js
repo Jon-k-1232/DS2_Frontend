@@ -1,3 +1,4 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Typography, Alert } from '@mui/material';
@@ -74,6 +75,8 @@ export default function EditWriteOff({ customerData, setCustomerData, writeOffDa
          navigate('/transactions/customerWriteOffs');
       }
    };
+
+   if (writeOffData?.sent_locked) return <SentInvoiceNotice row={writeOffData} />;
 
    return (
       <>

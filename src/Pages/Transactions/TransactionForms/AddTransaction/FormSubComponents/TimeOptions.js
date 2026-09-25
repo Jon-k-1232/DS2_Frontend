@@ -39,6 +39,10 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
       // eslint-disable-next-line
    }, [isInAdditionToMonthlyCharge, selectedItems.minutes, selectedTeamMember, startTime, endTime]);
 
+   useEffect(() => {
+      if (selectedItems.transactionID && !selectedItems.minutes) setHoursInput(String(selectedItems.quantity ?? ''));
+   }, [selectedItems.transactionID, selectedItems.quantity, selectedItems.minutes]);
+
    return (
       <Box sx={{ display: 'grid', gap: 2 }}>
          <Autocomplete
@@ -67,7 +71,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
             type='number'
             label='Time (hours)'
             helperText='Decimal hours from your tracker (e.g. 0.25 = 15 min, 1.05 = 1h 3m). Rounded up to the next 0.1 hour (6-minute increments).'
-            inputProps={{ step: '0.05', min: '0' }}
+            inputProps={{ step: '0.1', min: '0' }}
             value={hoursInput}
             disabled={!selectedTeamMember}
             onChange={e => {

@@ -1,3 +1,4 @@
+import { withSentLockColumn } from './sentLockColumn';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -129,7 +130,7 @@ const DataGridTable = ({
 
    return (
       <Box ref={scrollRef} sx={{ height: passedHeight || 680, width: '100%' }}>
-         <DataGrid rows={rows} columns={dynamicColumns} initialState={{ columns: { columnVisibilityModel } }} {...gridProps} />
+         <DataGrid rows={rows} columns={withSentLockColumn(dynamicColumns, rows)} initialState={{ columns: { columnVisibilityModel } }} {...gridProps} />
       </Box>
    );
 };

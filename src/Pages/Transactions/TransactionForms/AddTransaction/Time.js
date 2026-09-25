@@ -1,3 +1,5 @@
+import useFinancialSubmit, { validateFinancialForm } from './FormSubComponents/useFinancialSubmit';
+import { priceQuantity } from './FormSubComponents/TimeTrackingIncrements';
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { Button, Typography, Alert, Box } from '@mui/material';
 import dayjs from 'dayjs';
@@ -43,6 +45,7 @@ export default function Time({
    const { accountID, userID } = loggedInUser;
 
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [selectedItems, setSelectedItems] = useState(initialState);
 
    // Destructure selectedItems
@@ -71,13 +74,12 @@ export default function Time({
       // eslint-disable-next-line
    }, []);
 
-   const handleSubmit = async () => {
+   const handleSubmit = () => submit(async () => {
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser);
       const postedItem = await passedPostCall(dataToPost, accountID, userID);
       setPostStatus(postedItem);
 
       if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({
             ...customerData,
@@ -96,7 +98,7 @@ export default function Time({
             onSuccess();
          }
       }
-   };
+   }, validateFinancialForm(selectedItems, 'Time'));
 
    return (
       <>
@@ -123,7 +125,7 @@ export default function Time({
 
          <Typography variant='body1'>
             Total:
-            {(quantity * unitCost)
+            {(priceQuantity(quantity, unitCost))
                .toFixed(2)
                .toString()
                .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -131,7 +133,7 @@ export default function Time({
 
          <Box style={{ textAlign: 'center' }}>
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-               <Button onClick={handleSubmit} variant='contained'>{submitLabel}</Button>
+               <Button onClick={handleSubmit} variant='contained' disabled={submitting}>{submitting ? 'Submitting…' : submitLabel}</Button>
                {secondaryButton && (
                   <Button
                      onClick={() => secondaryButton.onClick && secondaryButton.onClick(selectedItems)}

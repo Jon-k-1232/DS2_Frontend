@@ -1,3 +1,5 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
+import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
 import { Box, Alert, Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Table, TableBody, TableCell, TableContainer, TableRow, Typography, Divider } from '@mui/material';
 import { deleteRetainer } from '../../../../Services/ApiCalls/DeleteCalls';
@@ -24,9 +26,11 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
 
    const [selectedItems, setSelectedItems] = useState(initialState);
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
    const [paymentsWithMatchingRetainer, setPaymentsWithMatchingRetainer] = useState({ columns: [], rows: [] });
-   const [loadingLinkedPayments, setLoadingLinkedPayments] = useState(false);
+   const [loadingLinkedPayments, setLoadingLinkedPayments] = useState(true);
+   const [linkedPaymentsError, setLinkedPaymentsError] = useState(null);
 
    // customerData.paymentsList can be null (never visited that grid this
    // session) and even when present only holds whatever page of the paginated
@@ -39,12 +43,12 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
    const { retainer_id, customer_id, type_of_hold, starting_amount, current_amount, form_of_payment, payment_reference_number, is_retainer_active, created_by_user_id, note } = retainerData || {};
 
    useEffect(() => {
-      if (!retainerData || !Object.keys(retainerData).length) return;
+      if (!retainer_id || retainerData.sent_locked) return;
 
       setSelectedItems(prev => ({
          ...prev,
          retainerID: retainer_id,
-         selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
+         selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id) || { customer_id, display_name: retainerData.customer_name },
          typeOfHold: type_of_hold,
          startingAmount: starting_amount,
          currentAmount: current_amount,
@@ -56,7 +60,8 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
       }));
 
       if (!customer_id) {
-         setPaymentsWithMatchingRetainer({ columns: [], rows: [] });
+         setLinkedPaymentsError('Unable to check linked payments without a customer. Reload to retry.');
+         setLoadingLinkedPayments(false);
          return undefined;
       }
 
@@ -65,13 +70,23 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
       // of the customer's payments — anywhere — still reference it.
       let cancelled = false;
       setLoadingLinkedPayments(true);
+      setLinkedPaymentsError(null);
+      const failedCheck = message => {
+         if (cancelled) return;
+         setLinkedPaymentsError(`${message || 'Unable to check linked payments.'} Reload to retry.`);
+         setLoadingLinkedPayments(false);
+      };
       fetchCustomerProfileInformation(accountID, userID, customer_id, token).then(profileData => {
          if (cancelled) return;
          const grid = profileData?.customerPaymentData?.grid;
-         const paymentRows = (grid?.rows || []).filter(payment => payment.retainer_id === retainer_id);
+         if (!Array.isArray(grid?.rows) || (profileData.status && profileData.status !== 200)) {
+            failedCheck(profileData?.message);
+            return;
+         }
+         const paymentRows = grid.rows.filter(payment => payment.retainer_id === retainer_id);
          setPaymentsWithMatchingRetainer({ columns: grid?.columns || [], rows: paymentRows });
          setLoadingLinkedPayments(false);
-      });
+      }).catch(error => failedCheck(error.response?.data?.message || error.message));
 
       return () => {
          cancelled = true;
@@ -83,7 +98,7 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
       setIsConfirmationOpen(true);
    };
 
-   const handleConfirmation = async () => {
+   const handleConfirmation = () => submit(async () => {
       setIsConfirmationOpen(false);
       const postedItem = await deleteRetainer(retainerID, accountID, userID);
 
@@ -95,11 +110,13 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
          setCustomerData({ ...customerData, accountRetainersList: postedItem.accountRetainersList });
          navigate('/transactions/customerRetainers');
       }
-   };
+   });
 
    const handleCancel = () => {
       setIsConfirmationOpen(false);
    };
+
+   if (retainerData?.sent_locked) return <SentInvoiceNotice row={retainerData} />;
 
    return (
       <>
@@ -144,7 +161,7 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
             </TableContainer>
 
             <Box style={{ margin: '10px', textAlign: 'center' }}>
-               <Button disabled={loadingLinkedPayments || paymentsWithMatchingRetainer.rows.length > 0} onClick={handleSubmit}>
+               <Button disabled={!retainerID || submitting || loadingLinkedPayments || !!linkedPaymentsError || paymentsWithMatchingRetainer.rows.length > 0} onClick={handleSubmit}>
                   Delete Retainer
                </Button>
                {loadingLinkedPayments && (
@@ -156,6 +173,7 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
                   </Box>
                )}
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
+               {linkedPaymentsError && <Alert severity='error'>{linkedPaymentsError}</Alert>}
             </Box>
 
             {paymentsWithMatchingRetainer.rows.length > 0 && (
@@ -183,7 +201,7 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
                <DialogContent>Are you sure you want to delete?</DialogContent>
                <DialogActions>
                   <Button onClick={handleCancel}>Cancel</Button>
-                  <Button onClick={handleConfirmation} color='error'>
+                  <Button onClick={handleConfirmation} disabled={submitting} color='error'>
                      Delete
                   </Button>
                </DialogActions>

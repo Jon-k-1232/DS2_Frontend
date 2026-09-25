@@ -1,3 +1,5 @@
+import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
+import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
 import { Box, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Table, TableBody, TableCell, TableContainer, TableRow } from '@mui/material';
 import { deletePayment } from '../../../../Services/ApiCalls/DeleteCalls';
@@ -25,16 +27,17 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
 
    const [selectedItems, setSelectedItems] = useState(initialState);
    const [postStatus, setPostStatus] = useState(null);
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
-   const { customersList: { activeCustomerData: { activeCustomers } = [] } = [] } = { ...customerData };
+   const activeCustomers = customerData?.customersList?.activeCustomerData?.activeCustomers || [];
 
    const { paymentAmount, formOfPayment, isTransactionBillable, paymentDate, selectedCustomer, paymentReferenceNumber, invoiceNumber } = selectedItems || {};
 
    const { customer_id, form_of_payment, is_transaction_billable, payment_amount, payment_date, payment_id, payment_reference_number, retainer_id, customer_invoice_id } = paymentData || {};
 
    useEffect(() => {
-      if (paymentData && Object.keys(paymentData).length) {
+      if (payment_id && !paymentData.sent_locked) {
          // This block of code finds matching invoices based on user input to confirm and invoice exists.
          // The profile API returns the array under `customerInvoices` (same shape
          // bug InvoiceConfirmation had — the lookup always missed before).
@@ -43,9 +46,9 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
          const invoiceNumber = invoiceObject?.invoice_number;
 
          setSelectedItems({
-            ...selectedItems,
+            ...initialState,
             paymentID: payment_id,
-            selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
+            selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id) || { customer_id, display_name: paymentData.customer_name },
             formOfPayment: form_of_payment,
             isTransactionBillable: is_transaction_billable,
             paymentAmount: payment_amount,
@@ -57,13 +60,13 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
          });
       }
       // eslint-disable-next-line
-   }, [paymentData]);
+   }, [paymentData, customerData, customerProfileData]);
 
    const handleSubmit = () => {
       setIsConfirmationOpen(true);
    };
 
-   const handleConfirmation = async () => {
+   const handleConfirmation = () => submit(async () => {
       setIsConfirmationOpen(false);
       const dataToPost = formObjectForPaymentPost(selectedItems, loggedInUser);
       const postedItem = await deletePayment(dataToPost, accountID, userID);
@@ -80,11 +83,13 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
             paymentsList: null, invoicesList: postedItem.invoicesList });
          navigate('/transactions/customerPayments');
       }
-   };
+   });
 
    const handleCancel = () => {
       setIsConfirmationOpen(false);
    };
+
+   if (paymentData?.sent_locked) return <SentInvoiceNotice row={paymentData} />;
 
    return (
       <>
@@ -125,7 +130,7 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
             </TableContainer>
 
             <Box style={{ margin: '10px', textAlign: 'center' }}>
-               <Button onClick={handleSubmit}>Delete Payment</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>Delete Payment</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
             </Box>
 
@@ -134,7 +139,7 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
                <DialogContent>Are you sure you want to delete?</DialogContent>
                <DialogActions>
                   <Button onClick={handleCancel}>Cancel</Button>
-                  <Button onClick={handleConfirmation} color='error'>
+                  <Button onClick={handleConfirmation} disabled={submitting} color='error'>
                      Delete
                   </Button>
                </DialogActions>

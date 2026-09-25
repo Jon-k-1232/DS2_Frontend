@@ -206,15 +206,7 @@ export default function PaymentsGrid({ customerData, setCustomerData }) {
    }, [paginationModel.page, paginationModel.pageSize, searchTerm]);
 
    // Focus the search input after data loads
-   useEffect(() => {
-      if (!initializedRef.current) return;
-      const input = searchInputRef.current;
-      if (input && document.activeElement !== input) {
-         input.focus({ preventScroll: true });
-         const caret = input.value.length;
-         input.setSelectionRange(caret, caret);
-      }
-   }, [gridData.rows, searchInput]);
+
 
    // Listen for global payment updates and refresh grid
    useEffect(() => {

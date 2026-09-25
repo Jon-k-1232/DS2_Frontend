@@ -60,43 +60,16 @@ test('payment, write-off, positive reversal and original-payment refusal refresh
   await expect(page.getByRole('progressbar')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Delete Payment',exact:true})).toBeEnabled();
   expect(rows(`SELECT payment_id FROM customer_payments WHERE account_id=9001 AND payment_id=${payment.payment_id}`)).toHaveLength(1);
-  // 22.50 invoice total - 5 payment - 2 write-off + 5 reversal (adds the
-  // reversed payment back) = 20.50.
-  const [parent] = rows(`SELECT remaining_balance_on_invoice FROM customer_invoices WHERE account_id=9001 AND customer_id=${c.id} AND parent_invoice_id IS NULL`);
-  expect(Number(parent.remaining_balance_on_invoice)).toBe(20.5);
+  // Original issue remains $22.50. Live debt is $22.50 - $5 - $2 + $5 = $20.50.
+  const [parent] = rows(`SELECT customer_invoice_id,remaining_balance_on_invoice FROM customer_invoices WHERE account_id=9001 AND customer_id=${c.id} AND parent_invoice_id IS NULL`);
+  expect(Number(parent.remaining_balance_on_invoice)).toBe(22.5);
+  const [latest] = rows(`SELECT remaining_balance_on_invoice FROM customer_invoices WHERE account_id=9001 AND customer_id=${c.id} AND parent_invoice_id=${parent.customer_invoice_id} ORDER BY customer_invoice_id DESC LIMIT 1`);
+  expect(Number(latest.remaining_balance_on_invoice)).toBe(20.5);
   await page.goto(routes.invoices);
   await page.getByPlaceholder('Search invoices').fill(invoice.invoice_number);
-  // Payments/write-offs insert a child snapshot row per mutation, and every
-  // child mirrors the SAME invoice_number as its parent (three mutations above
-  // -> up to three extra rows here, two of which — the parent and the latest
-  // child — both legitimately show the current 20.50) — a plain hasText
-  // filter's .first() can land on an older snapshot instead. The parent row
-  // is the one whose own Parent Invoice Id cell is empty. Resolve that while
-  // the (early, always-materialized) Parent Invoice Id column is still on
-  // screen, and key the later scroll-to-find-the-balance-column lookup off
-  // data-rowindex (stable across horizontal scroll) rather than re-filtering
-  // by Parent Invoice Id, which gets virtualized out of the DOM once the grid
-  // scrolls right to materialize remaining_balance_on_invoice.
-  // The quick filter re-renders the grid asynchronously; under load the rows
-  // are not all on screen yet when the search value lands, so poll until the
-  // parent row (empty Parent Invoice Id) is actually rendered instead of
-  // reading whatever happens to be there on the first pass.
-  const candidateRows = page.getByRole('grid').getByRole('row').filter({hasText:invoice.invoice_number});
-  const findParentRowIndex = async () => {
-    const n = await candidateRows.count();
-    for (let i = 0; i < n; i++) {
-      const cell = candidateRows.nth(i).locator('[data-field="parent_invoice_id"]');
-      if ((await cell.count()) === 0) continue; // column not materialized for this row yet
-      const content = cell.locator('.MuiDataGrid-cellContent');
-      const text = (await content.count()) ? ((await content.first().textContent()) ?? '') : '';
-      if (!text.trim()) return await candidateRows.nth(i).getAttribute('data-rowindex');
-    }
-    return null;
-  };
-  let parentRowIndex = null;
-  await expect.poll(async () => { parentRowIndex = await findParentRowIndex(); return parentRowIndex; }, { message: 'expected one row with an empty Parent Invoice Id cell', timeout: 20_000 }).not.toBeNull();
-  const parentRow = page.getByRole('grid').locator(`[role="row"][data-rowindex="${parentRowIndex}"]`);
-  await expectGridValueInRow(page,parentRow,'remaining_balance_on_invoice','20.50');
+  const parentRow = page.locator(`[role="row"][data-id="${parent.customer_invoice_id}"]`);
+  await expectGridValueInRow(page,parentRow,'remaining_balance_on_invoice','22.50');
+
 });
 
 test('create a negative retainer credit and delete it through the UI', async ({page,prefix}) => {

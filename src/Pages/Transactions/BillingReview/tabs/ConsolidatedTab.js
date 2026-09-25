@@ -221,6 +221,7 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    );
 
    const startEdit = txn => {
+      if (txn.sent_locked) return;
       setEditingId(txn.transaction_id);
       setEdits({
          customer_id: txn.customer_id,
@@ -705,7 +706,10 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                        <Button size='small' onClick={() => setEditingId(null)}>Cancel</Button>
                                     </Stack>
                                  ) : (
-                                    <Button size='small' onClick={() => startEdit(r)} disabled={r.is_invoice_paid_in_full}>Edit</Button>
+                                    <Stack>
+                                       {r.sent_locked && <Typography variant='caption'>Sent — locked · {r.locked_invoice_number}</Typography>}
+                                       <Button size='small' onClick={() => startEdit(r)} disabled={r.sent_locked || r.is_invoice_paid_in_full}>Edit</Button>
+                                    </Stack>
                                  )}
                               </TableCell>
                            </TableRow>
