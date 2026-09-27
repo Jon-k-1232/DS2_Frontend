@@ -8,10 +8,13 @@ const headers = memoryToken => {
 export const fetchARAging = async (
    accountID,
    userID,
-   { page = 1, limit = 50, search = '', filter = null, sort = null, direction = 'desc' } = {},
+   { page = 1, limit = 50, search = '', filter = null, sort = null, direction = 'desc', entityId = null, asOf,recordedThrough } = {},
    token
 ) => {
    const params = new URLSearchParams({ page, limit, search });
+   if(asOf)params.set('asOf',asOf);
+   if(recordedThrough)params.set('recordedThrough',recordedThrough);
+   if (entityId) params.set('entityId', entityId);
    if (filter) params.set('filter', filter);
    if (sort) {
       params.set('sort', sort);
@@ -29,10 +32,13 @@ export const fetchARAging = async (
 export const downloadARAgingCsv = async (
    accountID,
    userID,
-   { search = '', filter = null, sort = null, direction = 'desc' } = {},
+   { search = '', filter = null, sort = null, direction = 'desc', entityId = null, asOf,recordedThrough } = {},
    token
 ) => {
    const params = new URLSearchParams({ search });
+   if(asOf)params.set('asOf',asOf);
+   if(recordedThrough)params.set('recordedThrough',recordedThrough);
+   if (entityId) params.set('entityId', entityId);
    if (filter) params.set('filter', filter);
    if (sort) {
       params.set('sort', sort);

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import {deriveViews} from './Services/listViews';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -12,7 +13,7 @@ axios.defaults.withCredentials = true;
 // If the session cookie is missing/expired the API returns 401 — clear local
 // session state and bounce to login so the UI doesn't sit in a broken state.
 axios.interceptors.response.use(
-  response => response,
+  response => { response.data=deriveViews(response.data); return response; },
   error => {
     const status = error?.response?.status;
     const path = window.location?.pathname || '';
@@ -28,7 +29,7 @@ const root = createRoot(document.getElementById('root'));
 
 root.render(
   <HelmetProvider>
-    <BrowserRouter>
+    <BrowserRouter future={{v7_startTransition:true}}>
       <App />
     </BrowserRouter>
   </HelmetProvider>

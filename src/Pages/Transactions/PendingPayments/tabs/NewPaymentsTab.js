@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { Stack, Alert } from '@mui/material';
+import React, { useState, useContext } from 'react';
+import { Stack, Alert, Button } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import usePendingPaymentList from '../usePendingPaymentList';
 import { context } from '../../../../App';
-import { fetchPendingPayments, softDeletePendingPayment } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
+import { softDeletePendingPayment } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
 import { getNewPaymentColumns } from '../components/PendingPaymentColumns';
 import ReviewPaymentDialog from '../components/ReviewPaymentDialog';
 
@@ -10,35 +11,12 @@ export default function NewPaymentsTab({ customerData, setCustomerData, onCounts
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
 
-   const [rows, setRows] = useState([]);
-   const [loading, setLoading] = useState(false);
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
-   const [totalCount, setTotalCount] = useState(0);
    const [feedback, setFeedback] = useState(null);
    const [selectedPayment, setSelectedPayment] = useState(null);
    const [dialogOpen, setDialogOpen] = useState(false);
 
-   const loadData = useCallback(async () => {
-      if (!accountID || !userID || !token) return;
-      setLoading(true);
-      try {
-         const response = await fetchPendingPayments(accountID, userID, token, {
-            page: paginationModel.page + 1,
-            limit: paginationModel.pageSize,
-            status: 'new'
-         });
-         setRows(response?.payments || []);
-         setTotalCount(response?.pagination?.totalItems || 0);
-      } catch (error) {
-         console.error('Error loading pending payments:', error);
-      } finally {
-         setLoading(false);
-      }
-   }, [accountID, userID, token, paginationModel]);
-
-   useEffect(() => {
-      loadData();
-   }, [loadData]);
+   const {rows,totalCount,loading,error,loadData}=usePendingPaymentList({status: 'new', paginationModel});
 
    const handleDelete = async paymentId => {
       try {
@@ -72,7 +50,9 @@ export default function NewPaymentsTab({ customerData, setCustomerData, onCounts
       <Stack spacing={2}>
          {feedback && <Alert severity={feedback.type} onClose={() => setFeedback(null)}>{feedback.message}</Alert>}
 
-         <DataGrid
+         {error && <Alert severity='error' action={<Button onClick={loadData}>Reload payments</Button>}>{error}</Alert>}
+         {!error && <DataGrid
+            localeText={{noRowsLabel: 'No new payments to review. Use Upload to add a payment file.', noResultsOverlayLabel: 'No payments match these filters.'}}
             rows={rows}
             columns={columns}
             getRowId={row => row.payment_id}
@@ -88,7 +68,7 @@ export default function NewPaymentsTab({ customerData, setCustomerData, onCounts
                cursor: 'pointer',
                '& .MuiDataGrid-row:hover': { backgroundColor: 'action.hover' }
             }}
-         />
+         />}
 
          <ReviewPaymentDialog
             open={dialogOpen}

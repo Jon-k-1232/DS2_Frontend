@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Stack, Typography } from '@mui/material';
 import { GoogleLogin } from '@react-oauth/google';
 import { postGoogleAuth } from '../../Services/ApiCalls/PostCalls';
@@ -9,6 +9,7 @@ import { getDefaultLandingRoute } from '../../utils/navigation';
 
 export default function LoginForm() {
    const navigate = useNavigate();
+   const {state}=useLocation();
    const [errorMessage, setErrorMessage] = useState(null);
    const { setLoggedInUser } = useContext(context);
 
@@ -44,7 +45,8 @@ export default function LoginForm() {
          token: TokenService.authMarker()
       });
       setErrorMessage(null);
-      navigate(getDefaultLandingRoute(access_level));
+      const next=state?.from;
+      navigate(typeof next==='string' && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/login') ? next : getDefaultLandingRoute(access_level),{replace:true});
    };
 
    return (

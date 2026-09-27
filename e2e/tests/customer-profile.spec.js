@@ -50,34 +50,34 @@ test.describe('Customer profile', () => {
     await page.goto(routes.customers);
     await page.getByPlaceholder('Search customers').fill(prefix);
     await page.getByRole('row').filter({ hasText: customer.name }).click();
-    await expect(page).toHaveURL(new RegExp(`customerProfile/${customer.id}/customerInvoices`));
+    await expect(page).toHaveURL(new RegExp(`clients/${customer.id}/statements`));
     await expect(page.getByRole('heading', { name: customer.name, exact: true })).toBeVisible();
     let row = await onlyDataRow(page);
     await expectGridValueInRow(page, row, 'invoice_number', invoice.invoice_number);
 
-    await page.getByRole('tab', { name: 'Transactions', exact: true }).click();
-    await expect(page).toHaveURL(/customerTransactions$/);
+    await page.getByRole('tab', { name: 'Work', exact: true }).click();
+    await expect(page).toHaveURL(/work$/);
     row = await onlyDataRow(page);
     await expectGridValueInRow(page, row, 'transaction_type', 'Time');
     await expectGridValueInRow(page, row, 'total_transaction', '22.50');
 
     await page.getByRole('tab', { name: 'Jobs', exact: true }).click();
-    await expect(page).toHaveURL(/customerJobs$/);
+    await expect(page).toHaveURL(/jobs$/);
     row = await onlyDataRow(page);
     await expectGridValueInRow(page, row, 'job_description', '1040 Individual Return');
 
-    await page.getByRole('tab', { name: 'Payments', exact: true }).click();
-    await expect(page).toHaveURL(/customerPayments$/);
+    await page.getByRole('tab', { name: 'Receipts', exact: true }).click();
+    await expect(page).toHaveURL(/receipts$/);
     row = await onlyDataRow(page);
     await expectGridValueInRow(page, row, 'payment_amount', '-5.00');
 
-    await page.getByRole('tab', { name: 'Retainers and PrePayments', exact: true }).click();
-    await expect(page).toHaveURL(/retainersAndPrePayments$/);
+    await page.getByRole('tab', { name: 'Credits & retainers', exact: true }).click();
+    await expect(page).toHaveURL(/credits$/);
     row = await onlyDataRow(page);
     await expectGridValueInRow(page, row, 'current_amount', '-15.00');
 
-    await page.getByRole('tab', { name: 'Edit Customer Profile', exact: true }).click();
-    await expect(page).toHaveURL(/editCustomerProfile$/);
+    await page.getByRole('tab', { name: 'Edit client', exact: true }).click();
+    await expect(page).toHaveURL(/edit$/);
     // Not First/Last Name here — see the dedicated DEFECT test below for why.
     await expect(page.getByLabel('Email', { exact: true })).toHaveValue(`${prefix.toLowerCase()}@example.com`);
     await expect(page.getByLabel('City', { exact: true })).toHaveValue('Phoenix');
@@ -116,7 +116,7 @@ test.describe('Customer profile: multi-word first name', () => {
     const row = page.getByRole('row').filter({ hasText: name });
     await expect(row).toBeVisible();
     await row.click();
-    await page.getByRole('tab', { name: 'Edit Customer Profile', exact: true }).click();
+    await page.getByRole('tab', { name: 'Edit client', exact: true }).click();
     await expect(page.getByLabel('First Name', { exact: true })).toHaveValue(firstName);
     await expect(page.getByLabel('Last Name', { exact: true })).toHaveValue(lastName);
   });
@@ -138,7 +138,7 @@ test.describe('Customer profile: nonexistent customer id', () => {
   // own internal "Loading..." guards are unreachable dead code in the failure
   // path; the parent route never mounts them at all for a bad id.
   test('customer profile shows an error state, not infinite Loading, for a nonexistent customer id', async ({ page }) => {
-    await page.goto('/customers/customersList/customerProfile/999999999/customerJobs');
+    await page.goto('/clients/999999999/jobs');
     await expect(page.getByText(/not found|no such customer|unknown customer/i)).toBeVisible();
     await expect(page.getByText('Loading...', { exact: true })).toHaveCount(0);
   });

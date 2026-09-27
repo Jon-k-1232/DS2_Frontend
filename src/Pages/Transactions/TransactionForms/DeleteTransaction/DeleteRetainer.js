@@ -1,9 +1,11 @@
+import ActorName from '../../../../Components/Workspace/ActorName';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
 import { Box, Alert, Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Table, TableBody, TableCell, TableContainer, TableRow, Typography, Divider } from '@mui/material';
 import { deleteRetainer } from '../../../../Services/ApiCalls/DeleteCalls';
 import { fetchCustomerProfileInformation } from '../../../../Services/ApiCalls/FetchCalls';
+import { gridFor } from '../../../../Services/listViews';
 import { context } from '../../../../App';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -76,9 +78,10 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
          setLinkedPaymentsError(`${message || 'Unable to check linked payments.'} Reload to retry.`);
          setLoadingLinkedPayments(false);
       };
-      fetchCustomerProfileInformation(accountID, userID, customer_id, token).then(profileData => {
+      fetchCustomerProfileInformation(accountID, userID, customer_id, token, null, 'payments').then(profileData => {
          if (cancelled) return;
-         const grid = profileData?.customerPaymentData?.grid;
+         const rows=profileData?.customerPaymentData?.customerPayments;
+         const grid = Array.isArray(rows)?gridFor(rows):profileData?.customerPaymentData?.grid;
          if (!Array.isArray(grid?.rows) || (profileData.status && profileData.status !== 200)) {
             failedCheck(profileData?.message);
             return;
@@ -108,7 +111,7 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, accountRetainersList: postedItem.accountRetainersList });
-         navigate('/transactions/customerRetainers');
+         navigate('/payments/retainers');
       }
    });
 
@@ -153,8 +156,8 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
                         <TableCell>{isRetainerActive !== null ? String(isRetainerActive) : 'N/A'}</TableCell>
                      </TableRow>
                      <TableRow>
-                        <TableCell>Created By User ID:</TableCell>
-                        <TableCell>{createdByUserID || 'N/A'}</TableCell>
+                        <TableCell>Created by:</TableCell>
+                        <TableCell><ActorName id={createdByUserID} name={retainerData?.created_by_user_name || customerData?.teamMembersList?.activeUserData?.activeUsers?.find(u=>u.user_id===createdByUserID)?.display_name}/></TableCell>
                      </TableRow>
                   </TableBody>
                </Table>
@@ -190,7 +193,7 @@ export default function DeleteRetainer({ customerData, setCustomerData, retainer
                         tableData={paymentsWithMatchingRetainer}
                         passedHeight='350px'
                         enableSingleRowClick
-                        routeToPass={'/transactions/customerPayments/deletePayment'}
+                        routeToPass={'/payments/receipts/deletePayment'}
                      />
                   </Box>
                </Box>

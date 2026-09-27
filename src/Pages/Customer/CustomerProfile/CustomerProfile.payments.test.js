@@ -16,9 +16,17 @@ it('F13 shows cash, retainer and invoice-tagged receipts once without changing a
       retainerAppliedToInvoice: -20, invoiceTotal: 290
    }] });
    render(<context.Provider value={{ loggedInUser: { accountID: 9001, userID: 90013 } }}>
-      <CustomerProfile profileData={{ customerData: { customerData: { customer_id: 900101, customer_name: 'Fixture' } } }} />
+      <CustomerProfile entityId={900101} profileData={{ customerData: { customerData: { customer_id: 900101, customer_name: 'Fixture' } } }} />
    </context.Provider>);
    await waitFor(() => expect(screen.getByText('Payments Since Last Bill:').closest('tr').textContent).toContain('-80'));
    expect(screen.getByText('Payments Since Last Bill:').closest('tr').textContent).not.toContain('-70');
    expect(screen.getAllByText('290').length).toBeGreaterThan(0);
+});
+
+
+it('shows held receipt credit and the proposed payable separately for each business',async()=>{
+ const {entitiesCall}=require('../../../Services/ApiCalls/BillingEntitiesCalls');
+ entitiesCall.mockResolvedValue({balances:[{billing_entity_id:2,name:'Tax',billed:0,nextStatement:500,heldFunds:80,heldReceiptCredit:350,proposedStatement:150}],totals:{billed:0,nextStatement:500}});
+ render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><CustomerProfile profileData={{customerData:{customerData:{customer_id:900101,customer_name:'Fixture'}}}}/></context.Provider>);
+ expect(await screen.findByText(/Tax: billed/)).toHaveTextContent('next statement $500.00 · retainers $80.00 · receipt credit $350.00 · proposed payable $150.00');
 });

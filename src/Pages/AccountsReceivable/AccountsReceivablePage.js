@@ -1,4 +1,6 @@
-import { useEffect, useState, useContext, useCallback } from 'react';
+import ReportHistoryFilter from '../../Components/Workspace/ReportHistoryFilter';
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
+import { useEffect, useState, useContext, useCallback, useRef } from 'react';
 import {
    Box,
    Stack,
@@ -34,23 +36,27 @@ const AGE_FILTERS = [
    { value: '30', label: '0–30 days' },
    { value: '60', label: '31–60 days' },
    { value: '90', label: '61–90 days' },
-   { value: 'over_90', label: '> 90 days' }
+   { value: 'over_90', label: '> 90 days' },{value:'unknown',label:'Unknown age'}
 ];
 
 // (field key on the server, header label, alignment).  Every column except
 // the Total-Owed/Last-Payment composite is sortable on the server.
 const COLUMNS = [
-   { field: 'business_name', label: 'Business', align: 'left' },
-   { field: 'customer_name', label: 'Customer', align: 'left' },
-   { field: 'display_name', label: 'Display', align: 'left' },
+   { field: 'billing_entity_name', label: 'Our business', align: 'left' },
+   { field: 'business_name', label: 'Client company', align: 'left' },
+   { field: 'customer_name', label: 'Client name', align: 'left' },
+   { field: 'display_name', label: 'Client', align: 'left' },
    { field: 'bucket_0_30', label: '0–30 days', align: 'right' },
    { field: 'bucket_31_60', label: '31–60 days', align: 'right' },
    { field: 'bucket_61_90', label: '61–90 days', align: 'right' },
    { field: 'bucket_over_90', label: '> 90 days', align: 'right' },
+   { field:'bucket_unknown',label:'Unknown age',align:'right' },
+   {field:'statement_credit',label:'Issued credit',align:'right'},
+   { field:'unapplied_credit',label:'Held receipt credit',align:'right' },
    { field: 'oldest_days', label: 'Days old', align: 'right' },
    { field: 'total_outstanding', label: 'Balance / credit', align: 'right' },
    { field: 'last_payment_date', label: 'Last payment', align: 'left' },
-   { field: 'has_work_since_last_payment', label: 'Work since pmt', align: 'center' }
+   { field: 'has_work_since_last_payment', label: 'Work since payment', align: 'center' }
 ];
 
 const fmtCurrency = v =>
@@ -82,6 +88,9 @@ export default function AccountsReceivablePage() {
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
+   const [asOf,setAsOf]=useState(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+   const [recordedThrough,setRecordedThrough]=useState('');
    const [search, setSearch] = useState('');
    const [searchInput, setSearchInput] = useState('');
    const [page, setPage] = useState(1);
@@ -94,29 +103,35 @@ export default function AccountsReceivablePage() {
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState(null);
    const [exporting, setExporting] = useState(false);
+   const requestRevision = useRef(0);
+   const cancelPending = useCallback(() => { requestRevision.current += 1; }, []);
 
    const load = useCallback(async () => {
+      const revision = ++requestRevision.current;
       setLoading(true);
       setError(null);
       try {
          const data = await fetchARAging(
             accountID,
             userID,
-            { page, limit, search, filter, sort, direction },
+            { page, limit, search, filter, sort, direction, entityId,asOf,recordedThrough },
             token
          );
+         if (revision !== requestRevision.current) return;
          setRows(data.arAging?.customers || []);
          setPagination(data.arAging?.pagination || { totalPages: 1, totalItems: 0 });
       } catch (e) {
+         if (revision !== requestRevision.current) return;
          setError(e.response?.data?.message || e.message || 'Failed to load accounts receivable.');
       } finally {
-         setLoading(false);
+         if (revision === requestRevision.current) setLoading(false);
       }
-   }, [accountID, userID, token, page, limit, search, filter, sort, direction]);
+   }, [accountID, userID, token, page, limit, search, filter, sort, direction, entityId,asOf,recordedThrough]);
 
    useEffect(() => {
       load();
-   }, [load]);
+      return cancelPending;
+   }, [load, cancelPending]);
 
    const handleSearchSubmit = e => {
       e.preventDefault();
@@ -160,7 +175,7 @@ export default function AccountsReceivablePage() {
       setExporting(true);
       setError(null);
       try {
-         await downloadARAgingCsv(accountID, userID, { search, filter, sort, direction }, token);
+         await downloadARAgingCsv(accountID, userID, { search, filter, sort, direction, entityId,asOf,recordedThrough }, token);
       } catch (e) {
          setError(e.response?.data?.message || e.message || 'Failed to export AR aging.');
       } finally {
@@ -182,12 +197,13 @@ export default function AccountsReceivablePage() {
 
    return (
       <Box>
+         <EntityPicker value={entityId} all onChange={value=>{setEntityId(value);setPage(1);}} />
+         <Stack spacing={2} sx={{my:2}}><TextField label='Aging as of' type='date' InputLabelProps={{shrink:true}} value={asOf} onChange={e=>{setAsOf(e.target.value);setPage(1);}} sx={{maxWidth:240}}/><ReportHistoryFilter value={recordedThrough} onChange={value=>{setRecordedThrough(value);setPage(1);}}/></Stack>
          <Stack spacing={2}>
             <Box>
-               <Typography variant='h5'>Accounts Receivable</Typography>
+               <Typography variant='h5'>Accounts receivable</Typography>
                <Typography variant='caption' color='text.secondary'>
-                  Read-only aging of issued, unpaid invoices only. Customers with new unbilled work but no
-                  outstanding invoice are excluded here — use <strong>Create Invoice</strong> for that view.
+                  Ages follow the original debt dates through every statement rollover. Held receipt credit is separate from billed balances. Legacy estimates and unknown ages are identified.
                </Typography>
             </Box>
 
@@ -215,7 +231,7 @@ export default function AccountsReceivablePage() {
                         variant='contained'
                         size='small'
                         startIcon={exporting ? <CircularProgress size={16} color='inherit' /> : <FileDownloadIcon />}
-                        disabled={exporting || loading || rows.length === 0}
+                        disabled={exporting || loading || !!error || rows.length === 0}
                         onClick={handleExport}
                      >
                         Export CSV
@@ -244,7 +260,7 @@ export default function AccountsReceivablePage() {
             )}
 
             <Paper variant='outlined' sx={{ overflowX: 'auto' }}>
-               <Table size='small'>
+               <Table size='small' sx={{minWidth:1500,'& th':{whiteSpace:'nowrap'},'& td':{verticalAlign:'top'},'& td:nth-of-type(n+5)':{whiteSpace:'nowrap'}}}>
                   <TableHead>
                      <TableRow>
                         {COLUMNS.map(col => {
@@ -270,24 +286,25 @@ export default function AccountsReceivablePage() {
                   <TableBody>
                      {loading && (
                         <TableRow>
-                           <TableCell colSpan={11} align='center' sx={{ py: 4 }}>
+                           <TableCell colSpan={COLUMNS.length} align='center' sx={{ py: 4 }}>
                               <CircularProgress size={24} />
                            </TableCell>
                         </TableRow>
                      )}
                      {!loading && rows.length === 0 && (
                         <TableRow>
-                           <TableCell colSpan={11} align='center' sx={{ py: 4, color: 'text.secondary' }}>
-                              No customers with outstanding balances.
+                           <TableCell colSpan={COLUMNS.length} align='center' sx={{ py: 4, color: 'text.secondary' }}>
+                              No balances match these filters. Try another business, date or search.
                            </TableCell>
                         </TableRow>
                      )}
                      {!loading &&
                         rows.map(r => (
-                           <TableRow key={r.customer_id} hover>
+                           <TableRow key={r.entity_key || r.customer_id} hover>
+                              <TableCell>{r.billing_entity_name || 'Business name unavailable'}</TableCell>
                               <TableCell>{r.business_name || '—'}</TableCell>
                               <TableCell>{r.customer_name || '—'}</TableCell>
-                              <TableCell>{r.display_name || '—'}</TableCell>
+                              <TableCell>{r.display_name || '—'}{r.reconstructed && <Tooltip title='Some balances were estimated from historical records. Amounts stay in their supported age bucket; only amounts without a reliable date appear under Unknown age.'><Chip label='Estimated' aria-label='Estimated from historical records' size='small' variant='outlined' sx={{display:'block',width:'fit-content',mt:0.5}}/></Tooltip>}</TableCell>
                               <TableCell align='right'>{bucketCell(r.bucket_0_30)}</TableCell>
                               <TableCell align='right'>{bucketCell(r.bucket_31_60)}</TableCell>
                               <TableCell align='right'>{bucketCell(r.bucket_61_90)}</TableCell>
@@ -309,6 +326,9 @@ export default function AccountsReceivablePage() {
                                     </Typography>
                                  )}
                               </TableCell>
+                              <TableCell align='right'>{bucketCell(r.bucket_unknown)}</TableCell>
+                              <TableCell align='right'>{bucketCell(r.statement_credit)}</TableCell>
+                              <TableCell align='right'>{bucketCell(r.unapplied_credit)}</TableCell>
                               <TableCell align='right'>
                                  <Typography
                                     variant='body2'
@@ -352,7 +372,7 @@ export default function AccountsReceivablePage() {
                         ))}
                      {!loading && rows.length > 0 && (
                         <TableRow sx={{ '& td': { borderTop: '2px solid', borderTopColor: 'divider', fontWeight: 700 } }}>
-                           <TableCell colSpan={3}>Page totals</TableCell>
+                           <TableCell colSpan={4}>Page totals</TableCell>
                            <TableCell align='right' sx={{ fontVariantNumeric: 'tabular-nums' }}>
                               {fmtCurrency(pageTotals.bucket_0_30)}
                            </TableCell>
@@ -362,9 +382,12 @@ export default function AccountsReceivablePage() {
                            <TableCell align='right' sx={{ fontVariantNumeric: 'tabular-nums' }}>
                               {fmtCurrency(pageTotals.bucket_61_90)}
                            </TableCell>
-                           <TableCell align='right' sx={{ fontVariantNumeric: 'tabular-nums', color: 'error.main' }}>
+                           <TableCell align='right' sx={{ fontVariantNumeric: 'tabular-nums', color: pageTotals.bucket_over_90 > 0 ? 'error.main' : 'text.primary' }}>
                               {fmtCurrency(pageTotals.bucket_over_90)}
                            </TableCell>
+                           <TableCell />
+                           <TableCell />
+                           <TableCell />
                            <TableCell />
                            <TableCell align='right' sx={{ fontVariantNumeric: 'tabular-nums' }}>
                               {fmtCurrency(pageTotals.total)}

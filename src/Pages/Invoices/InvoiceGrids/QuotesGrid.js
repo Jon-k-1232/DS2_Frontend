@@ -1,9 +1,11 @@
-import React, { useContext, useEffect } from 'react';
+import EntityPicker,{filterEntityGrid} from '../../../Components/BillingEntities/EntityPicker';
+import React, { useContext, useEffect,useState } from 'react';
 import DataGridTable from '../../../Components/DataGrids/DataGrid';
 import { fetchQuotesList } from '../../../Services/ApiCalls/FetchCalls';
 import { context } from '../../../App';
 
 export default function QuotesGrid({ customerData, setCustomerData }) {
+  const [entityId,setEntityId]=useState(null);
   const { accountID, userID, token } = useContext(context).loggedInUser;
   const { quotesList: { activeQuoteData = {} } = {} } = customerData || {};
 
@@ -48,8 +50,8 @@ export default function QuotesGrid({ customerData, setCustomerData }) {
   }
 
   return (
-    <>
-      <DataGridTable title='Quotes' tableData={activeQuoteData.grid} />
+    <><EntityPicker all value={entityId} onChange={setEntityId} />
+      <DataGridTable title='Quotes' tableData={filterEntityGrid(activeQuoteData.grid,entityId)} />
     </>
   );
 }

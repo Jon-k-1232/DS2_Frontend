@@ -65,7 +65,7 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
       if (profileData?.status === 200 && profileData?.customerData?.customerData) {
          setInitialState();
       } else {
-         navigate('/customers/customersList');
+         navigate('/clients');
       }
       // eslint-disable-next-line
    }, [profileData]);
@@ -171,12 +171,12 @@ export default function EditCustomerProfile({ profileData, setCallProfileData, c
                // current URL so we don't depend on context/state to reconstruct it.
                const customerIdFromPath = location.pathname.match(/customerProfile\/(\d+)/)?.[1];
                if (customerIdFromPath) {
-                  navigate(`/customers/customersList/customerProfile/${customerIdFromPath}/customerInvoices`);
+                  navigate(`/clients/${customerIdFromPath}/statements`);
                } else {
-                  navigate('/customers/customersList');
+                  navigate('/clients');
                }
             } else {
-               navigate('/customers/customersList');
+               navigate('/clients');
             }
          };
 

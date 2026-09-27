@@ -1,3 +1,4 @@
+import AdminAdjustment from '../../../../Components/AdminAdjustment';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
@@ -18,7 +19,7 @@ const initialState = {
    customerJobID: null
 };
 
-export default function DeleteWriteOff({ customerData, setCustomerData, writeOffData }) {
+function DeleteWriteOffForm({ customerData, setCustomerData, writeOffData }) {
    const navigate = useNavigate();
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
@@ -67,7 +68,7 @@ export default function DeleteWriteOff({ customerData, setCustomerData, writeOff
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, writeOffsList: postedItem.writeOffsList, invoicesList: postedItem.invoicesList });
-         navigate('/transactions/customerWriteOffs');
+         navigate('/receivables/write-offs');
       }
    });
 
@@ -134,3 +135,5 @@ export default function DeleteWriteOff({ customerData, setCustomerData, writeOff
       </>
    );
 }
+
+export default function DeleteWriteOff(props){return <AdminAdjustment><DeleteWriteOffForm {...props}/></AdminAdjustment>;}

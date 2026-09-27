@@ -32,7 +32,7 @@ test.describe('Invoice detail', () => {
     await page.goto(routes.invoices);
     await page.getByPlaceholder('Search invoices').fill(invoice.invoice_number);
     await page.locator(`[role="row"][data-id="${invoice.customer_invoice_id}"]`).click();
-    await expect(page).toHaveURL(/invoiceDetail\/invoiceTransactions$/);
+    await expect(page).toHaveURL(/billing\/invoices\/\d+\/work$/);
     // InvoiceDetails.js renders three side-by-side <table>s: contact info
     // (customer name/address), invoice identity (invoice number/dates), and
     // totals (beginning balance..amount due) — the invoice number is in the
@@ -47,18 +47,18 @@ test.describe('Invoice detail', () => {
     await expect(totals).toContainText('Current balance:15.5');
 
     await page.getByRole('tab', { name: 'Payments', exact: true }).click();
-    await expect(page).toHaveURL(/invoiceDetail\/invoicePayments$/);
+    await expect(page).toHaveURL(/billing\/invoices\/\d+\/payments$/);
     await expect(page.getByRole('grid').locator('[role="row"][data-id]')).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Write Offs', exact: true }).click();
-    await expect(page).toHaveURL(/invoiceDetail\/invoiceWriteOffs$/);
+    await expect(page).toHaveURL(/billing\/invoices\/\d+\/write-offs$/);
     await expect(page.getByRole('grid').locator('[role="row"][data-id]')).toHaveCount(0);
     expect(rows(`SELECT payment_amount FROM customer_payments WHERE account_id=9001 AND customer_id=${customer.id}`).map(r=>Number(r.payment_amount))).toEqual([-5]);
     expect(rows(`SELECT writeoff_amount FROM customer_writeoffs WHERE account_id=9001 AND customer_id=${customer.id}`).map(r=>Number(r.writeoff_amount))).toEqual([-2]);
   });
 });
 
-// /invoices/quotes has no sidebar link (SidebarRoutes.js comments out the
+// /billing/quotes has no sidebar link (SidebarRoutes.js comments out the
 // Quotes entry) and no create/delete UI at all: QuotesGrid.js passes no
 // arrayOfButtons, no enableSingleRowClick and no routeToPass — a pure
 // read-only display. The backend's POST /quotes/createQuote, PUT
@@ -84,7 +84,7 @@ test.describe('Invoice detail', () => {
 // Loading screen).
 test.describe('Quotes', () => {
   test('the quotes list renders its real content, not permanent Loading', async ({ page }) => {
-    await page.goto('/invoices/quotes');
+    await page.goto('/billing/quotes');
     await expect(page.getByRole('grid')).toBeVisible();
     await expect(page.getByText('Loading...', { exact: true })).toHaveCount(0);
   });
@@ -95,8 +95,8 @@ test.describe('Accounts Receivable (account 9001)', () => {
     const customer = await billedCustomer(page, prefix);
     await finalize(page, customer);
 
-    await page.goto('/invoices/accountsReceivable');
-    await expect(page.getByRole('heading', { name: 'Accounts Receivable', exact: true })).toBeVisible();
+    await page.goto('/receivables/aging');
+    await expect(page.getByRole('heading', { name: 'Accounts receivable', exact: true })).toBeVisible();
     // A brand-new invoice is 0 days old — must show under "All ages" and
     // under "0–30 days", and disappear from the older buckets.
     for (const label of ['All ages', '0–30 days']) {
@@ -111,15 +111,11 @@ test.describe('Accounts Receivable (account 9001)', () => {
 });
 
 test.describe('Account Audit (super-admin gate)', () => {
-  // Same root cause as Account Users (see account-users.spec.js): canAccess
-  // AccountAudit requires accessLevel === 'super admin' exactly, and account
-  // 9001 has no super-admin fixture user — only account 1's user 21, which is
-  // read-only. The chips/toggles this page offers (All/Billing Ready/Needs
-  // Audit/Matched/Mismatched, "Hide $0 app balance") cannot be exercised
-  // against account 9001 data for the same reason Account Users' CRUD can't.
+  // The ordinary admin fixture stays refused. H6's scoped Super Admin
+  // navigation fixture exercises the authorized destination separately.
   test('admin identity is refused the Account Audit page', async ({ page }) => {
-    await page.goto('/invoices/accountAudit');
+    await page.goto('/reports/account-audit');
     await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
-    await expect(page.getByText('You are not authorized to access the Account Audit module.', { exact: true })).toBeVisible();
+    await expect(page.getByText('This page is restricted to super admins.', { exact: true })).toBeVisible();
   });
 });

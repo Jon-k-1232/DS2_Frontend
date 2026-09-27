@@ -32,7 +32,7 @@ export default function CustomerSettings({ selectedItems, setSelectedItems }) {
                 onChange={e => setSelectedItems(otherItems => ({ ...otherItems, isCustomerRecurring: e.target.checked }))}
               />
             }
-            label='Billing Recurring Monthly'
+            label='Recurring billing'
           />
         </Stack>
       </Stack>

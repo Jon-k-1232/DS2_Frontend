@@ -1,3 +1,5 @@
+import CustomerPicker,{useCustomerChoices} from '../../../../Components/Lookups/CustomerPicker';
+import EntityPicker from '../../../../Components/BillingEntities/EntityPicker';
 import React, { useState, useEffect, useContext } from 'react';
 import { Dialog, DialogTitle, DialogContent, Box, Button, TextField, Autocomplete, Stack, Alert, Typography, Divider } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
@@ -5,7 +7,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { context } from '../../../../App';
 import { approvePendingPaymentAtomic, isApprovalRouteMissing, APPROVAL_UNAVAILABLE_MESSAGE } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
-import { fetchCustomers, fetchCustomerProfileInformation } from '../../../../Services/ApiCalls/FetchCalls';
+import { fetchCustomerProfileInformation } from '../../../../Services/ApiCalls/FetchCalls';
 import { formObjectForPaymentPost } from '../../../../Services/SharedPostObjects/SharedPostObjects';
 import { getOpenInvoicesForPayment } from '../../../../Services/SharedFunctions';
 import PaymentPdfPreview from './PaymentPdfPreview';
@@ -16,7 +18,9 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
 
-   const [customers, setCustomers] = useState([]);
+   const clientChoices=useCustomerChoices(customerData,open?(pendingPayment?.customer_name||''):'',pendingPayment?.customer_id);
+   const customers=clientChoices.rows;
+   const [entityId,setEntityId]=useState(null);
    const [selectedCustomer, setSelectedCustomer] = useState(null);
    const [selectedInvoice, setSelectedInvoice] = useState(null);
    const [selectedJob, setSelectedJob] = useState(null);
@@ -30,26 +34,12 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
    const [submitting, setSubmitting] = useState(false);
    const [feedback, setFeedback] = useState(null);
 
-   // Load all customers when dialog opens
-   useEffect(() => {
-      if (!open || !accountID || !userID || !token) return;
-      const loadCustomers = async () => {
-         try {
-            const response = await fetchCustomers(accountID, userID, token, 1, 1000);
-            const list = response?.customersList?.activeCustomerData?.activeCustomers || [];
-            setCustomers(list);
-         } catch (err) {
-            console.error('Error loading customers:', err);
-         }
-      };
-      loadCustomers();
-   }, [open, accountID, userID, token]);
-
    // Pre-fill form when pending payment changes
    useEffect(() => {
       if (!pendingPayment || !open) return;
 
       const amount = pendingPayment.payment_amount ? Math.abs(Number(pendingPayment.payment_amount)) : '';
+      setEntityId(v=>pendingPayment.billing_entity_id || v);
       setPaymentAmount(amount);
       setPaymentDate(pendingPayment.payment_date ? dayjs(pendingPayment.payment_date) : dayjs());
       setFormOfPayment(pendingPayment.form_of_payment || 'Check');
@@ -72,18 +62,22 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
 
    // Load customer invoices when customer changes
    useEffect(() => {
+      if(!entityId){setCustomerInvoices([]);return;}
       if (!selectedCustomer) {
          setCustomerInvoices([]);
          return;
       }
+      let live=true;
+      setCustomerInvoices([]);
       const loadInvoices = async () => {
          try {
-            const profileData = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token);
+            const profileData = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token,entityId,'invoices');
+            if(!live)return;
             const invoices = profileData?.customerInvoiceData?.customerInvoices || [];
             // Current chain(s) only — listing every row with a remaining balance
             // offered absorbed chains and intermediate snapshots with stale
             // amounts, and payments tagged to those never reached a bill.
-            const outstandingInvoices = getOpenInvoicesForPayment(invoices);
+            const outstandingInvoices = getOpenInvoicesForPayment(invoices.filter(r=>Number(r.billing_entity_id)===Number(entityId)));
             setCustomerInvoices(outstandingInvoices);
 
             // Auto-match invoice if pending payment has one
@@ -96,8 +90,9 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
          }
       };
       loadInvoices();
+      return()=>{live=false;};
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [selectedCustomer]);
+   }, [selectedCustomer,entityId]);
 
    const handleSubmit = async () => {
       // A second click while a request is in flight, or after the success
@@ -105,6 +100,7 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
       // approval: the backend would refuse it as already processed and that
       // refusal would replace the success message the accountant just read.
       if (submitting || feedback?.type === 'success') return;
+      if(!entityId){setCustomerInvoices([]);return;}
       if (!selectedCustomer) {
          setFeedback({ type: 'error', message: 'Please select a customer.' });
          return;
@@ -124,6 +120,7 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
       try {
          // Build the payment object matching the existing payment form shape
          const paymentData = formObjectForPaymentPost({
+            entityId,
             selectedCustomer,
             selectedInvoice,
             selectedJob,
@@ -210,20 +207,9 @@ export default function ReviewPaymentDialog({ open, onClose, pendingPayment, cus
                      />
 
                      {/* Customer selection */}
-                     <Autocomplete
-                        size='small'
-                        value={selectedCustomer}
-                        onChange={(_, value) => {
-                           setSelectedCustomer(value);
-                           setSelectedInvoice(null);
-                        }}
-                        options={customers}
-                        getOptionLabel={option => option.display_name || ''}
-                        isOptionEqualToValue={(option, value) => option.customer_id === value?.customer_id}
-                        renderInput={params => <TextField {...params} label='Customer' variant='standard' required />}
-                        fullWidth
-                     />
+                     <CustomerPicker customerData={customerData} label='Customer' required size='small' fullWidth value={selectedCustomer} onChange={value=>{setSelectedCustomer(value);setSelectedInvoice(null);setSelectedJob(null);}}/>
 
+                     <EntityPicker value={entityId} customerId={selectedCustomer?.customer_id} onChange={v=>{setEntityId(v);setSelectedInvoice(null);}} />
                      {/* Invoice selection */}
                      <Autocomplete
                         size='small'

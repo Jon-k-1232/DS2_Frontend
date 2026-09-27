@@ -1,3 +1,6 @@
+import ReportHistoryFilter from '../../Components/Workspace/ReportHistoryFilter';
+import ReportingBasis from './ReportingBasis';
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
    Box,
@@ -48,6 +51,9 @@ export default function JobBudgetsPage() {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
+   const [asOf,setAsOf]=useState(new Date().toLocaleDateString('en-CA',{timeZone:'America/Phoenix'}));
+   const [recordedThrough,setRecordedThrough]=useState('');
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [data, setData] = useState([]);
@@ -59,9 +65,10 @@ export default function JobBudgetsPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setData([]);
          setError(null);
          try {
-            const res = await fetchJobBudgets(accountID, userID, { exclude: excludedIds });
+            const res = await fetchJobBudgets(accountID, userID, { exclude: excludedIds, entityId, asOf, recordedThrough });
             if (cancelled) return;
             if (res?.jobBudgets) setData(res.jobBudgets);
             else setError(res?.message || 'Unable to load job budgets.');
@@ -76,7 +83,7 @@ export default function JobBudgetsPage() {
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, ready, excludedIds]);
+   }, [accountID, userID, ready, excludedIds, entityId, asOf, recordedThrough]);
 
    const rows = useMemo(() => {
       const term = search.trim().toLowerCase();
@@ -111,7 +118,7 @@ export default function JobBudgetsPage() {
          },
          {
             field: 'actual',
-            headerName: 'Actual',
+            headerName: 'Work entered',
             width: 120,
             type: 'number',
             valueFormatter: params => fmtMoney(params.value)
@@ -158,11 +165,15 @@ export default function JobBudgetsPage() {
 
    return (
       <Stack spacing={2}>
+         <ReportingBasis kind="budgets" />
+         <EntityPicker all allowInactive value={entityId} onChange={setEntityId} />
+         <Stack direction='row' spacing={2}><TextField size='small' type='date' label='As of' value={asOf} onChange={e=>setAsOf(e.target.value)} InputLabelProps={{shrink:true}}/></Stack>
+         <ReportHistoryFilter value={recordedThrough} onChange={setRecordedThrough}/>
          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent='space-between'>
             <Box>
                <Typography variant='h5'>Job Budgets</Typography>
                <Typography variant='body2' color='text.secondary'>
-                  Budget vs actual for jobs with an agreed amount. Jobs without an agreed amount don't appear — set agreed_job_amount on the job to track it here.
+                  Agreed job budgets compared with billable work entered. Set the agreed amount on a job to include it here.
                </Typography>
             </Box>
             <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
@@ -194,7 +205,7 @@ export default function JobBudgetsPage() {
                <Stack direction='row' spacing={2} flexWrap='wrap' useFlexGap>
                   <SummaryCard label='Jobs Tracked' value={rows.length.toLocaleString()} />
                   <SummaryCard label='Total Budget' value={fmtMoney(totals.budget)} />
-                  <SummaryCard label='Total Actual' value={fmtMoney(totals.actual)} />
+                  <SummaryCard label='Billable work entered' value={fmtMoney(totals.actual)} />
                   <SummaryCard label='Over Budget' value={totals.overBudget.toLocaleString()} hint='Jobs past 100% consumed' />
                </Stack>
 

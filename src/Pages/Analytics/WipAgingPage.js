@@ -1,3 +1,6 @@
+import ReportHistoryFilter from '../../Components/Workspace/ReportHistoryFilter';
+import ReportingBasis from './ReportingBasis';
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { Box, Stack, Typography, TextField, Paper, Chip, CircularProgress } from '@mui/material';
 import { Alert } from '@mui/material';
@@ -34,6 +37,9 @@ export default function WipAgingPage() {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
+   const [asOf,setAsOf]=useState(new Date().toLocaleDateString('en-CA',{timeZone:'America/Phoenix'}));
+   const [recordedThrough,setRecordedThrough]=useState('');
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [data, setData] = useState(null);
@@ -45,9 +51,10 @@ export default function WipAgingPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setData(null);
          setError(null);
          try {
-            const res = await fetchWipAging(accountID, userID, { exclude: excludedIds });
+            const res = await fetchWipAging(accountID, userID, { exclude: excludedIds, entityId, asOf, recordedThrough });
             if (cancelled) return;
             if (res?.wipAging) setData(res.wipAging);
             else setError(res?.message || 'Unable to load WIP aging.');
@@ -62,7 +69,7 @@ export default function WipAgingPage() {
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, ready, excludedIds]);
+   }, [accountID, userID, ready, excludedIds, entityId, asOf, recordedThrough]);
 
    const rows = useMemo(() => {
       if (!data) return [];
@@ -96,6 +103,7 @@ export default function WipAgingPage() {
       return [
          { field: 'display_name', headerName: 'Customer', flex: 1, minWidth: 220 },
          moneyCol('unbilled_amount', 'Unbilled $', 130),
+         moneyCol('held_amount', 'Held work $', 130),
          {
             field: 'unbilled_hours',
             headerName: 'Hours',
@@ -126,6 +134,10 @@ export default function WipAgingPage() {
 
    return (
       <Stack spacing={2}>
+         <ReportingBasis kind="wip" />
+         <EntityPicker all allowInactive value={entityId} onChange={setEntityId} />
+         <Stack direction='row' spacing={2}><TextField size='small' type='date' label='As of' value={asOf} onChange={e=>setAsOf(e.target.value)} InputLabelProps={{shrink:true}}/></Stack>
+         <ReportHistoryFilter value={recordedThrough} onChange={setRecordedThrough}/>
          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent='space-between'>
             <Box>
                <Typography variant='h5'>WIP / Unbilled Aging</Typography>

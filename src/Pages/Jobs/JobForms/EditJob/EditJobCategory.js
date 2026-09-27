@@ -43,7 +43,7 @@ export default function EditJobCategory({ customerData, setCustomerData, jobCate
     if (postedItem.status === 200) {
       setCustomerData({ ...customerData, jobCategoriesList: postedItem.jobCategoriesList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/jobs/jobCategoriesList');
+      navigate('/settings/job-categories');
       setSelectedItems(initialState);
     }
   };

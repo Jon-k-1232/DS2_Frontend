@@ -1,3 +1,5 @@
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
+import {entitiesCall,entityError} from '../../../Services/ApiCalls/BillingEntitiesCalls';
 import { useState, useEffect, useContext } from 'react';
 import { context } from '../../../App';
 import { Divider, Stack, Typography, Alert, Box, Button, TextField } from '@mui/material';
@@ -6,7 +8,10 @@ import { downloadCustomerStatement } from '../../../Services/ApiCalls/AnalyticsC
 import FloatingTooltip from '../../../Components/FloatingTooltip';
 import dayjs from 'dayjs';
 
-export default function CustomerProfile({ profileData }) {
+export default function CustomerProfile({ profileData, entityId:parentEntityId }) {
+   const [localEntityId,setEntityId]=useState(null);
+   const entityId=parentEntityId===undefined?localEntityId:parentEntityId;
+   const [entityBalances,setEntityBalances]=useState(null);
    const [customerBalance, setCustomerBalance] = useState({});
    const [postStatus, setPostStatus] = useState(null);
    const [statementStart, setStatementStart] = useState(dayjs().startOf('year').format('YYYY-MM-DD'));
@@ -49,20 +54,25 @@ export default function CustomerProfile({ profileData }) {
    const newestOutstandingInvoice = outstandingInvoices?.outstandingInvoiceRecords?.[0] || null;
 
    useEffect(() => {
+      let live=true;
+      setCustomerBalance({});setEntityBalances(null);
       const fetchBalances = async () => {
+         if(!entityId){try{const result=await entitiesCall(`/balances?customerId=${customer_id}`);if(live)setEntityBalances(result);}catch(e){if(live)setPostStatus({status:500,message:entityError(e)});}return;}
          const configuration = {
             invoicesToCreate: [{ ...customerData, invoiceNote: '', showWriteOffs: false }],
-            invoiceCreationSettings: { globalInvoiceNote: '', isCsvOnly: false, isFinalized: false, isRoughDraft: false }
+            invoiceCreationSettings: { entityId, globalInvoiceNote: '', isCsvOnly: false, isFinalized: false, isRoughDraft: false }
          };
 
          const customerTotals = await postInvoiceCreation(configuration, accountID, userID, token);
+         if(!live)return;
          if (customerTotals.status !== 200) setPostStatus(customerTotals);
-         setCustomerBalance(customerTotals?.invoicesWithDetail[0]);
+         setCustomerBalance(customerTotals?.invoicesWithDetail?.[0] || {});
       };
 
       if (Object.keys(customerData).length) fetchBalances();
+      return()=>{live=false;};
       // eslint-disable-next-line
-   }, [customerData]);
+   }, [customerData,entityId]);
 
    // Tool tip definitions
    const transactionsDefinition = <Typography variant='caption'>All charges, and time transactions are reflected.</Typography>;
@@ -115,6 +125,8 @@ export default function CustomerProfile({ profileData }) {
 
    return (
       <Stack style={styles.component}>
+         {parentEntityId===undefined && <EntityPicker value={entityId} onChange={setEntityId} customerId={customer_id} />}
+         {entityBalances && <Box><Typography variant='h6'>Balances by business</Typography>{entityBalances.balances.map(r=><Typography key={r.billing_entity_id}>{r.name}: billed ${Number(r.billed).toFixed(2)} · next statement ${Number(r.nextStatement).toFixed(2)} · retainers ${Number(r.heldFunds).toFixed(2)} · receipt credit ${Number(r.heldReceiptCredit || 0).toFixed(2)} · proposed payable ${Number(r.proposedStatement ?? r.nextStatement).toFixed(2)}</Typography>)}<Typography>Total billed ${Number(entityBalances.totals.billed).toFixed(2)} · next statements ${Number(entityBalances.totals.nextStatement).toFixed(2)}</Typography><Typography variant='caption'>Choose a business for its invoice preview. All-business statements keep separate sections.</Typography></Box>}
          <Stack style={styles.header} direction='row' spacing={2} alignItems='center' justifyContent='space-between'>
             <Typography variant='h3'>{business_name || customer_name}</Typography>
             <Typography variant='h5'>{is_customer_active ? 'Active' : 'Inactive'}</Typography>
@@ -132,7 +144,7 @@ export default function CustomerProfile({ profileData }) {
                onClick={async () => {
                   setDownloadingStatement(true);
                   try {
-                     await downloadCustomerStatement(accountID, userID, customer_id, { start: statementStart, end: statementEnd });
+                     await downloadCustomerStatement(accountID, userID, customer_id, { start: statementStart, end: statementEnd, entityId });
                   } catch (error) {
                      setPostStatus({ status: 500, message: error.response?.data?.message || error.message || 'Statement download failed.' });
                   } finally {
@@ -186,6 +198,7 @@ export default function CustomerProfile({ profileData }) {
                </tbody>
             </table>
 
+            {Boolean(entityId) && <>
             <table style={styles.tableWrapper}>
                <tbody>
                   <tr>
@@ -202,11 +215,11 @@ export default function CustomerProfile({ profileData }) {
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Last Statement Balance:</th>
-                     <td style={styles.tdStyle}>{Object.keys(customerBalance).length ? outstandingInvoices?.outstandingInvoiceRecords[0]?.total_amount_due : 0.0}</td>
+                     <td style={styles.tdStyle}>{Object.keys(customerBalance).length ? outstandingInvoices?.outstandingInvoiceRecords?.[0]?.total_amount_due : 0.0}</td>
                   </tr>
                   <tr>
                      <th style={styles.thStyle}>Multiple Outstanding Invoices:</th>
-                     <td style={styles.tdStyle}>{Object.keys(customerBalance).length && outstandingInvoices?.outstandingInvoiceRecords.length > 1 ? 'Yes' : 'No'}</td>
+                     <td style={styles.tdStyle}>{Object.keys(customerBalance).length && outstandingInvoices?.outstandingInvoiceRecords?.length > 1 ? 'Yes' : 'No'}</td>
                   </tr>
                   <FloatingTooltip tooltipContent={outstandingInvoice}>
                      <tr>
@@ -282,6 +295,7 @@ export default function CustomerProfile({ profileData }) {
                   </tr>
                </tbody>
             </table>
+            </>}
          </Stack>
          {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
          <Divider style={styles.divider} />

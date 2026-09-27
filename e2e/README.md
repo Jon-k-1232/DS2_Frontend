@@ -113,3 +113,26 @@ Generated artifacts, traces, dependencies, cache and browser binaries are gitign
 Any `test.fixme` in this suite must be a confirmed, currently-reproducing product defect: reproduced with real DOM/response evidence, cited to a product `file:line`, and re-verified (fixme temporarily disabled, run, re-enabled) before being added. There are currently none — the nine tracked as of the previous execution report were all fixed in the product this session and their `fixme`s removed; see REVIEW_RESULTS.md for the full list with evidence and what changed. `DS2_RUN_KNOWN_DEFECTS=1 npm test -- tests/month-end.spec.js` is no longer needed for that file — the frontend fix it worked around (no auto-clear of the same-day-skip result, a real close button, skipped rows showing their invoice number) has landed and the test asserts it directly. Never mark an unobserved selector failure as a product defect: if a test fails and you're not sure whether it's a flake or a defect, reproduce it a second time with the assertion temporarily un-skipped before adding `// DEFECT:` + `test.fixme`.
 
 This is a shared sandbox: other concurrent work on the same DS2_Frontend/DS2_Backend checkout and the same Postgres/MinIO instances can and did change real behavior and data mid-session (a grid rewrite that changed a checkbox's accessible name on selection, an S3 key-naming change, extra rows and an extra same-named fixture user left by another process's own testing). None of that is a reason to weaken an assertion — `lib/ui.js`'s shared helpers were hardened to be robust to it instead (stable CSS-class selectors instead of state-dependent accessible names, a quick-filter narrow instead of assuming page 1, `.first()` for a same-text match, a retry around the outstanding-balance fetch). If a run fails, re-run it once before concluding a helper needs another look — and if it's the same failure twice, it almost always is.
+
+
+## H0 report generation (2026-09-26)
+
+The installed Playwright1.63.0 HTML reporter twice exited with `RangeError: Invalid string length` after all114 assertions passed, including a full run with optional source snippets disabled. Default reporters are now **list and JSON**, retaining every assertion, source location and attachment file/path. Read `test-results/results.json` and the console summary for complete results. HTML export (and `npm run report`, which requires a generated HTML report) is not an accepted full-suite output until that reporter limitation is resolved. No tests were removed or weakened. Final counts and command status are in [H0 results](../../DS2_Backend/docs/decisions/2026-09-26-run-H0-results.md).
+
+Use the externally managed browser for this sandbox (do not launch Chromium directly):
+
+```sh
+NODE_OPTIONS=--max-old-space-size=8192 PLAYWRIGHT_BROWSERS_PATH=/Users/jonkimmel/Desktop/Code/JKA_stuff/DS2/DS2_Frontend/e2e/.browsers PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:3334/ npx playwright test --workers=1
+```
+
+H5's uninterrupted 184-test run exhausted the Playwright Node runner's default 4 GB heap after 182 passing tests, before the last two completed. The command above gives the local test runner an 8 GB heap limit; it does not change or restart either managed application server or the external browser server. Every test, assertion, trace policy and reporter remains enabled. The failed runtime log is retained in H5 evidence; only a complete run that exits 0 is accepted.
+
+## H6 category navigation
+
+`auth-and-navigation.spec.js` traverses all 39 sidebar leaves. `navigation-H6.spec.js` covers every old list/group prefix, client and invoice tab mapping, historical edit/delete/NSF redirect, ID-based refresh/back/recovery, load failure/retry, keyboard/skip/quick-entry interactions and expanded/collapsed/narrow layouts. Existing lifecycle, money, correction, recurring, admin/refusal and mistake suites use canonical routes and keep their financial assertions. API URLs remain unchanged.
+
+`lib/workspace-fixtures.js` temporarily uses Super Admin on synthetic account 9001's user 90013, restoring the previous role in finally. It never promotes or writes an account-1 identity. Read-only historical-data tests retain their existing independent write prohibition. Historical payment-form tests intentionally use `/payments/receipts/legacy`; receipt workflows use `/payments/receipts` and `/payments/receive`.
+
+Run every test command sequentially. For the complete browser suite use the 8 GB Node heap flag documented below/above; no browser or application server may be launched or stopped by the suite. See [H6 results](../../DS2_Backend/docs/decisions/2026-09-26-run-H6-results.md) for accepted counts and [workspace rules](../../DS2_Backend/docs/platform/workspace-navigation.md) for the route map.
+
+H6 also exercises Super Admin user CRUD with a unique synthetic user in account 9001. The user test permits only that exact local DELETE URL after verifying the target’s tenant and synthetic email; the global network safety guard is unchanged. An injected failure proves the user remains, then an explicit retry deletes it. The scoped fixture restores its prior role, and finally cleanup removes only that test’s user if a browser assertion fails. Account 1 remains read-only.

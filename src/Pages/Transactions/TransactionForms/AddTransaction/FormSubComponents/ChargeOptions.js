@@ -1,20 +1,11 @@
-import { useEffect } from 'react';
+import {useRecurringBillability} from './SharedTransactionsFunctions';
 import { Stack, TextField, Checkbox, FormControlLabel, FormControl, Typography, RadioGroup, Radio, Autocomplete } from '@mui/material';
 
 export default function ChargeOptions({ customerData, selectedItems, setSelectedItems }) {
    const { workDescriptionsList: { activeWorkDescriptionsData: { workDescriptions } = [] } = [] } = { ...customerData };
 
-   const { detailedJobDescription, quantity, unitCost, isTransactionBillable, isInAdditionToMonthlyCharge, selectedCustomer, selectedGeneralWorkDescription } = selectedItems;
-
-   useEffect(() => {
-      if (selectedCustomer?.is_recurring && !isInAdditionToMonthlyCharge && isTransactionBillable) {
-         updateSelectedItems('isTransactionBillable', false);
-      }
-      if (selectedCustomer?.is_recurring && isInAdditionToMonthlyCharge && !isTransactionBillable) {
-         updateSelectedItems('isTransactionBillable', true);
-      }
-      // eslint-disable-next-line
-   }, [isInAdditionToMonthlyCharge]);
+   const { detailedJobDescription, quantity, unitCost, isTransactionBillable, isInAdditionToMonthlyCharge, selectedGeneralWorkDescription } = selectedItems;
+   const covered=useRecurringBillability(customerData,selectedItems,setSelectedItems);
 
    const updateSelectedItems = (key, value) => {
       setSelectedItems(prevItems => ({ ...prevItems, [key]: value }));
@@ -49,10 +40,10 @@ export default function ChargeOptions({ customerData, selectedItems, setSelected
 
          <FormControlLabel control={<Checkbox checked={isTransactionBillable} onChange={e => updateSelectedItems('isTransactionBillable', e.target.checked)} />} label='Billable' />
 
-         {selectedCustomer?.is_recurring && (
+         {covered && (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 2, md: 8 }}>
                <FormControl style={{ width: '100%', maxWidth: '350px' }} component='fieldset'>
-                  <Typography variant='body1'>Is this in addition to the customers monthly base charge?</Typography>
+                  <Typography variant='body1'>Is this in addition to the client's recurring base fee?</Typography>
                   <RadioGroup
                      row
                      name='isInAdditionToMonthlyCharge'

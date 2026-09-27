@@ -1,3 +1,4 @@
+import ReceiptApplicationNotice from '../../../../Components/ReceiptApplicationNotice';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
@@ -81,7 +82,7 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
             // Force the grid to refetch its paginated page (mutation responses
             // carry the full unpaginated list, which the grid can't page).
             paymentsList: null, invoicesList: postedItem.invoicesList });
-         navigate('/transactions/customerPayments');
+         navigate('/payments/receipts/legacy');
       }
    });
 
@@ -89,6 +90,7 @@ export default function DeletePayment({ customerData, setCustomerData, paymentDa
       setIsConfirmationOpen(false);
    };
 
+   if (paymentData?.receipt_id) return <ReceiptApplicationNotice receiptId={paymentData.receipt_id}/>;
    if (paymentData?.sent_locked) return <SentInvoiceNotice row={paymentData} />;
 
    return (

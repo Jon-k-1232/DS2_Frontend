@@ -134,3 +134,10 @@ describe('InvoicesGrid — stable row identity', () => {
       expect(gridRoot).toHaveAttribute('aria-rowcount', '21');
    });
 });
+
+test('a delayed invoice page does not steal keyboard focus from page help',async()=>{
+ let finish;fetchInvoices.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ await renderGrid(buildActiveInvoiceData(2));
+ const help=document.createElement('button');help.textContent='About this page';document.body.appendChild(help);help.focus();
+ try{await act(async()=>finish({status:200,invoicesList:{activeInvoiceData:buildActiveInvoiceData(3)}}));expect(help).toHaveFocus();}finally{help.remove();}
+});

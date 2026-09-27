@@ -1,3 +1,4 @@
+import { canonicalPath } from '../../Routes/routePaths';
 import { withSentLockColumn } from './sentLockColumn';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -72,9 +73,16 @@ const ExpandableGrid = ({
       onCellClick: (z, e) => {
          if (!rowSelectionOnly) e.stopPropagation();
       },
+      onCellKeyDown: (params, event) => {
+         if (event.key === 'Enter' && enableSingleRowClick && routeToPass && event.target === event.currentTarget) {
+            event.preventDefault();
+            const path = typeof routeToPass === 'function' ? routeToPass(params.row) : routeToPass;
+            navigate(canonicalPath(path, params.row), {state:{rowData:params.row}});
+         }
+      },
       onRowClick: rowData => {
          enableSingleRowClick && !routeToPass && setSingleSelectedRow(rowData.row);
-         enableSingleRowClick && routeToPass && navigate(routeToPass, { state: { rowData: rowData.row } });
+         enableSingleRowClick && routeToPass && navigate(canonicalPath(routeToPass, rowData.row), { state: { rowData: rowData.row } });
       },
       pageSize: 25,
       getRowId: row => row[idField]

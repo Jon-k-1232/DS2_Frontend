@@ -57,7 +57,7 @@ export default function DashboardSidebar({ isMobileOpen, isDesktopOpen, onCloseM
          }}
       >
          <Box sx={{ px: 2.5, py: 3 }}>
-            <Box component={RouterLink} to='/customers/customersList' sx={{ display: 'inline-flex', textDecoration: 'none' }}>
+            <Box component={RouterLink} to={['admin','manager','super admin','owner'].includes((loggedInUser.accessLevel || '').toLowerCase())?'/clients':'/time-tracking/upload'} aria-label='DS2 home' sx={{ display: 'inline-flex', textDecoration: 'none' }}>
                <Logo />
             </Box>
          </Box>

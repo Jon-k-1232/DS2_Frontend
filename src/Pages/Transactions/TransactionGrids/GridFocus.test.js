@@ -1,3 +1,4 @@
+import {MemoryRouter} from 'react-router-dom';
 import { render, screen, act } from '@testing-library/react';
 import { context } from '../../../App';
 import TransactionsGrid from './TransactionsGrid';
@@ -20,7 +21,7 @@ test.each([
   const pending = [];
   fetch.mockImplementation(() => new Promise(resolve => pending.push(resolve)));
   const data = { [list]: { [active]: { grid: { rows: [], columns: [] }, pagination: {page: 1, limit: 20, totalItems: 0} } } };
-  const view = value => <context.Provider value={{ loggedInUser: { accountID: 9001, userID: 90013, token: 'local' } }}><Grid customerData={value} setCustomerData={jest.fn()} /><input aria-label='In-progress form' /></context.Provider>;
+  const view = value => <MemoryRouter><context.Provider value={{ loggedInUser: { accountID: 9001, userID: 90013, token: 'local' } }}><Grid customerData={value} setCustomerData={jest.fn()} /><input aria-label='In-progress form' /></context.Provider></MemoryRouter>;
   const { rerender } = render(view(data));
   const field = screen.getByLabelText('In-progress form');
   field.focus();

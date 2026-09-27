@@ -1,3 +1,6 @@
+import useJobSearch from '../../../../Components/Lookups/useJobSearch';
+import useJobChoices from '../../../../Components/Lookups/useJobChoices';
+import CustomerPicker from '../../../../Components/Lookups/CustomerPicker';
 import { Fragment, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
    Alert,
@@ -90,6 +93,7 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    const [totalCount, setTotalCount] = useState(0);
    const [loading, setLoading] = useState(false);
    const [editingId, setEditingId] = useState(null);
+   const [editingCustomer, setEditingCustomer] = useState(null);
    const [edits, setEdits] = useState({});
    const [error, setError] = useState('');
    const [sideEffects, setSideEffects] = useState([]);
@@ -223,6 +227,7 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
    const startEdit = txn => {
       if (txn.sent_locked) return;
       setEditingId(txn.transaction_id);
+      setEditingCustomer({customer_id:txn.customer_id,display_name:txn.customer_display_name || ''});
       setEdits({
          customer_id: txn.customer_id,
          customer_job_id: txn.customer_job_id,
@@ -263,26 +268,10 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
       }
    };
 
-   const customers = customerData?.customersList?.activeCustomerData?.activeCustomers || [];
    const workDescriptions = customerData?.workDescriptionsList?.activeWorkDescriptionsData?.workDescriptions || [];
-   const jobsForSelectedCustomer = useMemo(() => {
-      const activeJobs = customerData?.accountJobsList?.activeJobData?.activeJobs || [];
-      const customerJobs = activeJobs.filter(j => Number(j.customer_id) === Number(edits.customer_id));
-      // Each "job" in DS2 has a parent (the user-facing top-level job) plus child rows used internally
-      // for tracking. Show only the parent jobs so each unique job appears once in the dropdown.
-      const parents = customerJobs.filter(j => !j.parent_job_id);
-      const list = parents.length > 0 ? parents : (() => {
-         const seen = new Set();
-         return customerJobs.filter(j => (seen.has(j.job_type_id) ? false : (seen.add(j.job_type_id), true)));
-      })();
-      // If the currently-edited transaction points at a child job, include it explicitly so the Select
-      // still shows the truth instead of looking empty. The label will note it's a child.
-      if (edits.customer_job_id && !list.some(j => j.customer_job_id === edits.customer_job_id)) {
-         const current = customerJobs.find(j => j.customer_job_id === edits.customer_job_id);
-         if (current) list.unshift({ ...current, _isOrphanedChild: true });
-      }
-      return list;
-   }, [customerData, edits.customer_id, edits.customer_job_id]);
+   const [jobSearch,setJobSearch,jobScope]=useJobSearch(edits.customer_id,editingOriginal?.billing_entity_id);
+   const jobChoices=useJobChoices(edits.customer_id,editingOriginal?.billing_entity_id,jobSearch,0,edits.customer_job_id);
+   const jobsForSelectedCustomer=jobChoices.rows;
 
    const employeeOptions = customerData?.teamMembersList?.activeUserData?.activeUsers || [];
 
@@ -328,19 +317,14 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                      <MenuItem key={e} value={e}>{e}</MenuItem>
                   ))}
                </TextField>
-               <TextField
-                  select
+               <CustomerPicker menu customerData={customerData}
+                  
                   size='small'
                   label='Customer'
                   value={filterCustomerId}
-                  onChange={e => setFilterCustomerId(e.target.value)}
+                  onChange={value=> setFilterCustomerId(value)}
                   sx={{ minWidth: 220 }}
-               >
-                  <MenuItem value=''>(any)</MenuItem>
-                  {customers.map(c => (
-                     <MenuItem key={c.customer_id} value={c.customer_id}>{c.display_name}</MenuItem>
-                  ))}
-               </TextField>
+                />
                <TextField
                   size='small'
                   label='Job contains'
@@ -501,17 +485,14 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                               {/* Customer */}
                               <TableCell>
                                  {isEditing ? (
-                                    <TextField
-                                       select
+                                    <CustomerPicker
+                                       customerData={customerData}
+                                       label='Client for transaction'
                                        size='small'
-                                       value={edits.customer_id || ''}
-                                       onChange={e => setEdits(p => ({ ...p, customer_id: Number(e.target.value), customer_job_id: null }))}
+                                       value={editingCustomer}
+                                       onChange={client => {setEditingCustomer(client);setEdits(p => ({ ...p, customer_id: client?.customer_id || null, customer_job_id: null }));}}
                                        sx={{ minWidth: 200 }}
-                                    >
-                                       {customers.map(c => (
-                                          <MenuItem key={c.customer_id} value={c.customer_id}>{c.display_name}</MenuItem>
-                                       ))}
-                                    </TextField>
+                                    />
                                  ) : (
                                     r.customer_display_name || NA
                                  )}
@@ -525,12 +506,14 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                               <TableCell>
                                  {isEditing ? (
                                     <AutoCompleteWithDialog
+                                       key={jobScope}
                                        dialogTitle='New Job'
                                        dialogOpen={jobDialogOpen}
                                        setDialogOpen={setJobDialogOpen}
                                        autoCompleteProps={{
                                           autoCompleteLabel: 'Select Job',
                                           autoCompleteOptionsList: jobsForSelectedCustomer,
+                                          onSearch:setJobSearch,remote:true,loading:jobChoices.loading,error:jobChoices.error,
                                           onChangeKey: 'selectedJob',
                                           optionLabelProperty: 'job_description',
                                           valueTestProperty: 'customer_job_id',
@@ -545,7 +528,7 @@ export default function ConsolidatedTab({ period, customerData, setCustomerData 
                                        <NewJob
                                           customerData={customerData}
                                           setCustomerData={data => setCustomerData && setCustomerData(data)}
-                                          defaultCustomer={customers.find(c => c.customer_id === edits.customer_id) || null}
+                                          defaultCustomer={editingCustomer}
                                        />
                                     </AutoCompleteWithDialog>
                                  ) : (

@@ -37,7 +37,7 @@ const { rows, literal } = require('../lib/db');
 test.describe('Job Categories', () => {
   test('add a job category, confirm no duplicate-name refusal exists, then delete', async ({ page, prefix }) => {
     const name = `${prefix} Category`;
-    let dialog = await openForm(page, '/jobs/jobCategoriesList', 'Add a New Job Category');
+    let dialog = await openForm(page, '/settings/job-categories', 'Add a New Job Category');
     await dialog.getByLabel('New Job Category', { exact: true }).fill(name);
     await submit(page, dialog, '/jobCategories/createJobCategory/');
     await closeForm(page);
@@ -54,7 +54,7 @@ test.describe('Job Categories', () => {
 
     // Submitting the identical name again succeeds a second time rather than
     // being refused — real behavior given no uniqueness is enforced anywhere.
-    dialog = await openForm(page, '/jobs/jobCategoriesList', 'Add a New Job Category');
+    dialog = await openForm(page, '/settings/job-categories', 'Add a New Job Category');
     await dialog.getByLabel('New Job Category', { exact: true }).fill(name);
     await submit(page, dialog, '/jobCategories/createJobCategory/');
     await closeForm(page);
@@ -66,14 +66,15 @@ test.describe('Job Categories', () => {
     // job type?" — both copy/pasted from DeleteJobTypes.js. Fixed to say
     // "Job Category" — assert the corrected labels below.
     await row.first().click();
-    await expect(page).toHaveURL(/jobCategoriesList\/deleteJobCategory$/);
+    await expect(page).toHaveURL(/settings\/job-categories\/\d+\/delete$/);
     await expect(page.getByRole('table')).toContainText(name);
+    await expect(page.getByRole('row').filter({hasText:'Created by:'})).toContainText('Admin Person');
     const deleteButton = page.getByRole('button', { name: 'Delete Job Category', exact: true });
     await expect(deleteButton).toBeVisible();
     await deleteButton.click();
     await expect(page.getByRole('dialog')).toContainText('Are you sure you want to delete this job category?');
     await submit(page, page.getByRole('dialog'), '/jobCategories/deleteJobCategory/', 'Delete');
-    await expect(page).toHaveURL(/jobCategoriesList$/);
+    await expect(page).toHaveURL(/settings\/job-categories$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(1); // one of the two duplicates remains
   });
@@ -90,26 +91,26 @@ test.describe('Job Categories: edit', () => {
   test('edit a job category through the UI', async ({ page, prefix }) => {
     const name = `${prefix} Category`;
     const renamed = `${prefix} Category Renamed`;
-    const dialog = await openForm(page, '/jobs/jobCategoriesList', 'Add a New Job Category');
+    const dialog = await openForm(page, '/settings/job-categories', 'Add a New Job Category');
     await dialog.getByLabel('New Job Category', { exact: true }).fill(name);
     await submit(page, dialog, '/jobCategories/createJobCategory/');
     await closeForm(page);
     await fillQuickFilter(page, prefix);
     await page.getByRole('row').filter({ hasText: name }).click();
-    await expect(page).toHaveURL(/jobCategoriesList\/deleteJobCategory$/);
+    await expect(page).toHaveURL(/settings\/job-categories\/\d+\/delete$/);
     await page.getByRole('tab', { name: 'Edit Job Category', exact: true }).click();
-    await expect(page).toHaveURL(/jobCategoriesList\/editJobCategory$/);
+    await expect(page).toHaveURL(/settings\/job-categories\/\d+\/edit$/);
     await expect(page.getByLabel('New Job Category', { exact: true })).toHaveValue(name);
     await page.getByLabel('New Job Category', { exact: true }).fill(renamed);
     await submit(page, page, '/jobCategories/updateJobCategory/', 'Submit');
-    await expect(page).toHaveURL(/jobCategoriesList$/);
+    await expect(page).toHaveURL(/settings\/job-categories$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: renamed })).toBeVisible();
   });
 });
 
 async function addCategory(page, name) {
-  const dialog = await openForm(page, '/jobs/jobCategoriesList', 'Add a New Job Category');
+  const dialog = await openForm(page, '/settings/job-categories', 'Add a New Job Category');
   await dialog.getByLabel('New Job Category', { exact: true }).fill(name);
   await submit(page, dialog, '/jobCategories/createJobCategory/');
   await closeForm(page);
@@ -121,7 +122,7 @@ test.describe('Job Types', () => {
     await addCategory(page, categoryName);
 
     const typeName = `${prefix} Type`;
-    const dialog = await openForm(page, '/jobs/jobTypesList', 'Add New Type of Job');
+    const dialog = await openForm(page, '/settings/job-types', 'Add New Type of Job');
     await dialog.getByLabel('Job Description', { exact: true }).fill(typeName);
     await choose(page, dialog, 'Job Category', categoryName);
     await dialog.getByLabel('Book Rate', { exact: true }).fill('150');
@@ -138,12 +139,13 @@ test.describe('Job Types', () => {
     expect(Number(created.estimated_straight_time)).toBe(3);
 
     await row.click();
-    await expect(page).toHaveURL(/jobTypesList\/deleteJobType$/);
+    await expect(page).toHaveURL(/settings\/job-types\/\d+\/delete$/);
     await expect(page.getByRole('table')).toContainText(typeName);
+    await expect(page.getByRole('row').filter({hasText:'Created by:'})).toContainText('Admin Person');
     await page.getByRole('button', { name: 'Delete Job Type', exact: true }).click();
     await expect(page.getByRole('dialog')).toContainText('Are you sure you want to delete this job type?');
     await submit(page, page.getByRole('dialog'), '/jobTypes/deleteJobType/', 'Delete');
-    await expect(page).toHaveURL(/jobTypesList$/);
+    await expect(page).toHaveURL(/settings\/job-types$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: typeName })).toHaveCount(0);
   });
@@ -158,20 +160,20 @@ test.describe('Job Types: edit', () => {
     await addCategory(page, categoryName);
     const typeName = `${prefix} Type`;
     const renamed = `${prefix} Type Renamed`;
-    const dialog = await openForm(page, '/jobs/jobTypesList', 'Add New Type of Job');
+    const dialog = await openForm(page, '/settings/job-types', 'Add New Type of Job');
     await dialog.getByLabel('Job Description', { exact: true }).fill(typeName);
     await choose(page, dialog, 'Job Category', categoryName);
     await submit(page, dialog, '/jobTypes/createJobType/');
     await closeForm(page);
     await fillQuickFilter(page, prefix);
     await page.getByRole('row').filter({ hasText: typeName }).click();
-    await expect(page).toHaveURL(/jobTypesList\/deleteJobType$/);
+    await expect(page).toHaveURL(/settings\/job-types\/\d+\/delete$/);
     await page.getByRole('tab', { name: 'Edit Job Type', exact: true }).click();
-    await expect(page).toHaveURL(/jobTypesList\/editJobType$/);
+    await expect(page).toHaveURL(/settings\/job-types\/\d+\/edit$/);
     await expect(page.getByLabel('Job Description', { exact: true })).toHaveValue(typeName);
     await page.getByLabel('Job Description', { exact: true }).fill(renamed);
     await submit(page, page, '/jobTypes/updateJobType/', 'Submit');
-    await expect(page).toHaveURL(/jobTypesList$/);
+    await expect(page).toHaveURL(/settings\/job-types$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: renamed })).toBeVisible();
   });
@@ -180,7 +182,7 @@ test.describe('Job Types: edit', () => {
 test.describe('Work Descriptions', () => {
   test('add and delete a work description through the UI', async ({ page, prefix }) => {
     const name = `${prefix} Work Description`;
-    const dialog = await openForm(page, '/jobs/workDescriptionsList', 'Add Work Description');
+    const dialog = await openForm(page, '/settings/work-descriptions', 'Add Work Description');
     await dialog.getByLabel('Generalized Work Description', { exact: true }).fill(name);
     await dialog.getByLabel('Estimated Time For Task', { exact: true }).fill('2');
     await submit(page, dialog, '/workDescriptions/createWorkDescription/');
@@ -196,12 +198,13 @@ test.describe('Work Descriptions', () => {
     expect(Number(created.estimated_time)).toBe(2);
 
     await row.click();
-    await expect(page).toHaveURL(/workDescriptionsList\/deleteWorkDescription$/);
+    await expect(page).toHaveURL(/settings\/work-descriptions\/\d+\/delete$/);
     await expect(page.getByRole('table')).toContainText(name);
+    await expect(page.getByRole('row').filter({hasText:'Created by:'})).toContainText('Admin Person');
     await page.getByRole('button', { name: 'Delete Work Description', exact: true }).click();
     await expect(page.getByRole('dialog')).toContainText('Are you sure you want to delete this work description?');
     await submit(page, page.getByRole('dialog'), '/workDescriptions/deleteWorkDescription/', 'Delete');
-    await expect(page).toHaveURL(/workDescriptionsList$/);
+    await expect(page).toHaveURL(/settings\/work-descriptions$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(0);
   });
@@ -213,20 +216,20 @@ test.describe('Work Descriptions: edit', () => {
   test('edit a work description through the UI', async ({ page, prefix }) => {
     const name = `${prefix} Work Description`;
     const renamed = `${prefix} Work Description Renamed`;
-    const dialog = await openForm(page, '/jobs/workDescriptionsList', 'Add Work Description');
+    const dialog = await openForm(page, '/settings/work-descriptions', 'Add Work Description');
     await dialog.getByLabel('Generalized Work Description', { exact: true }).fill(name);
     await dialog.getByLabel('Estimated Time For Task', { exact: true }).fill('2');
     await submit(page, dialog, '/workDescriptions/createWorkDescription/');
     await closeForm(page);
     await fillQuickFilter(page, prefix);
     await page.getByRole('row').filter({ hasText: name }).click();
-    await expect(page).toHaveURL(/workDescriptionsList\/deleteWorkDescription$/);
+    await expect(page).toHaveURL(/settings\/work-descriptions\/\d+\/delete$/);
     await page.getByRole('tab', { name: 'Edit Work Description', exact: true }).click();
-    await expect(page).toHaveURL(/workDescriptionsList\/editWorkDescription$/);
+    await expect(page).toHaveURL(/settings\/work-descriptions\/\d+\/edit$/);
     await expect(page.getByLabel('Generalized Work Description', { exact: true })).toHaveValue(name);
     await page.getByLabel('Generalized Work Description', { exact: true }).fill(renamed);
     await submit(page, page, '/workDescriptions/updateWorkDescription/', 'Submit');
-    await expect(page).toHaveURL(/workDescriptionsList$/);
+    await expect(page).toHaveURL(/settings\/work-descriptions$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: renamed })).toBeVisible();
   });
@@ -243,7 +246,7 @@ test.describe('Work Descriptions: failed submission', () => {
   // rejects the insert) and confirmed via network response below.
   test('a failed submission shows its error message', async ({ page, prefix }) => {
     const name = `${prefix} Bad Work Description`;
-    const dialog = await openForm(page, '/jobs/workDescriptionsList', 'Add Work Description');
+    const dialog = await openForm(page, '/settings/work-descriptions', 'Add Work Description');
     await dialog.getByLabel('Generalized Work Description', { exact: true }).fill(name);
     await dialog.getByLabel('Estimated Time For Task', { exact: true }).fill('1.5');
     const responsePromise = page.waitForResponse(r => r.url().includes('/workDescriptions/createWorkDescription/') && r.request().method() === 'POST');

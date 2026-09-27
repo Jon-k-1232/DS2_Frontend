@@ -1,18 +1,8 @@
-import { Stack } from '@mui/material';
-import ExpandableGrid from '../../../Components/DataGrids/ExpandableGrid';
+import PagedRegister from '../../../Components/Lookups/PagedRegister';
 import Retainer from '../TransactionForms/AddTransaction/Retainer';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import palette from '../../../Theme/palette';
-
-export default function RetainersGrid({ customerData, setCustomerData }) {
-   if (!customerData || !customerData.accountRetainersList || !customerData.accountRetainersList.activeRetainerData) {
-      return <div>Loading...</div>;
-   }
-
-   const {
-      accountRetainersList: { activeRetainerData }
-   } = customerData;
-
+export default function RetainersGrid({customerData,setCustomerData}) {
    const gridButtons = [
       {
          dialogTitle: 'New Retainer',
@@ -23,9 +13,6 @@ export default function RetainersGrid({ customerData, setCustomerData }) {
    ];
 
    const displayColumnNames = [
-      'retainer_id',
-      'parent_retainer_id',
-      'customer_id',
       'customer_name',
       'display_name',
       'type_of_hold',
@@ -36,26 +23,11 @@ export default function RetainersGrid({ customerData, setCustomerData }) {
       'is_retainer_active',
       'created_at',
       'created_by_user_name',
-      'notes'
+      'retainer_id',
+      'parent_retainer_id',
+      'customer_id',
+      'note'
    ];
 
-   return (
-      <>
-         <Stack spacing={3}>
-            <ExpandableGrid
-               title='Retainers and Deposits'
-               passedHeight={window.innerHeight - 140}
-               idField='retainer_id'
-               parentColumnName='parent_retainer_id'
-               tableData={activeRetainerData}
-               arrayOfButtons={gridButtons}
-               checkboxSelection
-               enableSingleRowClick
-               rowSelectionOnly
-               displayColumnNames={displayColumnNames}
-               routeToPass={'/transactions/customerRetainers/deleteRetainer'}
-            />
-         </Stack>
-      </>
-   );
+   return <PagedRegister title='Retainers and Deposits' path='/retainers/getRetainers' listKey='accountRetainersList' dataKey='activeRetainerData' rowsKey='activeRetainers' idField='retainer_id' route='/payments/retainers/deleteRetainer' columns={displayColumnNames} buttons={gridButtons} revision={customerData?.workspaceRevision || 0}/>;
 }

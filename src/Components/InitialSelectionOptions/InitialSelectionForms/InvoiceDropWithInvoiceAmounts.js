@@ -6,58 +6,44 @@ import { fetchCustomerProfileInformation } from '../../../Services/ApiCalls/Fetc
 import findCustomerInvoices from '../Logic/FindCustomerInvoices';
 
 const InvoiceDropWithInvoiceAmounts = ({ customerData, selectedItems, setSelectedItems, dropDownPlaceholderText, helperText }) => {
-   const [customerOutstandingInvoices, setCustomerOutstandingInvoices] = useState([]);
+   const [loaded, setLoaded] = useState({key:null,rows:[],error:''});
 
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
 
    // Destructure state variables from the props
    const combinedData = { ...customerData, ...selectedItems };
-   const { selectedCustomer, selectedInvoice, selectedJob } = combinedData;
+   const { selectedCustomer, selectedInvoice, entityId } = combinedData;
+   const customerId=selectedCustomer?.customer_id;
+   const key=`${accountID}:${userID}:${customerId}:${entityId}`;
+   const current=loaded.key===key?loaded:{rows:[],error:''};
 
    useEffect(() => {
-      if (selectedCustomer) {
-         const fetchCustomerData = async () => {
-            const customerInfo = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token);
-
-            const customerInvoiceData = customerInfo?.customerInvoiceData?.customerInvoices || [];
-            const customerInvoices = findCustomerInvoices(customerInvoiceData);
-            setCustomerOutstandingInvoices(customerInvoices);
-
-            // Reset selected invoice if customer changes
-            setSelectedItems({ ...selectedItems, selectedInvoice: null });
-         };
-         fetchCustomerData();
+      let active=true;
+      if(customerId){
+         fetchCustomerProfileInformation(accountID,userID,customerId,token,entityId,'invoices').then(data=>{
+            if(active)setLoaded({key,rows:findCustomerInvoices(data?.customerInvoiceData?.customerInvoices || []),error:data.status===200?'':data.message || 'Unable to load invoices.'});
+         });
       }
-      // eslint-disable-next-line
-   }, [selectedCustomer]);
-
-   /**
-    * Set State for selected invoice
-    * @param {*} key
-    * @param {*} value
-    */
-   const handleAutocompleteChange = (key, value) => {
-      // the if condition is to only allow an invoice, or job to be selected. if invoice is selected here, the job selection will clear.
-      if (selectedJob) setSelectedItems({ ...selectedItems, selectedJob: null });
-      setSelectedItems(prevItems => ({ ...prevItems, [key]: value }));
-   };
+      return()=>{active=false;};
+   },[accountID,userID,customerId,token,entityId,key]);
 
    return (
       <Autocomplete
          size='small'
          sx={{ width: 350 }}
-         value={selectedInvoice}
-         onChange={(event, value) => handleAutocompleteChange('selectedInvoice', value)}
+         value={selectedInvoice || null}
+         onChange={(_, value) => setSelectedItems(previous=>({...previous,selectedInvoice:value,selectedJob:null}))}
          getOptionLabel={option => `${option.invoice_number} Remaining:$${option.remaining_balance_on_invoice}`}
          renderOption={(props, option) => (
             <li {...props}>
                <SplitOptionLabel alignLeft={option.invoice_number} alignRight={`Remaining:$${option.remaining_balance_on_invoice}`} />
             </li>
          )}
-         isOptionEqualToValue={(option, value) => option?.invoice_number === value?.invoice_number || null}
-         options={customerOutstandingInvoices || []}
-         renderInput={params => <TextField {...params} label={dropDownPlaceholderText} variant='standard' helperText={helperText} />}
+         isOptionEqualToValue={(option, value) => Number(option.customer_invoice_id) === Number(value.customer_invoice_id)}
+         options={current.rows}
+         loading={Boolean(customerId) && loaded.key!==key}
+         renderInput={params => <TextField {...params} label={dropDownPlaceholderText} variant='standard' error={Boolean(current.error)} helperText={current.error || helperText} />}
       />
    );
 };

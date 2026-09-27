@@ -12,6 +12,7 @@ import Autocomplete from "./Autocomplete";
 
 export default function ComponentsOverrides(theme) {
   return merge(
+    {MuiDataGrid: {defaultProps: {localeText: {noRowsLabel: 'No records to show for this selection.', noResultsOverlayLabel: 'No records match these filters.'}}}},
     Card(theme),
     Lists(theme),
     Paper(theme),

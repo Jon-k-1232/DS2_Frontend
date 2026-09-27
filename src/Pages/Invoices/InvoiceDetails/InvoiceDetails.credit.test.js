@@ -2,6 +2,7 @@ import {render,screen} from '@testing-library/react';
 import InvoiceDetails from './InvoiceDetails';
 import {context} from '../../../App';
 jest.mock('../../../App',()=>({context:require('react').createContext({})}));
+jest.mock('../../Corrections/InvoiceCorrections',()=>()=>null);
 jest.mock('./InvoiceHistory',()=>()=>null);
 jest.mock('../../../Services/ApiCalls/FetchCalls',()=>({fetchFileDownload:jest.fn()}));
 it('labels the immutable issued credit separately from its later current balance',()=>{

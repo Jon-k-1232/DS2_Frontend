@@ -15,11 +15,13 @@ export const fetchAuditableCustomers = async (
       filter = null,
       sort = null,
       direction = 'asc',
+      entityId=null,
       hideZeroAppBalance = true
    } = {},
    token
 ) => {
    const params = new URLSearchParams({ page, limit, search });
+   if(entityId)params.set('entityId',entityId);
    if (filter) params.set('filter', filter);
    if (sort) {
       params.set('sort', sort);
@@ -30,10 +32,10 @@ export const fetchAuditableCustomers = async (
    return res.data;
 };
 
-export const runAccountAudits = async (accountID, userID, customerIds, notes, token) => {
+export const runAccountAudits = async (accountID, userID, customerIds, notes, token,entityId=null) => {
    const res = await axios.post(
       `${config.API_ENDPOINT}/accountAudit/run/${accountID}/${userID}`,
-      { customer_ids: customerIds, notes: notes || null },
+      { entityId,customer_ids: customerIds, notes: notes || null },
       headers(token)
    );
    return res.data;

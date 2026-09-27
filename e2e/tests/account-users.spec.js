@@ -17,34 +17,23 @@ async function submitNth(page, endpoint, index) {
    return body;
 }
 
-// Account Users (/account/accountUsers) is gated by SuperAdminProtectedAccessRoute
-// at the route level (AccountRoutes.js:22-29 wraps AccountUsersGrid, and
-// SuperAdminAccess.js's isSuperAdmin() requires accessLevel === 'super admin'
-// exactly). The fixture "admin" identity (90013) has access_level 'admin' in
-// the database (confirmed: SELECT access_level FROM users WHERE user_id=90013
-// -> 'admin'), not 'super admin' — and account 9001 has no super-admin user at
-// all (only 90011/90012 employee, 90013 admin, 90014 inactive employee). The
-// only 'super admin' fixture is user 21 on account 1, which is read-only
-// production-copy data per the suite's hard rules — writing a new user through
-// it is out of bounds, and the auth.js request guard hard-blocks every
-// non-GET/HEAD/OPTIONS request for the 'readonly' identity regardless of what
-// the UI does. So add/edit/deactivate/delete-a-user cannot be exercised
-// through the real UI with any identity this suite is allowed to write with.
-// This test instead documents the real, previously-untested (in_e2e: false)
-// behavior for the admin identity: the route refuses it, and the sidebar
-// correctly hides the link.
+// The ordinary admin fixture must remain unable to manage users. H6's
+// workspace-users.spec.js separately uses the scoped Super Admin fixture to
+// exercise create/edit/delete on a unique synthetic user in account 9001.
+// Protected account 1 is never used for user-management writes.
 test.describe('Account Users', () => {
   test('admin identity is refused the Account Users page, and the sidebar hides its link', async ({ page }) => {
-    await page.goto('/account/accountUsers');
+    await page.goto('/settings/users');
     await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
     await expect(page.getByText('This page is restricted to super admins.', { exact: true })).toBeVisible();
 
-    await page.goto('/account/accountSettings');
+    await page.goto('/settings/account');
     await expect(page.getByRole('heading', { name: 'Account Settings', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Account', exact: true }).click();
-    await expect(page.getByRole('link', { name: 'Account Settings', exact: true })).toBeVisible();
+    const settings=page.getByRole('navigation',{name:'Primary navigation'}).getByRole('button', { name: 'Settings', exact: true });
+    if(await settings.getAttribute('aria-expanded')!=='true')await settings.click();
+    await expect(page.getByRole('link', { name: 'Account settings', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Automations', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Account Users', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Account users', exact: true })).toHaveCount(0);
   });
 });
 
@@ -71,7 +60,7 @@ test.describe('Account Settings', () => {
     expect(accountBefore.is_account_active).toBe(true);
 
     try {
-      await page.goto('/account/accountSettings');
+      await page.goto('/settings/account');
 
       // Business settings form (UpdateAccount.js) never pre-loads the current
       // account, so every submit resends all of its fields regardless of what

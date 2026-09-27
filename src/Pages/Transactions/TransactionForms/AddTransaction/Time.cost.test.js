@@ -1,0 +1,17 @@
+import React from 'react';
+import {render,screen,fireEvent,waitFor} from '@testing-library/react';
+import {context} from '../../../../App';
+import Time from './Time';
+jest.mock('../../../../App',()=>({context:require('react').createContext({})}));
+jest.mock('../../../../Services/ApiCalls/PostCalls',()=>({postTransaction:jest.fn()}));
+jest.mock('../../../../Components/Dialogs/InformationDialog',()=>()=>null);
+jest.mock('./FormSubComponents/RetainerSelection',()=>()=>null);
+jest.mock('./FormSubComponents/TimeOptions',()=>()=>null);
+jest.mock('./FormSubComponents/InitialSelectionOptions',()=>({selectedItems,setSelectedItems})=><button onClick={()=>setSelectedItems({...selectedItems,selectedTeamMember:{user_id:2}})}>Change employee</button>);
+jest.mock('./FormSubComponents/SharedTransactionsFunctions',()=>({populateState:(_,__,initial)=>({...initial,selectedCustomer:{customer_id:10},selectedJob:{customer_job_id:20},selectedGeneralWorkDescription:{general_work_description_id:30},selectedTeamMember:{user_id:1},minutes:68,quantity:1.2,unitCost:100,timesheetEntryID:42})}));
+const post=jest.fn(),rerun=jest.fn();
+const mount=()=>render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><Time customerData={{}} setCustomerData={jest.fn()} passedTransactionData={{timesheet_entry_id:42,user_id:1}} passedPostCall={post} secondaryButton={{label:'Rerun AI',onClick:rerun}}/></context.Provider>);
+beforeEach(()=>jest.clearAllMocks());
+it('blocks both apply and AI rerun without a reason after changing staff',()=>{mount();expect(screen.queryByLabelText(/Reason for employee change/)).not.toBeInTheDocument();fireEvent.click(screen.getByText('Change employee'));for(const name of ['Submit','Rerun AI'])fireEvent.click(screen.getByRole('button',{name,exact:true}));expect(screen.getByText('Enter a reason for changing the employee.')).toBeInTheDocument();expect(post).not.toHaveBeenCalled();expect(rerun).not.toHaveBeenCalled();});
+it('passes actual minutes and reason, preserving the correction after an apply failure',async()=>{post.mockRejectedValueOnce(Error('Synthetic apply failure'));mount();fireEvent.click(screen.getByText('Change employee'));fireEvent.change(screen.getByLabelText(/Reason for employee change/),{target:{value:'Correct source owner'}});fireEvent.click(screen.getByRole('button',{name:'Submit',exact:true}));await waitFor(()=>expect(post).toHaveBeenCalledWith(expect.objectContaining({minutes:68,loggedForUserID:2,costChangeReason:'Correct source owner'}),9001,90013));expect(await screen.findByText('Synthetic apply failure')).toBeInTheDocument();expect(screen.getByLabelText(/Reason for employee change/)).toHaveValue('Correct source owner');fireEvent.click(screen.getByText('Rerun AI'));expect(rerun).toHaveBeenCalledWith(expect.objectContaining({costChangeReason:'Correct source owner'}));});
+it('ordinary approval retains the original owner and needs no correction reason',async()=>{post.mockResolvedValueOnce({status:200});mount();fireEvent.click(screen.getByRole('button',{name:'Submit',exact:true}));await waitFor(()=>expect(post).toHaveBeenCalledWith(expect.objectContaining({loggedForUserID:1,minutes:68}),9001,90013));});

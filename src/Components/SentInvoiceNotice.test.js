@@ -6,5 +6,5 @@ it('explains the lock and opens the owning statement instead of the payment snap
  render(<SentInvoiceNotice row={{locked_invoice_number:'INV-7',locked_invoice_id:7,customer_invoice_id:6}} />);
  expect(screen.getByText(/Sent — locked/)).toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'Open invoice history'}));
- expect(mockNavigate).toHaveBeenCalledWith('/invoices/invoices/invoiceDetail/invoicePayments',{state:{rowData:{customer_invoice_id:7}}});
+ expect(mockNavigate).toHaveBeenCalledWith('/billing/invoices/7/payments');
 });

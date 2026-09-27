@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { Stack, Button, Alert, Box } from '@mui/material';
 import NameForm from './FormSubComponents/NameForm';
 import AddressForm from './FormSubComponents/AddressForm';
@@ -42,6 +42,8 @@ export default function NewCustomer({ customerData, setCustomerData }) {
 
    const [postStatus, setPostStatus] = useState(null);
    const [selectedItems, setSelectedItems] = useState(initialState);
+   const [submitting, setSubmitting] = useState(false);
+   const submittingRef = useRef(false);
 
    const { isCustomerRecurring } = selectedItems;
 
@@ -52,22 +54,32 @@ export default function NewCustomer({ customerData, setCustomerData }) {
    );
 
    const handleSubmit = async () => {
-      // Build the object for a new customer
-      const dataToPost = formObjectForCustomerPost(selectedItems, { accountID, userID });
-      const postedItem = await postNewCustomer(dataToPost, accountID, userID);
-
-      setPostStatus(postedItem);
-
-      if (postedItem.status === 200) {
-         setTimeout(() => setPostStatus(null), 2000);
-         // Reset the form
-         setSelectedItems(initialState);
-         // Update parent data so newly added customers appear in the list
-         setCustomerData({
-            ...customerData,
-            customersList: postedItem.customersList,
-            recurringCustomersList: postedItem.recurringCustomersList
+      if (submittingRef.current) return;
+      submittingRef.current = true;
+      setSubmitting(true);
+      setPostStatus(null);
+      try {
+         const dataToPost = formObjectForCustomerPost(selectedItems, { accountID, userID });
+         const postedItem = await postNewCustomer(dataToPost, accountID, userID);
+         setPostStatus(postedItem);
+         if (postedItem.status === 200) {
+            setTimeout(() => setPostStatus(null), 2000);
+            setSelectedItems(initialState);
+            setCustomerData({
+               ...customerData,
+               customersList: postedItem.customersList,
+               recurringCustomersList: postedItem.recurringCustomersList
+            });
+         }
+      } catch (error) {
+         const message = error?.response?.data?.message || error?.message || 'Unable to save customer.';
+         setPostStatus({
+            status: error?.response?.status || 500,
+            message: error?.response ? message : `${message} Check the client list before submitting again.`
          });
+      } finally {
+         submittingRef.current = false;
+         setSubmitting(false);
       }
    };
 
@@ -82,7 +94,7 @@ export default function NewCustomer({ customerData, setCustomerData }) {
             {isCustomerRecurring && createForm(RecurringCustomerForm)}
 
             <Box style={{ textAlign: 'center' }}>
-               <Button onClick={handleSubmit}>Submit</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Saving...' : 'Submit'}</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
             </Box>
          </Stack>

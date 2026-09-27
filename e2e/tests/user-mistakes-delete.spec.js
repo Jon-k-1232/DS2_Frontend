@@ -1,6 +1,6 @@
 require('../lib/scenario-safety').assertLocalUI();
 const {test,expect}=require('../lib/fixtures');
-const {createCustomer,createJob,billedCustomer,finalize,submit,closeForm,fillQuickFilter,routes}=require('../lib/ui');
+const {createCustomer,createJob,billedCustomer,finalize,submit,closeForm,fillQuickFilter,expectGridValue,routes}=require('../lib/ui');
 const {types,prepare,saved,financial}=require('../lib/mistakes');
 const {rows}=require('../lib/db');
 const cases=[
@@ -22,6 +22,7 @@ async function detail(page,c,type,id,search){
 }
 for(const [type,id,label,search,endpoint] of cases)test(`${type}: cancel and failed delete preserve money; explicit retry removes only the eligible entry`,async({page,prefix})=>{
  const c=await setup(page,prefix,type);await detail(page,c,type,id,search);
+ if(type==='retainer'){await expect(page.getByRole('row').filter({hasText:'Created by:'})).toContainText('Admin Person');}
  const before=financial(c);const button=page.getByRole('button',{name:label,exact:true});
  await expect(button).toBeEnabled();await button.click();await page.getByRole('dialog').getByRole('button',{name:'Cancel',exact:true}).click();
  expect(financial(c)).toEqual(before);
@@ -37,10 +38,10 @@ for(const [type,id,label,search,endpoint] of cases)test(`${type}: cancel and fai
 });
 test('retainer linked-payment lookup failure refuses deletion until a successful reload',async({page,prefix})=>{
  const c=await setup(page,prefix,'retainer');const before=financial(c);
- const pattern=`**/customer/activeCustomers/customerByID/9001/90013/${c.id}`;
- await page.route(pattern,route=>route.abort('failed'));
+ const pattern=url=>url.pathname===`/customer/activeCustomers/customerByID/9001/90013/${c.id}` && url.searchParams.get('section')==='payments';
+ let blocked=0;await page.route(pattern,route=>{blocked++;return route.abort('failed');});
  await detail(page,c,'retainer','retainer_id',null);
- await expect(page.getByRole('alert')).toContainText(/linked payments|Network Error/i);
+ await expect(page.getByRole('alert')).toContainText(/linked payments|Network Error/i);expect(blocked).toBeGreaterThan(0);
  await expect(page.getByRole('button',{name:'Delete Retainer',exact:true})).toBeDisabled();expect(financial(c)).toEqual(before);
  await page.unroute(pattern);await page.reload();
  await expect(page.getByRole('button',{name:'Delete Retainer',exact:true})).toBeEnabled();expect(financial(c)).toEqual(before);
@@ -65,7 +66,10 @@ test('used retainer cannot be deleted: root dependency guidance and draw refusal
  await expect(page.getByRole('button',{name:'Delete Retainer',exact:true})).toBeDisabled();
  await expect(page.getByRole('grid')).toBeVisible();expect(financial(c)).toEqual(before);
  await page.goto(routes.retainers);await fillQuickFilter(page,prefix);
- await page.locator(`[role=row][data-id="${root.retainer_id}"] [data-field=retainer_id]`).getByRole('button').click();
+ // The paged register exposes root and draw history as individual rows.
+ // Assert both balances before checking the same two deletion safeguards.
+ await expectGridValue(page,page.locator(`[role=row][data-id="${root.retainer_id}"]`),'current_amount','-25.00');
+ await expectGridValue(page,page.locator(`[role=row][data-id="${draw.retainer_id}"]`),'current_amount','-5.00');
  await page.locator(`[role=row][data-id="${draw.retainer_id}"]`).click();
  await page.getByRole('button',{name:'Delete Retainer',exact:true}).click();
  const response=page.waitForResponse(r=>r.request().method()==='DELETE' && r.url().includes('/retainers/deleteRetainer/'));

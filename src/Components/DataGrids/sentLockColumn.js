@@ -2,7 +2,7 @@ import { Chip } from '@mui/material';
 // Preserve lock visibility even when a feature filters its ordinary columns.
 export const withSentLockColumn = (columns = [], rows = []) => {
    if (rows.some(r => r.possible_duplicate)) columns = [{field:'possible_duplicate',headerName:'Duplicate review',width:190,
-      renderCell: params => params.row.possible_duplicate ? <Chip color='warning' size='small' label='Possible duplicate' component='a' clickable href={`/transactions/possibleDuplicates?duplicateId=${params.row.duplicate_ids?.[0] || ''}`} onClick={e => e.stopPropagation()} /> : null
+      renderCell: params => params.row.possible_duplicate ? <Chip color='warning' size='small' label='Possible duplicate' component='a' clickable href={`/work/duplicates?duplicateId=${params.row.duplicate_ids?.[0] || ''}`} onClick={e => e.stopPropagation()} /> : null
    },...columns.filter(c => !['possible_duplicate','duplicate_ids'].includes(c.field))];
    if (!rows.some(r => r.sent_locked)) return columns;
    return [{ field: 'sent_lock_status', headerName: 'Statement status', width: 230,

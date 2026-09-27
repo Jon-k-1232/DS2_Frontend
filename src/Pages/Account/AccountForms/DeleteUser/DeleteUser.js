@@ -18,6 +18,7 @@ import { deleteUser } from '../../../../Services/ApiCalls/DeleteCalls';
 import { context } from '../../../../App';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import useFinancialSubmit from '../../../Transactions/TransactionForms/AddTransaction/FormSubComponents/useFinancialSubmit';
 
 const initialState = {
   userDisplayName: '',
@@ -36,6 +37,7 @@ export default function DeleteUser({ customerData, setCustomerData, userData }) 
 
   const [selectedUser, setSelectedUser] = useState(initialState);
   const [postStatus, setPostStatus] = useState(null);
+  const {submitting,submit}=useFinancialSubmit(setPostStatus);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function DeleteUser({ customerData, setCustomerData, userData }) 
 
   const handleSubmit = () => setIsConfirmationOpen(true);
 
-  const handleConfirmation = async () => {
+  const handleConfirmation = () => submit(async () => {
     setIsConfirmationOpen(false);
     const postedItem = await deleteUser(selectedUser.userID, accountID);
     setPostStatus(postedItem);
@@ -66,10 +68,10 @@ export default function DeleteUser({ customerData, setCustomerData, userData }) 
     if (postedItem.status === 200) {
       setCustomerData({ ...customerData, teamMembersList: postedItem.teamMembersList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/account/accountUsers');
+      navigate('/settings/users');
       setSelectedUser(initialState);
     }
-  };
+  });
 
   const handleCancel = () => {
     setIsConfirmationOpen(false);
@@ -121,19 +123,19 @@ export default function DeleteUser({ customerData, setCustomerData, userData }) 
           </Table>
         </TableContainer>
         <Box style={{ margin: '10px', textAlign: 'center' }}>
-          <Button onClick={handleSubmit}>Delete User</Button>
+          <Button disabled={submitting} onClick={handleSubmit}>Delete User</Button>
           {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
         </Box>
 
-        <Dialog open={isConfirmationOpen} onClose={handleCancel}>
-          <DialogTitle>Confirmation</DialogTitle>
+        <Dialog aria-labelledby='delete-user-confirmation' open={isConfirmationOpen} onClose={handleCancel}>
+          <DialogTitle id='delete-user-confirmation'>Delete user</DialogTitle>
           <DialogContent style={{ color: 'red', fontWeight: 'bold' }}>
             Caution: If the user has entered any data, it is recommended to deactivate the user rather than delete them.
           </DialogContent>
           <DialogContent sx={{ alignSelf: 'center' }}>Are you sure you want to delete this user?</DialogContent>
           <DialogActions>
             <Button onClick={handleCancel}>Cancel</Button>
-            <Button onClick={handleConfirmation} color='error'>
+            <Button disabled={submitting} onClick={handleConfirmation} color='error'>
               Delete
             </Button>
           </DialogActions>

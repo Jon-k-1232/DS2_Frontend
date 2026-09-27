@@ -1,3 +1,6 @@
+import {Alert} from '@mui/material';
+import {isAdjustmentAdmin} from '../../../Components/AdminAdjustment';
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
 import { Stack, TextField, InputAdornment } from '@mui/material';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
 import WriteOff from '../TransactionForms/AddTransaction/WriteOff';
@@ -13,8 +16,10 @@ const DEFAULT_PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
 
 export default function WriteOffsGrid({ customerData, setCustomerData }) {
-   const { accountID, userID, token } = useContext(context).loggedInUser;
+   const { accountID, userID, token, accessLevel } = useContext(context).loggedInUser;
 
+   const admin=isAdjustmentAdmin(accessLevel);
+   const [entityId,setEntityId]=useState(null);
    const [gridData, setGridData] = useState({ rows: [], columns: [], totalCount: 0 });
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: DEFAULT_PAGE_SIZE });
    const [loading, setLoading] = useState(false);
@@ -150,7 +155,7 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
       const request = ++requestRef.current;
       setLoading(true);
       try {
-         const response = await fetchWriteOffs(accountID, userID, token, page, pageSize, searchValue);
+         const response = await fetchWriteOffs(accountID, userID, token, page, pageSize, searchValue, entityId);
          if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
          if (response?.writeOffsList?.activeWriteOffsData) {
             const { writeOffsList } = response;
@@ -177,28 +182,29 @@ export default function WriteOffsGrid({ customerData, setCustomerData }) {
       fetchPageData(page + 1, pageSize, searchTerm);
       previousSearchTermRef.current = searchTerm;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [paginationModel.page, paginationModel.pageSize, searchTerm]);
+   }, [paginationModel.page, paginationModel.pageSize, searchTerm, entityId]);
 
 
 
    return (
       <>
          <Stack spacing={3}>
+            {!admin && <Alert severity='info'>Only admins may apply, edit or remove write-offs.</Alert>}
             <PaginationGrid
                title='Write Offs'
                passedHeight={window.innerHeight - 140}
                tableData={gridData}
                checkboxSelection={false}
-               enableSingleRowClick
+               enableSingleRowClick={admin}
                rowSelectionOnly
-               arrayOfButtons={gridButtons}
-               routeToPass={'/transactions/customerWriteOffs/deleteWriteOff'}
+               arrayOfButtons={admin?gridButtons:[]}
+               routeToPass={admin?'/receivables/write-offs/deleteWriteOff':undefined}
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}
                loading={loading}
                getRowId={getRowId}
                showQuickFilter={false}
-               renderToolbarContent={() => searchField}
+               renderToolbarContent={() => <>{searchField}<EntityPicker all value={entityId} onChange={v=>{requestRef.current++;setEntityId(v);setPaginationModel(p=>({...p,page:0}));}} /></>}
             />
          </Stack>
       </>

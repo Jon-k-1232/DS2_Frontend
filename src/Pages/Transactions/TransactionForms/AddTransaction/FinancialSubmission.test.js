@@ -21,7 +21,7 @@ jest.mock('./FormSubComponents/ChargeOptions', () => () => null);
 jest.mock('./FormSubComponents/TimeOptions', () => () => null);
 const cases=[['Payment',Payment,postNewPayment],['Write-off',WriteOff,postNewWriteOff],['Retainer',Retainer,postNewRetainer],['Charge',Charge,postTransaction],['Time',Time,postTransaction]];
 function mount(Component) {
-  render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><Component customerData={{teamMembersList:{activeUserData:{activeUsers:[{user_id:90013}]}}}} setCustomerData={jest.fn()} /></context.Provider>);
+  render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013,accessLevel:'admin'}}}><Component customerData={{teamMembersList:{activeUserData:{activeUsers:[{user_id:90013}]}}}} setCustomerData={jest.fn()} /></context.Provider>);
 }
 beforeEach(()=>jest.clearAllMocks());
 test.each(cases)('%s serializes a pending submit and preserves a server refusal for retry',async(_,Component,post)=>{

@@ -20,17 +20,17 @@ jest.mock('../../../../App', () => ({ context: require('react').createContext({}
 jest.mock('./PaymentPdfPreview', () => () => null);
 jest.mock('../../../../Services/ApiCalls/FetchCalls', () => ({ fetchCustomers: jest.fn(), fetchCustomerProfileInformation: jest.fn() }));
 
-const pending = { payment_id: 555, matched_customer_id: 20, payment_amount: 10, customer_invoice_id: 88, payment_date: '2026-09-22', form_of_payment: 'Check' };
+const pending = { payment_id: 555,billing_entity_id:900101, matched_customer_id: 20, payment_amount: 10, customer_invoice_id: 88, payment_date: '2026-09-22', form_of_payment: 'Check' };
 
 const mount = async () => {
    fetchCustomers.mockResolvedValue({ customersList: { activeCustomerData: { activeCustomers: [{ customer_id: 20, display_name: 'Acme' }] } } });
    fetchCustomerProfileInformation.mockResolvedValue({
-      customerInvoiceData: { customerInvoices: [{ customer_invoice_id: 88, invoice_number: 'INV-88', parent_invoice_id: null, remaining_balance_on_invoice: 100, notes: '' }] }
+      customerInvoiceData: { customerInvoices: [{ customer_invoice_id: 88,billing_entity_id:900101, invoice_number: 'INV-88', parent_invoice_id: null, remaining_balance_on_invoice: 100, notes: '' }] }
    });
    await act(async () =>
       render(
          <context.Provider value={{ loggedInUser: { accountID: 9001, userID: 90013, token: 'session' } }}>
-            <ReviewPaymentDialog open pendingPayment={pending} onClose={jest.fn()} onApproved={jest.fn()} setCustomerData={jest.fn()} />
+            <ReviewPaymentDialog customerData={{customersList:{activeCustomerData:{activeCustomers:[{customer_id:20,display_name:'Acme'}]}}}} open pendingPayment={pending} onClose={jest.fn()} onApproved={jest.fn()} setCustomerData={jest.fn()} />
          </context.Provider>
       )
    );

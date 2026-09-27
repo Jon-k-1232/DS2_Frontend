@@ -1,3 +1,5 @@
+import ReportingBasis from './ReportingBasis';
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
 import React, { useState, useEffect, useContext } from 'react';
 import {
    Box,
@@ -100,6 +102,7 @@ export default function TaxSeasonCapacityPage() {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [year, setYear] = useState(new Date().getFullYear());
@@ -110,9 +113,10 @@ export default function TaxSeasonCapacityPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setData(null);
          setError(null);
          try {
-            const res = await fetchTaxSeasonCapacity(accountID, userID, { year, exclude: excludedIds });
+            const res = await fetchTaxSeasonCapacity(accountID, userID, { year, exclude: excludedIds, entityId });
             if (cancelled) return;
             if (res?.taxSeasonCapacity) setData(res.taxSeasonCapacity);
             else setError(res?.message || 'Unable to load tax season capacity.');
@@ -127,7 +131,7 @@ export default function TaxSeasonCapacityPage() {
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, year, ready, excludedIds]);
+   }, [accountID, userID, year, ready, excludedIds, entityId]);
 
    // Always include the selected year so the controlled Select never holds a
    // value missing from its options.
@@ -146,7 +150,7 @@ export default function TaxSeasonCapacityPage() {
       : null;
 
    const employeeLabels = Object.fromEntries([...prior, ...current].map(r => [r.user_id ?? r.employee,
-      r.user_id != null ? `${r.employee} (#${r.user_id})` : r.employee]));
+      r.user_id != null ? `${r.employee} (#${r.user_id})${r.is_active === false ? ' — inactive' : ''}` : r.employee]));
    const currentByEmployee = groupByEmployee(current);
    const priorByEmployee = groupByEmployee(prior);
    const employees = [...new Set([...Object.keys(currentByEmployee), ...Object.keys(priorByEmployee)])].sort(
@@ -155,6 +159,8 @@ export default function TaxSeasonCapacityPage() {
 
    return (
       <Stack spacing={2}>
+         <ReportingBasis kind="capacity" />
+         <EntityPicker all allowInactive value={entityId} onChange={setEntityId} />
          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent='space-between'>
             <Box>
                <Typography variant='h5'>Tax Season Capacity</Typography>

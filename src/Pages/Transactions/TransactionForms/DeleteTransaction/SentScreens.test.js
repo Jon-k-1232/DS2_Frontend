@@ -17,7 +17,7 @@ test.each([
 ])('the sent %s screen renders its lock while lookups are loading',async(_,Component,prop,row)=>{
  const data={...row,customer_id:17,sent_locked:true,locked_invoice_number:'INV-2026-1',locked_invoice_id:10};
  const props={[prop]:data,customerData:{},setCustomerData:jest.fn()};
- const view=render(<MemoryRouter><context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><Component {...props}/></context.Provider></MemoryRouter>);
+ const view=render(<MemoryRouter><context.Provider value={{loggedInUser:{accountID:9001,userID:90013,accessLevel:'admin'}}}><Component {...props}/></context.Provider></MemoryRouter>);
  expect(await screen.findByRole('alert')).toHaveTextContent('Sent — locked · INV-2026-1');
  expect(screen.queryByRole('button',{name:/^Delete /})).not.toBeInTheDocument();
  view.unmount();

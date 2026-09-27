@@ -1,0 +1,245 @@
+[
+  {
+    "title": "Clients",
+    "icon": "eva:people-fill",
+    "children": [
+      {
+        "title": "Clients",
+        "path": "/clients",
+        "permission": "manager"
+      }
+    ]
+  },
+  {
+    "title": "Time & Work",
+    "icon": "eva:clock-fill",
+    "children": [
+      {
+        "title": "Work entries",
+        "path": "/work/entries",
+        "permission": "manager"
+      },
+      {
+        "title": "Client jobs",
+        "path": "/work/jobs",
+        "permission": "manager"
+      },
+      {
+        "title": "Work review",
+        "path": "/work/review",
+        "permission": "manager"
+      },
+      {
+        "title": "Business assignments",
+        "path": "/work/review/entities",
+        "permission": "admin"
+      },
+      {
+        "title": "Possible duplicates",
+        "path": "/work/duplicates",
+        "permission": "manager"
+      }
+    ]
+  },
+  {
+    "title": "Billing",
+    "icon": "eva:file-text-fill",
+    "children": [
+      {
+        "title": "Create invoices",
+        "path": "/billing/create",
+        "permission": "manager"
+      },
+      {
+        "title": "Invoices",
+        "path": "/billing/invoices",
+        "permission": "manager"
+      },
+      {
+        "title": "Quotes",
+        "path": "/billing/quotes",
+        "permission": "manager"
+      },
+      {
+        "title": "Recurring plans",
+        "path": "/billing/recurring",
+        "permission": "manager"
+      },
+      {
+        "title": "Credit memos",
+        "path": "/billing/credit-memos",
+        "permission": "manager"
+      }
+    ]
+  },
+  {
+    "title": "Payments & Credits",
+    "icon": "eva:credit-card-fill",
+    "children": [
+      {
+        "title": "Receive payment",
+        "path": "/payments/receive",
+        "permission": "manager"
+      },
+      {
+        "title": "Payment receipts",
+        "path": "/payments/receipts",
+        "permission": "manager"
+      },
+      {
+        "title": "Payment imports",
+        "path": "/payments/imports",
+        "permission": "manager"
+      },
+      {
+        "title": "Client credits",
+        "path": "/payments/credits",
+        "permission": "manager"
+      },
+      {
+        "title": "Retainers & deposits",
+        "path": "/payments/retainers",
+        "permission": "manager"
+      },
+      {
+        "title": "Refund history",
+        "path": "/payments/refunds",
+        "permission": "manager"
+      },
+      {
+        "title": "Credit transfers",
+        "path": "/payments/transfers",
+        "permission": "staff"
+      }
+    ]
+  },
+  {
+    "title": "Receivables",
+    "icon": "eva:pie-chart-fill",
+    "children": [
+      {
+        "title": "Accounts receivable",
+        "path": "/receivables/aging",
+        "permission": "manager"
+      },
+      {
+        "title": "Write-offs",
+        "path": "/receivables/write-offs",
+        "permission": "manager"
+      }
+    ]
+  },
+  {
+    "title": "Reports",
+    "icon": "eva:bar-chart-fill",
+    "children": [
+      {
+        "title": "Billing performance",
+        "path": "/reports/billing-performance",
+        "permission": "super"
+      },
+      {
+        "title": "Client rates",
+        "path": "/reports/client-rates",
+        "permission": "super"
+      },
+      {
+        "title": "Time allocation",
+        "path": "/reports/time-allocation",
+        "permission": "super"
+      },
+      {
+        "title": "WIP / Unbilled",
+        "path": "/reports/wip-aging",
+        "permission": "super"
+      },
+      {
+        "title": "Job budgets",
+        "path": "/reports/job-budgets",
+        "permission": "super"
+      },
+      {
+        "title": "Tax season capacity",
+        "path": "/reports/tax-capacity",
+        "permission": "super"
+      },
+      {
+        "title": "Account audit",
+        "path": "/reports/account-audit",
+        "permission": "super"
+      }
+    ]
+  },
+  {
+    "title": "Time Tracking",
+    "icon": "eva:calendar-fill",
+    "children": [
+      {
+        "title": "Upload time tracker",
+        "path": "/time-tracking/upload",
+        "permission": "staff"
+      },
+      {
+        "title": "Your trackers",
+        "path": "/time-tracking/history",
+        "permission": "staff"
+      },
+      {
+        "title": "Employee trackers",
+        "path": "/time-tracking/trackingAdministration",
+        "permission": "manager"
+      }
+    ]
+  },
+  {
+    "title": "Settings",
+    "icon": "eva:settings-fill",
+    "children": [
+      {
+        "title": "Billing businesses",
+        "path": "/settings/entities",
+        "permission": "admin"
+      },
+      {
+        "title": "Account settings",
+        "path": "/settings/account",
+        "permission": "admin"
+      },
+      {
+        "title": "Account users",
+        "path": "/settings/users",
+        "permission": "super"
+      },
+      {
+        "title": "Automations",
+        "path": "/settings/automations",
+        "permission": "admin"
+      },
+      {
+        "title": "Job categories",
+        "path": "/settings/job-categories",
+        "permission": "manager"
+      },
+      {
+        "title": "Job types",
+        "path": "/settings/job-types",
+        "permission": "manager"
+      },
+      {
+        "title": "Work descriptions",
+        "path": "/settings/work-descriptions",
+        "permission": "manager"
+      },
+      {
+        "title": "Tracker template",
+        "path": "/settings/tracker-template",
+        "permission": "super"
+      },
+      {
+        "title": "Tracker settings",
+        "path": "/settings/tracker",
+        "permission": "manager"
+      }
+    ]
+  }
+]

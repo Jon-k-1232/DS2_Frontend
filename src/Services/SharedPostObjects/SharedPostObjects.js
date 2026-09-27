@@ -34,6 +34,7 @@ const formBaseObject = (selectedItems, loggedInUser, extraProperties) => {
       customerName: `${selectedCustomer?.customerFirstName}${selectedCustomer?.customerLastName}`,
       customerID: selectedCustomer?.customer_id || selectedCustomers?.customerID,
       recurringCustomerID: selectedCustomer?.recurringCustomerID,
+      entityId: selectedItems?.entityId || selectedItems?.billing_entity_id || undefined,
       loggedByUserID: userID,
       agreedJobAmount: selectedItems?.agreedJobAmount,
       selectedRetainerID: selectedItems?.selectedRetainer?.retainer_id,

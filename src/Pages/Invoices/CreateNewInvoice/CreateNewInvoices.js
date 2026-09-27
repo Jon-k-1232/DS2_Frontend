@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
+import RecurringCharges from '../../RecurringCustomer/RecurringCharges';
+import { recurringCall, recurringError } from '../../../Services/ApiCalls/RecurringCalls';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Divider, Stack, Typography, TextField, Box, Button, Alert, FormControl, FormHelperText, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import LinearProgress from '@mui/material/LinearProgress';
 import CreateInvoiceGrid from '../InvoiceGrids/CreateInvoiceGrid';
@@ -17,6 +20,9 @@ const initialState = {
 // functional setCustomerData(prev => ...) form, never a value closed over
 // from this render.
 export default function CreateNewInvoices({ setCustomerData }) {
+   const [entityId,setEntityId]=useState(null);
+   const [recurring,setRecurring]=useState(null),[preparing,setPreparing]=useState(false),[reloadRevision,setReloadRevision]=useState(0);
+   const inFlight=useRef(false);
    const [postStatus, setPostStatus] = useState(null);
    const [selectedRowsToInvoice, setSelectedRowsToInvoice] = useState(initialState);
    const [outstandingBalanceData, setOutstandingBalanceData] = useState([]);
@@ -45,15 +51,25 @@ export default function CreateNewInvoices({ setCustomerData }) {
    const hasBilledTodaySelected = invoicesToCreate.some(row => row?.billed_today);
 
    useEffect(() => {
+      let live=true;
       const getOutstandingInvoices = async () => {
-         const outstandingBalanceList = await getOutstandingBalanceList(accountID, userID, token);
-         setOutstandingBalanceData(outstandingBalanceList);
+         setPreparing(true);setRecurring(null);setSubmitError(null);
+         try {
+            const prepared=await recurringCall('/prepare','post',{entityId},crypto.randomUUID());
+            const outstandingBalanceList = await getOutstandingBalanceList(accountID, userID, token, entityId);
+            if(live){setRecurring(prepared);setOutstandingBalanceData(outstandingBalanceList);}
+         } catch(error){if(live)setSubmitError(recurringError(error));}
+         finally{if(live)setPreparing(false);}
       };
-      getOutstandingInvoices();
+      if(entityId)getOutstandingInvoices();
+      return()=>{live=false;};
       // eslint-disable-next-line
-   }, []);
+   }, [entityId,accountID,userID,token,reloadRevision]);
 
    const handleSubmit = () => {
+      if(preparing || !recurring){setSubmitError('Wait for recurring charges to finish preparing, then review the balances.');return;}
+      if(recurring.catchUpRequired){setSubmitError('Review recurring catch-up before creating invoices for this business.');return;}
+      if (!entityId) {setSubmitError('Choose a billing business.');return;}
       if (invoicesToCreate.length === 0) {
          setSubmitError('Selection Error: Select Invoices');
          return;
@@ -73,6 +89,8 @@ export default function CreateNewInvoices({ setCustomerData }) {
    };
 
    const submitInvoice = async () => {
+      if(inFlight.current)return;
+      inFlight.current=true;
       setIsLoading(true);
       setSubmitError(null);
       setOpenDialog(false);
@@ -82,7 +100,7 @@ export default function CreateNewInvoices({ setCustomerData }) {
       // because setIsLoading(false) only ran at the very end of the success
       // path. try/finally guarantees it always clears.
       try {
-         const postedItem = await postInvoiceCreation(selectedRowsToInvoice, accountID, userID);
+         const postedItem = await postInvoiceCreation({...selectedRowsToInvoice,invoiceCreationSettings:{...selectedRowsToInvoice.invoiceCreationSettings,entityId}}, accountID, userID);
 
          setPostStatus(postedItem);
 
@@ -122,7 +140,7 @@ export default function CreateNewInvoices({ setCustomerData }) {
          // failed above, the billing itself still committed and the
          // on-screen balances need to reflect that.
          try {
-            const updatedOutstandingBalanceList = await getOutstandingBalanceList(accountID, userID, token);
+            const updatedOutstandingBalanceList = await getOutstandingBalanceList(accountID, userID, token, entityId);
             // getOutstandingBalanceList swallows an HTTP/network failure and
             // resolves with [] rather than rejecting (see FetchCalls.js) — a
             // falsy `.status` on that array used to slip past this guard and
@@ -136,6 +154,8 @@ export default function CreateNewInvoices({ setCustomerData }) {
                throw new Error(updatedOutstandingBalanceList?.message || 'Balance refresh failed');
             }
             setOutstandingBalanceData(updatedOutstandingBalanceList);
+            const refreshed = await recurringCall(`/due?entityId=${entityId}`);
+            setRecurring(previous => ({ ...previous, ...refreshed }));
          } catch (error) {
             warnings.push(`Invoices were created successfully; refresh the page to see updated balances: ${error?.message || 'Balance refresh failed'}.`);
          }
@@ -152,6 +172,7 @@ export default function CreateNewInvoices({ setCustomerData }) {
             message: error?.response?.data?.message || error?.message || 'An error occurred while creating invoices.'
          });
       } finally {
+         inFlight.current=false;
          setIsLoading(false);
       }
    };
@@ -175,8 +196,12 @@ export default function CreateNewInvoices({ setCustomerData }) {
       <>
          <Stack spacing={3}>
             <Typography variant='h6'>Create New Invoices</Typography>
+            <EntityPicker value={entityId} disabled={isLoading} onChange={value=>{setEntityId(value);setSelectedRowsToInvoice(initialState);setOutstandingBalanceData([]);setBatchRevision(n=>n+1);}} />
+            <Button disabled={isLoading || preparing || !entityId} onClick={()=>{setSelectedRowsToInvoice(initialState);setBatchRevision(n=>n+1);setReloadRevision(n=>n+1);}}>Refresh billing</Button>
 
             <Divider />
+            {preparing && <LinearProgress aria-label='Preparing recurring charges' />}
+            {recurring && <RecurringCharges plans={recurring.plans || []} disabled={isLoading || preparing} onChanged={()=>{setSelectedRowsToInvoice(initialState);setBatchRevision(n=>n+1);setReloadRevision(n=>n+1);}} />}
             <Box style={{ maxWidth: '820px', display: 'flex', flexDirection: 'column', alignSelf: 'center' }}>
                <Box display='flex' alignItems='end' gap={4}>
                   <CreateInvoiceCheckBoxes
@@ -198,7 +223,7 @@ export default function CreateNewInvoices({ setCustomerData }) {
                </Box>
 
                <Box display='flex' justifyContent='flex-end'>
-                  <Button onClick={handleSubmit} disabled={isLoading}>
+                  <Button onClick={handleSubmit} disabled={isLoading || preparing}>
                      Submit
                   </Button>
                </Box>

@@ -35,7 +35,7 @@ export default function JobTypesGrid({ customerData, setCustomerData }) {
                arrayOfButtons={gridButtons}
                enableSingleRowClick
                rowSelectionOnly
-               routeToPass={'/jobs/jobTypesList/deleteJobType'}
+               routeToPass={'/settings/job-types/deleteJobType'}
             />
          </Stack>
       </>

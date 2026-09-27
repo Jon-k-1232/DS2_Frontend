@@ -1,3 +1,4 @@
+import ActorName from '../../../../Components/Workspace/ActorName';
 import React, { useState, useContext, useEffect } from 'react';
 import {
   Box,
@@ -75,7 +76,7 @@ export default function DeleteWorkDescription({ customerData, setCustomerData, w
     if (postedJob.status === 200) {
       setCustomerData({ ...customerData, workDescriptionsList: postedJob.workDescriptionsList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/jobs/workDescriptionsList');
+      navigate('/settings/work-descriptions');
       setSelectedItems(initialState);
     }
   };
@@ -91,21 +92,21 @@ export default function DeleteWorkDescription({ customerData, setCustomerData, w
           <Table>
             <TableBody>
               <TableRow>
-                <TableCell>Created At:</TableCell>
+                <TableCell>Created on:</TableCell>
                 <TableCell>{selectedItems.createdAt ? dayjs(selectedItems.createdAt).format('MMMM DD, YYYY') : 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Created By:</TableCell>
-                <TableCell>{selectedItems.createdByUserID || 'N/A'}</TableCell>
+                <TableCell>Created by:</TableCell>
+                <TableCell><ActorName id={selectedItems.createdByUserID} name={workDescriptionData?.created_by_user_name || customerData?.teamMembersList?.activeUserData?.activeUsers?.find(u=>u.user_id===selectedItems.createdByUserID)?.display_name}/></TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Is Work Description Active:</TableCell>
+                <TableCell>Active:</TableCell>
                 <TableCell>
                   {selectedItems.isGeneralWorkDescriptionActive !== null ? String(selectedItems.isGeneralWorkDescriptionActive) : 'N/A'}
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Estimated Time:</TableCell>
+                <TableCell>Estimated time:</TableCell>
                 <TableCell>{selectedItems.estimatedTime || 'N/A'}</TableCell>
               </TableRow>
               <TableRow>

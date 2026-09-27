@@ -1,3 +1,4 @@
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
 import { useEffect, useState, useContext, useCallback, useRef } from 'react';
 import {
    Box,
@@ -56,6 +57,7 @@ export default function AccountAuditPage({ setPageTitle }) {
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token, displayName } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [search, setSearch] = useState('');
    const [searchInput, setSearchInput] = useState('');
    const [page, setPage] = useState(1);
@@ -76,6 +78,7 @@ export default function AccountAuditPage({ setPageTitle }) {
    const [openAuditId, setOpenAuditId] = useState(null);
 
    const pollRef = useRef(null);
+   const loadRevision = useRef(0);
    // loadRef always points to the latest load fn so the poll callback never goes stale
    const loadRef = useRef(null);
 
@@ -87,21 +90,25 @@ export default function AccountAuditPage({ setPageTitle }) {
    useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
    const load = useCallback(async () => {
+      const revision = ++loadRevision.current;
       setLoading(true);
       setError(null);
       try {
          const data = await fetchAuditableCustomers(
             accountID,
             userID,
-            { page, limit, search, filter, sort, direction, hideZeroAppBalance },
+            { entityId,page, limit, search, filter, sort, direction, hideZeroAppBalance },
             token
          );
+         if (revision !== loadRevision.current) return;
          setRows(data.customers || []);
          setPagination(data.pagination || { totalPages: 1, totalCount: 0 });
       } catch (e) {
+         if (revision !== loadRevision.current) return;
+         setRows([]);
          setError(e.response?.data?.message || e.message || 'Failed to load customers.');
       } finally {
-         setLoading(false);
+         if (revision === loadRevision.current) setLoading(false);
       }
    }, [
       accountID,
@@ -113,7 +120,7 @@ export default function AccountAuditPage({ setPageTitle }) {
       filter,
       sort,
       direction,
-      hideZeroAppBalance
+      hideZeroAppBalance,entityId
    ]);
 
    // Reset to page 1 when toggle state changes so we don't sit on an empty page
@@ -125,6 +132,7 @@ export default function AccountAuditPage({ setPageTitle }) {
 
    useEffect(() => {
       load();
+      return () => { loadRevision.current += 1; };
    }, [load]);
 
    const handleSearchSubmit = e => {
@@ -223,12 +231,13 @@ export default function AccountAuditPage({ setPageTitle }) {
    }, [accountID, userID, token]);
 
    const runSelected = async (ids = null) => {
+      if (loading || error || running || rows.length === 0) return;
       const customerIds = ids || Array.from(selected);
       if (customerIds.length === 0) return;
       setRunning(true);
       setError(null);
       try {
-         const data = await runAccountAudits(accountID, userID, customerIds, null, token);
+         const data = await runAccountAudits(accountID, userID, customerIds, null, token,entityId);
          if (data.job_id) {
             // Async job — poll for results
             startPolling(data.job_id, data.total);
@@ -253,7 +262,7 @@ export default function AccountAuditPage({ setPageTitle }) {
       <Box>
          <Stack spacing={2}>
             <Box>
-               <Typography variant='h5'>Account Audit</Typography>
+               <EntityPicker all disabled={running} value={entityId} onChange={v=>{setEntityId(v);setPage(1);setSelected(new Set());setRunResults(null);}} /><Typography variant='h5'>Account Audit</Typography>
                <Typography variant='caption' color='text.secondary'>
                   Independent recomputation of each customer's ledger. Auditor: <strong>{displayName}</strong>. Results are stored
                   and reviewable from the customer profile.
@@ -296,7 +305,7 @@ export default function AccountAuditPage({ setPageTitle }) {
                            variant='contained'
                            size='small'
                            startIcon={running ? <CircularProgress size={16} color='inherit' /> : <PlayArrowIcon />}
-                           disabled={running || selected.size === 0}
+                           disabled={loading || !!error || running || rows.length === 0 || selected.size === 0}
                            onClick={() => runSelected()}
                         >
                            Audit selected ({selected.size})
@@ -377,7 +386,7 @@ export default function AccountAuditPage({ setPageTitle }) {
                               indeterminate={someOnPageSelected && !allOnPageSelected}
                               checked={allOnPageSelected}
                               onChange={togglePage}
-                              disabled={rows.length === 0}
+                              disabled={loading || !!error || running || rows.length === 0}
                            />
                         </TableCell>
                         {['customer_id', 'display_name', 'last_audit_at', 'last_audit_balance', 'last_app_invoice_total', 'last_balance_difference'].map(field => {
@@ -417,7 +426,7 @@ export default function AccountAuditPage({ setPageTitle }) {
                         rows.map(r => (
                            <TableRow key={r.customer_id} hover>
                               <TableCell padding='checkbox'>
-                                 <Checkbox checked={selected.has(r.customer_id)} onChange={() => toggleRow(r.customer_id)} />
+                                 <Checkbox disabled={running} checked={selected.has(r.customer_id)} onChange={() => toggleRow(r.customer_id)} />
                               </TableCell>
                               <TableCell>{r.customer_id}</TableCell>
                               <TableCell>

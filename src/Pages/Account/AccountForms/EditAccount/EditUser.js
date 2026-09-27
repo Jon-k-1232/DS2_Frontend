@@ -54,7 +54,7 @@ export default function EditUser({ customerData, setCustomerData, userData }) {
       setCustomerData({ ...customerData, teamMembersList: postedItem.teamMembersList });
       setTimeout(() => setPostStatus(null), 2000);
       setSelectedItems(initialState);
-      navigate('/account/accountUsers');
+      navigate('/settings/users');
     }
   };
 

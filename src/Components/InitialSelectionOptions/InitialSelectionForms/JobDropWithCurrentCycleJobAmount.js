@@ -1,66 +1,34 @@
-import React, { useState, useEffect, useContext } from 'react';
+import useJobSearch from '../../Lookups/useJobSearch';
+import React from 'react';
 import { TextField, Autocomplete } from '@mui/material';
 import SplitOptionLabel from '../../SplitOptionLabel';
-import { context } from '../../../App';
-import { fetchCustomerProfileInformation } from '../../../Services/ApiCalls/FetchCalls';
-import findCurrentCycleJobAmounts from '../Logic/FindCurrentCycleJobAmounts';
+import useJobChoices from '../../Lookups/useJobChoices';
 
-const JobDropWithCurrentCycleJobAmount = ({ customerData, selectedItems, setSelectedItems, dropDownPlaceholderText, helperText }) => {
-   const [customerCurrentCycleJobs, setCustomerCurrentCycleJobs] = useState([]);
+const cycleLabel = job => job.total_transaction == null ? '' : ` Current Cycle:$${Number(job.total_transaction).toFixed(2)}`;
 
-   const { loggedInUser } = useContext(context);
-   const { accountID, userID, token } = loggedInUser;
-
-   // Destructure state variables from the props
-   const combinedData = { ...customerData, ...selectedItems };
-   const { selectedCustomer, selectedJob, selectedInvoice } = combinedData;
-
-   useEffect(() => {
-      if (selectedCustomer) {
-         const fetchCustomerData = async () => {
-            const customerInfo = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token);
-
-            const customerTransactionData = customerInfo?.customerTransactionData?.customerTransactions || [];
-            const customerJobs = findCurrentCycleJobAmounts(customerTransactionData);
-
-            setCustomerCurrentCycleJobs(customerJobs);
-
-            // Reset selected invoice if customer changes
-            setSelectedItems({ ...selectedItems, selectedJob: null });
-         };
-         fetchCustomerData();
-      }
-      // eslint-disable-next-line
-   }, [selectedCustomer]);
-
-   /**
-    * Set State for selected invoice
-    * @param {*} key
-    * @param {*} value
-    */
-   const handleAutocompleteChange = (key, value) => {
-      // The if condition is to only allow an job, or invoice to be selected. If job is selected here, the invoice selection will clear.
-      if (selectedInvoice) setSelectedItems({ ...selectedItems, selectedInvoice: null });
-      setSelectedItems(prevItems => ({ ...prevItems, [key]: value }));
-   };
-
+export default function JobDropWithCurrentCycleJobAmount({ customerData, selectedItems, setSelectedItems, dropDownPlaceholderText, helperText }) {
+   const { selectedCustomer, selectedJob, entityId } = { ...customerData, ...selectedItems };
+   const [search, setSearch, scope] = useJobSearch(selectedCustomer?.customer_id, entityId);
+   const choices = useJobChoices(selectedCustomer?.customer_id, entityId, search, 0, selectedJob?.customer_job_id, true);
    return (
-      <Autocomplete
+      <Autocomplete key={scope}
          size='small'
-         sx={{ width: 350 }}
-         value={selectedJob}
-         onChange={(event, value) => handleAutocompleteChange('selectedJob', value)}
-         getOptionLabel={option => `${option.job_description} Current Cycle:$${option.total_transaction}`}
-         isOptionEqualToValue={(option, value) => option.job_description === value.job_description}
-         renderOption={(props, option) => (
-            <li {...props}>
-               <SplitOptionLabel alignLeft={option.job_description} alignRight={`Current Cycle:$${option.total_transaction}`} />
+         sx={{ width: '100%', maxWidth: 350 }}
+         value={selectedJob || null}
+         onChange={(_, value) => setSelectedItems(previous => ({ ...previous, selectedJob: value, selectedInvoice: null }))}
+         onInputChange={(_, value, reason) => { if (reason === 'input' || reason === 'clear') setSearch(value); }}
+         filterOptions={rows => rows}
+         loading={choices.loading}
+         getOptionLabel={job => `${job.job_description}${cycleLabel(job)}`}
+         isOptionEqualToValue={(option, value) => Number(option.customer_job_id) === Number(value.customer_job_id)}
+         renderOption={(props, job) => (
+            <li {...props} key={job.customer_job_id}>
+               <SplitOptionLabel alignLeft={`${job.job_description} (#${job.customer_job_id})`} alignRight={cycleLabel(job).trim()} />
             </li>
          )}
-         options={customerCurrentCycleJobs || []}
-         renderInput={params => <TextField {...params} label={dropDownPlaceholderText} variant='standard' helperText={helperText} />}
+         options={choices.rows}
+         noOptionsText={selectedCustomer ? 'No matching jobs. Try a different search.' : 'Select a customer first'}
+         renderInput={params => <TextField {...params} label={dropDownPlaceholderText} variant='standard' error={Boolean(choices.error)} helperText={choices.error || helperText} />}
       />
    );
-};
-
-export default JobDropWithCurrentCycleJobAmount;
+}

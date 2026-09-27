@@ -17,7 +17,7 @@ const cases=[
 ];
 function mount(Component,prop,row){
  const changed=jest.fn();
- render(<MemoryRouter><context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><Component {...{[prop]:{...row,customer_id:17,customer_name:'Local client'},customerData:{},setCustomerData:changed}} /></context.Provider></MemoryRouter>);
+ render(<MemoryRouter><context.Provider value={{loggedInUser:{accountID:9001,userID:90013,accessLevel:'admin'}}}><Component {...{[prop]:{...row,customer_id:17,customer_name:'Local client'},customerData:{},setCustomerData:changed}} /></context.Provider></MemoryRouter>);
  return changed;
 }
 beforeEach(()=>{jest.clearAllMocks();fetchCustomerProfileInformation.mockResolvedValue({status:200,customerPaymentData:{grid:{rows:[],columns:[]}}});});

@@ -1,3 +1,4 @@
+import AdminAdjustment from '../../../../Components/AdminAdjustment';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +24,7 @@ const initialState = {
    quantity: 1
 };
 
-export default function EditWriteOff({ customerData, setCustomerData, writeOffData }) {
+function EditWriteOffForm({ customerData, setCustomerData, writeOffData }) {
    const navigate = useNavigate();
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
@@ -45,6 +46,8 @@ export default function EditWriteOff({ customerData, setCustomerData, writeOffDa
       if (writeOffData) {
          setSelectedItems({
             ...selectedItems,
+            entityId:writeOffData.billing_entity_id,
+            entityLocked:true,
             accountID: account_id,
             selectedTeamMember: activeUsers.find(user => user.user_id === created_by_user_id),
             createdAt: created_at,
@@ -72,7 +75,7 @@ export default function EditWriteOff({ customerData, setCustomerData, writeOffDa
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, writeOffsList: postedItem.writeOffsList, invoicesList: postedItem.invoicesList });
-         navigate('/transactions/customerWriteOffs');
+         navigate('/receivables/write-offs');
       }
    };
 
@@ -117,3 +120,5 @@ export default function EditWriteOff({ customerData, setCustomerData, writeOffDa
       </>
    );
 }
+
+export default function EditWriteOff(props){return <AdminAdjustment><EditWriteOffForm {...props}/></AdminAdjustment>;}

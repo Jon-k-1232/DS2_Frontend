@@ -28,45 +28,45 @@ export const fetchExclusions = async (accountID, userID) => {
    return res.data;
 };
 
-export const fetchClientRates = async (accountID, userID, { yearsBack = 6, exclude = [] } = {}) => {
-   const res = await axios.get(`${config.API_ENDPOINT}/analytics/clientRates/${accountID}/${userID}?yearsBack=${yearsBack}${excludeParam(exclude)}`, headers());
+export const fetchClientRates = async (accountID, userID, { yearsBack = 6, exclude = [], entityId = null } = {}) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/analytics/clientRates/${accountID}/${userID}?yearsBack=${yearsBack}${excludeParam(exclude)}${entityId ? `&entityId=${entityId}` : ''}`, headers());
    return res.data;
 };
 
-export const downloadClientRatesCsv = (accountID, userID, { yearsBack = 6, exclude = [] } = {}) =>
-   downloadCsv(`${config.API_ENDPOINT}/analytics/clientRates/${accountID}/${userID}/export?yearsBack=${yearsBack}${excludeParam(exclude)}`, 'client_rates.csv');
+export const downloadClientRatesCsv = (accountID, userID, { yearsBack = 6, exclude = [], entityId = null } = {}) =>
+   downloadCsv(`${config.API_ENDPOINT}/analytics/clientRates/${accountID}/${userID}/export?yearsBack=${yearsBack}${excludeParam(exclude)}${entityId ? `&entityId=${entityId}` : ''}`, 'client_rates.csv');
 
-export const fetchTimeAllocation = async (accountID, userID, { year, exclude = [] } = {}) => {
-   const params = `?${year ? `year=${year}` : ''}${excludeParam(exclude)}`;
+export const fetchTimeAllocation = async (accountID, userID, { year, exclude = [], entityId = null } = {}) => {
+   const params = `?${year ? `year=${year}` : ''}${excludeParam(exclude)}${entityId ? `&entityId=${entityId}` : ''}`;
    const res = await axios.get(`${config.API_ENDPOINT}/analytics/timeAllocation/${accountID}/${userID}${params}`, headers());
    return res.data;
 };
 
-export const downloadTimeAllocationCsv = (accountID, userID, { year, exclude = [] } = {}) =>
-   downloadCsv(`${config.API_ENDPOINT}/analytics/timeAllocation/${accountID}/${userID}/export?${year ? `year=${year}` : ''}${excludeParam(exclude)}`, 'time_allocation.csv');
+export const downloadTimeAllocationCsv = (accountID, userID, { year, exclude = [], entityId = null } = {}) =>
+   downloadCsv(`${config.API_ENDPOINT}/analytics/timeAllocation/${accountID}/${userID}/export?${year ? `year=${year}` : ''}${excludeParam(exclude)}${entityId ? `&entityId=${entityId}` : ''}`, 'time_allocation.csv');
 
 export const saveRateAgreement = async (accountID, userID, { customerId, year, agreedRate, notes }) => {
    const res = await axios.post(`${config.API_ENDPOINT}/analytics/rateAgreement/${accountID}/${userID}`, { customerId, year, agreedRate, notes }, headers());
    return res.data;
 };
 
-export const fetchWipAging = async (accountID, userID, { exclude = [] } = {}) => {
-   const res = await axios.get(`${config.API_ENDPOINT}/analytics/wipAging/${accountID}/${userID}?${excludeParam(exclude).slice(1)}`, headers());
+export const fetchWipAging = async (accountID, userID, { exclude = [], entityId = null, asOf, recordedThrough } = {}) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/analytics/wipAging/${accountID}/${userID}?${excludeParam(exclude).slice(1)}${entityId ? `&entityId=${entityId}` : ''}${asOf ? `&asOf=${encodeURIComponent(asOf)}` : ''}${recordedThrough ? `&recordedThrough=${encodeURIComponent(recordedThrough)}` : ''}`, headers());
    return res.data;
 };
 
-export const fetchJobBudgets = async (accountID, userID, { exclude = [] } = {}) => {
-   const res = await axios.get(`${config.API_ENDPOINT}/analytics/jobBudgets/${accountID}/${userID}?${excludeParam(exclude).slice(1)}`, headers());
+export const fetchJobBudgets = async (accountID, userID, { exclude = [], entityId = null, asOf, recordedThrough } = {}) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/analytics/jobBudgets/${accountID}/${userID}?${excludeParam(exclude).slice(1)}${entityId ? `&entityId=${entityId}` : ''}${asOf ? `&asOf=${encodeURIComponent(asOf)}` : ''}${recordedThrough ? `&recordedThrough=${encodeURIComponent(recordedThrough)}` : ''}`, headers());
    return res.data;
 };
 
-export const fetchTaxSeasonCapacity = async (accountID, userID, { year, exclude = [] } = {}) => {
-   const res = await axios.get(`${config.API_ENDPOINT}/analytics/taxSeasonCapacity/${accountID}/${userID}?${year ? `year=${year}` : ''}${excludeParam(exclude)}`, headers());
+export const fetchTaxSeasonCapacity = async (accountID, userID, { year, exclude = [], entityId = null } = {}) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/analytics/taxSeasonCapacity/${accountID}/${userID}?${year ? `year=${year}` : ''}${excludeParam(exclude)}${entityId ? `&entityId=${entityId}` : ''}`, headers());
    return res.data;
 };
 
-export const downloadYearEndPacket = async (accountID, userID, { year, exclude = [] } = {}) => {
-   const res = await axios.get(`${config.API_ENDPOINT}/analytics/yearEndPacket/${accountID}/${userID}?${year ? `year=${year}` : ''}${excludeParam(exclude)}`, {
+export const downloadYearEndPacket = async (accountID, userID, { year, exclude = [], entityId = null } = {}) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/analytics/yearEndPacket/${accountID}/${userID}?${year ? `year=${year}` : ''}${excludeParam(exclude)}${entityId ? `&entityId=${entityId}` : ''}`, {
       ...headers(),
       responseType: 'blob'
    });
@@ -81,8 +81,9 @@ export const downloadYearEndPacket = async (accountID, userID, { year, exclude =
    window.URL.revokeObjectURL(objectUrl);
 };
 
-export const downloadCustomerStatement = async (accountID, userID, customerID, { start, end } = {}) => {
+export const downloadCustomerStatement = async (accountID, userID, customerID, { start, end, entityId } = {}) => {
    const params = new URLSearchParams();
+   if(entityId)params.set('entityId',entityId);
    if (start) params.set('start', start);
    if (end) params.set('end', end);
    const res = await axios.get(`${config.API_ENDPOINT}/customer/statement/${accountID}/${userID}/${customerID}?${params.toString()}`, {
@@ -100,3 +101,16 @@ export const downloadCustomerStatement = async (accountID, userID, customerID, {
    window.URL.revokeObjectURL(objectUrl);
 };
 
+
+const performanceParams = ({exclude = [], ...options}) => {
+   const params = new URLSearchParams();
+   Object.entries(options).forEach(([key,value]) => { if(value != null && value !== '') params.set(key,String(value)); });
+   if(exclude.length) params.set('exclude',exclude.join(','));
+   return params.toString();
+};
+export const fetchBillingPerformance = async (accountID,userID,options = {}) => (await axios.get(`${config.API_ENDPOINT}/analytics/billingPerformance/${accountID}/${userID}?${performanceParams(options)}`,headers())).data;
+export const downloadBillingPerformance = async (accountID,userID,options = {}) => {
+   const res = await axios.get(`${config.API_ENDPOINT}/analytics/billingPerformance/${accountID}/${userID}/export?${performanceParams(options)}`,{...headers(),responseType:'blob'});
+   const url = window.URL.createObjectURL(new Blob([res.data],{type: options.format === 'pdf' ? 'application/pdf' : 'text/csv'}));
+   const a=document.createElement('a');a.href=url;a.download=`billing_performance.${options.format || 'csv'}`;document.body.appendChild(a);a.click();a.remove();window.URL.revokeObjectURL(url);
+};

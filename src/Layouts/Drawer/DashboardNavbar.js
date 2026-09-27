@@ -18,8 +18,10 @@ const RootStyle = styled(AppBar, { shouldForwardProp: prop => prop !== 'desktopO
   WebkitBackdropFilter: 'blur(6px)', // Fix on Mobile
   backgroundColor: alpha(theme.palette.background.default, 0.72),
   [theme.breakpoints.up('lg')]: {
-    width: desktopOpen ? `calc(100% - ${DRAWER_WIDTH + 1}px)` : '100%',
-    transition: theme.transitions.create('width', {
+    left: desktopOpen ? DRAWER_WIDTH : 0,
+    right: 0,
+    width: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
+    transition: theme.transitions.create(['width', 'left'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.shorter
     })
@@ -55,13 +57,14 @@ export default function DashboardNavbar({ desktopOpen, onToggleMobileSidebar, on
           <IconButton
             onClick={onToggleDesktopSidebar}
             sx={{ mr: 1, color: 'text.primary' }}
+            aria-expanded={desktopOpen}
             aria-label={desktopOpen ? 'Hide menu' : 'Show menu'}
           >
             <Icon icon={menu2Fill} />
           </IconButton>
         </MHidden>
 
-        <Typography sx={{ color: 'black', ...theme.h3 }}>{pageTitle}</Typography>
+        <Typography component='div' data-testid='workspace-title' sx={{ color: 'text.primary', ...theme.h3, fontSize: {xs:18,md:24}, minWidth:0 }} noWrap>{pageTitle}</Typography>
 
         <Box sx={{ flexGrow: 1 }} />
 

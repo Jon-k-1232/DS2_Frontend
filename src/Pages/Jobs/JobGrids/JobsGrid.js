@@ -1,17 +1,8 @@
-import { Stack } from '@mui/material';
+import PagedRegister from '../../../Components/Lookups/PagedRegister';
 import NewJob from '../JobForms/AddJob/NewJob';
 import AddIcon from '@mui/icons-material/Add';
 import palette from '../../../Theme/palette';
-import ExpandableGrid from '../../../Components/DataGrids/ExpandableGrid';
-
-export default function JobsGrid({ customerData, setCustomerData }) {
-   const { accountJobsList: { activeJobData = {} } = {} } = customerData || {};
-
-   if (!customerData || !customerData.accountJobsList || !customerData.accountJobsList.activeJobData) {
-      // Render a loading indicator or an empty state here
-      return <div>Loading...</div>;
-   }
-
+export default function JobsGrid({customerData,setCustomerData}) {
    const gridButtons = [
       {
          dialogTitle: 'New Customer Job',
@@ -22,8 +13,6 @@ export default function JobsGrid({ customerData, setCustomerData }) {
    ];
 
    const displayColumnNames = [
-      'customer_job_id',
-      'parent_job_id',
       'customer_name',
       'job_description',
       'customer_job_category',
@@ -35,25 +24,10 @@ export default function JobsGrid({ customerData, setCustomerData }) {
       'job_quote_amount',
       'created_at',
       'created_by_user',
+      'customer_job_id',
+      'parent_job_id',
       'notes'
    ];
 
-   return (
-      <>
-         <Stack spacing={3}>
-            <ExpandableGrid
-               title='Jobs'
-               idField='customer_job_id'
-               parentColumnName='parent_job_id'
-               tableData={activeJobData}
-               arrayOfButtons={gridButtons}
-               checkboxSelection
-               enableSingleRowClick
-               rowSelectionOnly
-               displayColumnNames={displayColumnNames}
-               routeToPass={'/jobs/jobsList/deleteJob'}
-            />
-         </Stack>
-      </>
-   );
+   return <PagedRegister title='Jobs' path='/jobs/getJobs' listKey='accountJobsList' dataKey='activeJobData' rowsKey='activeJobs' idField='customer_job_id' route='/work/jobs/deleteJob' sortable columns={displayColumnNames} buttons={gridButtons} revision={customerData?.workspaceRevision || 0}/>;
 }

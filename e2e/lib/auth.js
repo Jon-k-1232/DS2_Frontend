@@ -42,7 +42,7 @@ async function authenticate(context, identity = 'admin', expired = false) {
       // instead, by design. It is still admin-only server-side (requireAdmin)
       // and still fully blocked for the readonly identity below regardless.
       const ownScope = new RegExp(`/${user.accountID}/${user.userID}(?:/|$)`);
-      if (identity === 'readonly' || !['http://localhost:8003','http://127.0.0.1:8003'].includes(url.origin) || !(ownScope.test(url.pathname) || url.pathname === '/account/updateAccount')) return route.abort('blockedbyclient');
+      if (identity === 'readonly' || !['http://localhost:8003','http://127.0.0.1:8003'].includes(url.origin) || !(ownScope.test(url.pathname) || url.pathname === '/account/updateAccount' || (user.accountID===9001 && (/^\/(?:billing-entities|recurringCustomer|payments\/receipts|credits)(?:\/|$)/.test(url.pathname) || /^\/invoices\/\d+\/(?:credit-memos|void-rebill)(?:\/preview)?$/.test(url.pathname) || /^\/credit-memos\/\d+\/reversals$/.test(url.pathname))))) return route.abort('blockedbyclient');
     }
     return route.continue();
   });

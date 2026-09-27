@@ -1,3 +1,5 @@
+import ReportingBasis from './ReportingBasis';
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
    Box,
@@ -39,6 +41,7 @@ export default function ClientRatesPage() {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [yearsBack, setYearsBack] = useState(6);
@@ -57,9 +60,10 @@ export default function ClientRatesPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setData(null);
          setError(null);
          try {
-            const res = await fetchClientRates(accountID, userID, { yearsBack, exclude: excludedIds });
+            const res = await fetchClientRates(accountID, userID, { yearsBack, exclude: excludedIds, entityId });
             if (cancelled) return;
             if (res?.clientRates) setData(res.clientRates);
             else setError(res?.message || 'Unable to load client rates.');
@@ -74,7 +78,7 @@ export default function ClientRatesPage() {
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, yearsBack, reloadTick, ready, excludedIds]);
+   }, [accountID, userID, yearsBack, reloadTick, ready, excludedIds, entityId]);
 
    const years = useMemo(() => data?.years || [], [data]);
    const firm = data?.firm;
@@ -94,6 +98,7 @@ export default function ClientRatesPage() {
             row.agreed_rate_last = c.years[lastFullYear]?.agreed_rate ?? null;
             row.rate_variance_last = c.years[lastFullYear]?.rate_variance ?? null;
             row.margin_last = c.years[lastFullYear]?.margin ?? null;
+            row.cost_basis = c.years[lastFullYear]?.cost_status || 'No issued cohort';
             return row;
          });
    }, [data, search, activeOnly, years]);
@@ -141,6 +146,9 @@ export default function ClientRatesPage() {
                )
          },
          {
+            field: 'cost_basis', headerName:'Cost basis', width:140
+         },
+         {
             field: 'margin_last',
             headerName: 'Margin',
             width: 110,
@@ -164,11 +172,13 @@ export default function ClientRatesPage() {
 
    return (
       <Stack spacing={2}>
+         <ReportingBasis kind="rates" />
+         <EntityPicker all allowInactive value={entityId} onChange={setEntityId} />
          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent='space-between'>
             <Box>
                <Typography variant='h5'>Client Rates</Typography>
                <Typography variant='body2' color='text.secondary'>
-                  Realized hourly rate per client per year (time billings ÷ hours). Hover a rate for billed totals.
+                  Issued cohort hourly rate per client and year. Work entered and estimated costs are shown separately.
                </Typography>
             </Box>
             <Stack direction='row' spacing={1} alignItems='center' flexWrap='wrap' useFlexGap>
@@ -189,7 +199,7 @@ export default function ClientRatesPage() {
                />
                <Button
                   startIcon={<DownloadIcon />}
-                  onClick={() => downloadClientRatesCsv(accountID, userID, { yearsBack, exclude: excludedIds }).catch(err => setError(err.message || 'CSV export failed.'))}
+                  onClick={() => downloadClientRatesCsv(accountID, userID, { yearsBack, exclude: excludedIds, entityId }).catch(err => setError(err.message || 'CSV export failed.'))}
                >
                   CSV
                </Button>
@@ -242,7 +252,7 @@ export default function ClientRatesPage() {
                         <TableCell align='right'>Hours</TableCell>
                         <TableCell align='right'>Time Billed</TableCell>
                         <TableCell align='right'>Fixed Charges</TableCell>
-                        <TableCell align='right'>Total Billed</TableCell>
+                        <TableCell align='right'>Net Issued</TableCell><TableCell align='right'>Work entered</TableCell><TableCell>Cost basis</TableCell>
                         <TableCell align='right'>Write-offs</TableCell>
                         <TableCell align='right'>Realization</TableCell>
                         <TableCell align='right'>Rate</TableCell>
@@ -264,7 +274,7 @@ export default function ClientRatesPage() {
                                     <TableCell align='right'>{r.hours}</TableCell>
                                     <TableCell align='right'>{fmtMoney(r.time_billed)}</TableCell>
                                     <TableCell align='right'>{fmtMoney(r.charges_billed)}</TableCell>
-                                    <TableCell align='right'>{fmtMoney(r.total_billed)}</TableCell>
+                                    <TableCell align='right'>{fmtMoney(r.total_billed)}</TableCell><TableCell align='right'>{fmtMoney(r.work_entered_value)}</TableCell><TableCell>{r.cost_status || 'unknown'} ({r.estimated_cost_count || 0} estimated / {r.unknown_cost_count || 0} unknown)</TableCell>
                                     <TableCell align='right'>{fmtMoney(r.writeoffs)}</TableCell>
                                     <TableCell align='right'>{r.realization_pct == null ? '—' : `${r.realization_pct}%`}</TableCell>
                                     <TableCell align='right'>{fmtRate(r.effective_rate)}</TableCell>
@@ -280,7 +290,7 @@ export default function ClientRatesPage() {
                   </TableBody>
                </Table>
                <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 1 }}>
-                  Realization = (billed − write-offs) ÷ billed. Margin = billed − write-offs − (hours × employee cost rate). Firm %ile compares this client's realized rate against all
+                  Realization = cohort net issued ÷ the same work’s standard value. Margin uses captured labor rates; estimated and unknown costs are identified. Firm %ile compares this client's issued rate against all
                   clients with ≥1 hour that year.
                </Typography>
 

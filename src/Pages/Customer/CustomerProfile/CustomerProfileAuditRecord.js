@@ -7,7 +7,7 @@ import { fetchAuditRecord, fetchPrintedRecords, printAuditRecord, openAuditRecor
 const money=v=>Number(v || 0).toLocaleString('en-US',{style:'currency',currency:'USD'});
 export const auditTime=v=>new Intl.DateTimeFormat('en-US',{timeZone:'America/Phoenix',dateStyle:'medium',timeStyle:'short'}).format(new Date(v));
 const recordLabel=type=>type==='client'?'Client record':'Full evidence record';
-export default function CustomerProfileAuditRecord({profileData}) {
+export default function CustomerProfileAuditRecord({profileData,entityId=null}) {
    const {loggedInUser}=useContext(context);
    const customerID=profileData?.customerData?.customerData?.customer_id;
    const {accountID,userID}=loggedInUser;
@@ -23,17 +23,17 @@ export default function CustomerProfileAuditRecord({profileData}) {
       let active=true;
       if(!allowed || !customerID)return undefined;
       setLoading(true);setData(null);setPrinted({records:[],total:0});setError('');
-      Promise.all([fetchAuditRecord(ids,filter),fetchPrintedRecords(ids,recordOffset)])
+      Promise.all([fetchAuditRecord(ids,{...filter,...(entityId?{entityId}:{})}),fetchPrintedRecords(ids,recordOffset,entityId)])
          .then(([history,records])=>{if(active){setData(history);setPrinted(records);}})
          .catch(e=>{if(active)setError(e.response?.data?.message || e.message || 'Unable to load Audit Record.');})
          .finally(()=>{if(active)setLoading(false);});
       return ()=>{active=false;};
-   },[ids,allowed,customerID,filter,recordOffset,refresh]);
+   },[ids,allowed,customerID,filter,recordOffset,refresh,entityId]);
    const action=async fn=>{setBusy(true);setError('');try{await fn();}catch(e){setError(e.response?.data?.message || e.message || 'Unable to complete request.');}finally{setBusy(false);}};
    if(!allowed)return <Alert severity='error'>Audit Record is restricted to admins and super admins.</Alert>;
    const apply=()=>{if(range.startDate && range.endDate && range.startDate>range.endDate){setError('Start date must not be after end date.');return;}setFilter({...range,offset:0,limit:25});};
    const print=()=>action(async()=>{
-      const result=await printAuditRecord(ids,{startDate:filter.startDate,endDate:filter.endDate,recordType});
+      const result=await printAuditRecord(ids,{startDate:filter.startDate,endDate:filter.endDate,recordType,...(entityId?{entityId}:{})});
       setRefresh(n=>n+1);await openAuditRecord(ids,result.record.record_id);
    });
    return <Box sx={{pt:2}}><Stack spacing={2}>
@@ -51,6 +51,7 @@ export default function CustomerProfileAuditRecord({profileData}) {
       {loading && <CircularProgress aria-label='Loading audit record' />}
       {data && <>
          <Typography>Opening {money(data.opening_balance)} · Closing {money(data.closing_balance)} · Current {money(data.current.running_balance)} (billed {money(data.current.billed_balance)}, unbilled {money(data.current.unbilled_balance)}) · Retainer available {money(data.current.retainer_available)}</Typography>
+         {data.current.held_credit_available!=null && <Typography>Held receipt credit {money(data.current.held_credit_available)} · Proposed next statement after credit {money(data.current.proposed_statement_balance)}</Typography>}
          <Typography variant='caption'>{data.methodology}</Typography>
          <Paper variant='outlined' sx={{overflowX:'auto'}}><Table size='small' aria-label='Account history'><TableHead><TableRow>
             {['When / who','Business activity and changes','Debit','Credit','Balance','Retainer'].map((t,i)=><TableCell key={t} align={i>=2?'right':'left'}>{t}</TableCell>)}

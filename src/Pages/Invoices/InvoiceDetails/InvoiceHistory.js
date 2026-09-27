@@ -1,10 +1,12 @@
+import ActorName from '../../../Components/Workspace/ActorName';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { context } from '../../../App';
 import { invoiceExceptionCall } from '../../../Services/ApiCalls/InvoiceExceptionCalls';
 import { fetchFileDownload } from '../../../Services/ApiCalls/FetchCalls';
 export default function InvoiceHistory({ invoiceID, onBalanceChange }) {
-   const { accountID, userID } = useContext(context).loggedInUser;
+   const { accountID, userID, accessLevel } = useContext(context).loggedInUser;
+   const admin=['admin','super admin'].includes((accessLevel || '').toLowerCase());
    const [history, setHistory] = useState(null);
    const [reason, setReason] = useState('');
    const [condition, setCondition] = useState('bounced_check');
@@ -41,8 +43,9 @@ export default function InvoiceHistory({ invoiceID, onBalanceChange }) {
    return <Box sx={{ my: 2 }} aria-label='Invoice history'>
       {error && <Alert severity='error'>{error}</Alert>}
       {history?.sent_locked && <Alert severity='info'>Sent — locked · {history.locked_invoice_number}. Original records and PDFs are preserved.</Alert>}
-      {history?.sent_locked && !active && <Button disabled={busy} onClick={() => setOpen(!open)}>Flag exception</Button>}
-      {open && <Stack spacing={1} sx={{ my: 2 }}>
+      {!admin && <Alert severity='info'>Only admins may flag, reverse or resolve a bounced-check exception.</Alert>}
+      {admin && history?.sent_locked && !active && <Button disabled={busy} onClick={() => setOpen(!open)}>Flag exception</Button>}
+      {admin && open && <Stack spacing={1} sx={{ my: 2 }}>
          <TextField select label='Condition' value={condition} onChange={e => setCondition(e.target.value)}>
             {history.conditions.map(c => <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>)}
          </TextField>
@@ -57,13 +60,13 @@ export default function InvoiceHistory({ invoiceID, onBalanceChange }) {
       {active && <Stack spacing={1} sx={{ my: 2 }}>
          <Alert severity='warning'>Exception #{active.exception_id}: {active.state}. {active.reason}</Alert>
          <Typography>{active.payments.map(p => `Payment #${p.payment_id} ($${Number(p.amount).toFixed(2)})`).join(', ')}</Typography>
-         {active.state === 'flagged' ? <Stack direction='row' spacing={2}>
+         {admin && (active.state === 'flagged' ? <Stack direction='row' spacing={2}>
             <Button disabled={busy} onClick={() => act('reverse')}>Reverse selected payments</Button>
             <Button disabled={busy} onClick={() => act('resolve', { action: 'cancel' })}>Cancel flag</Button>
          </Stack> : <Stack direction='row' spacing={2}>
             <Button disabled={busy} onClick={() => act('resolve', { action: 'revision' })}>Issue revision for reprint / resend</Button>
             <Button disabled={busy} onClick={() => act('resolve', { action: 'roll_forward' })}>Roll into next invoice</Button>
-         </Stack>}
+         </Stack>)}
       </Stack>}
       {!!history?.revisions?.length && <Typography variant='h6'>Archived versions</Typography>}
       {history?.revisions?.some(r => r.revision > 0) && <Typography variant='body2'>Each revision includes its correction and the unchanged original invoice. Reprint or resend both together.</Typography>}
@@ -72,7 +75,7 @@ export default function InvoiceHistory({ invoiceID, onBalanceChange }) {
       </Button>)}
       {!!history?.events?.length && <Typography variant='h6'>History</Typography>}
       {history?.events?.map(e => <Typography key={e.history_id} variant='body2' sx={{ my: 1 }}>
-         {new Date(e.created_at).toLocaleString()} · User #{e.actor_id} · {e.event.replaceAll('_', ' ')}
+         {new Date(e.created_at).toLocaleString()} · <ActorName id={e.actor_id} name={e.actor_name}/> · {e.event.replaceAll('_', ' ')}
          {e.detail.reason ? ` · ${e.detail.reason}` : ''}
          {e.detail.payment_ids ? ` · Payments ${e.detail.payment_ids.join(', ')}` : ''}
          {e.detail.reversal_ids?.length ? ` · Reversals ${e.detail.reversal_ids.join(', ')}` : ''}

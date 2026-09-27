@@ -58,6 +58,8 @@ export default function EditRetainer({ customerData, setCustomerData, retainerDa
       if (retainerData && Object.keys(retainerData).length) {
          setSelectedItems({
             ...selectedItems,
+            entityId:retainerData.billing_entity_id,
+            entityLocked:true,
             accountID: account_id,
             retainerID: retainer_id,
             parentRetainerID: parent_retainer_id,
@@ -88,7 +90,7 @@ export default function EditRetainer({ customerData, setCustomerData, retainerDa
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, accountRetainersList: postedItem.accountRetainersList });
-         navigate('/transactions/customerRetainers');
+         navigate('/payments/retainers');
       }
    };
 

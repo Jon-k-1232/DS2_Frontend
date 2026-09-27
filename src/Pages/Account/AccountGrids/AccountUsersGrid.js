@@ -16,7 +16,7 @@ export default function AccountUsersGrid({ customerData, setCustomerData }) {
 
    const gridButtons = [
       {
-         dialogTitle: 'New New User',
+         dialogTitle: 'New user',
          tooltipText: 'Add New User',
          icon: () => <AddIcon style={{ color: palette.primary.main }} />,
          component: () => <AddUser activeUsers={activeUserData.activeUsers} customerData={customerData} setCustomerData={data => setCustomerData(data)} />
@@ -33,7 +33,7 @@ export default function AccountUsersGrid({ customerData, setCustomerData }) {
                arrayOfButtons={gridButtons}
                enableSingleRowClick
                rowSelectionOnly
-               routeToPass={'/account/accountUsers/deleteUser'}
+               routeToPass={'/settings/users/deleteUser'}
             />
          </Stack>
       </>

@@ -10,14 +10,20 @@ test.describe('Jobs list', () => {
     const customer = await createCustomer(page, prefix);
     await createJob(page, customer);
     const timeRow = await addTransaction(page, customer);
+    // This transaction references a historical job version, not necessarily
+    // a choice on the first job page. Its edit form must retain the label.
+    await timeRow.click();
+    await page.getByRole('tab',{name:'Edit Transaction',exact:true}).click();
+    await expect(page.getByRole('combobox',{name:'Select Job',exact:true})).toHaveValue('1040 Individual Return');
 
     await page.goto(routes.jobs);
     await fillQuickFilter(page, prefix);
     await page.getByRole('row').filter({ hasText: customer.name }).click();
-    await expect(page).toHaveURL(/jobsList\/deleteJob$/);
+    await expect(page).toHaveURL(/work\/jobs\/\d+\/delete$/);
+    await expect(page.getByRole('row').filter({hasText:'Created by:'})).toContainText('Admin Person');
     const deleteJobButton = page.getByRole('button', { name: 'Delete Job', exact: true });
     await expect(deleteJobButton).toBeDisabled();
-    await expect(page.getByText('Before deletion, please re-parent the following items:', { exact: true })).toBeVisible();
+    await expect(page.getByText('Before deleting this job, move the linked records to the correct job:', { exact: true })).toBeVisible();
     // job-router.js's own DELETE /jobs/deleteJob independently refuses this
     // (Transactions are linked to this job...) even if the disabled button
     // were somehow bypassed — the grid below is the same backend-computed
@@ -36,13 +42,13 @@ test.describe('Jobs list', () => {
     await page.goto(routes.jobs);
     await fillQuickFilter(page, prefix);
     await page.getByRole('row').filter({ hasText: customer.name }).click();
-    await expect(page).toHaveURL(/jobsList\/deleteJob$/);
-    await expect(page.getByText('Before deletion, please re-parent the following items:', { exact: true })).toHaveCount(0);
+    await expect(page).toHaveURL(/work\/jobs\/\d+\/delete$/);
+    await expect(page.getByText('Before deleting this job, move the linked records to the correct job:', { exact: true })).toHaveCount(0);
     await expect(deleteJobButton).toBeEnabled();
     await deleteJobButton.click();
     await expect(page.getByRole('dialog')).toContainText('Are you sure you want to delete this job?');
     await submit(page, page.getByRole('dialog'), '/jobs/delete', 'Delete');
-    await expect(page).toHaveURL(/jobsList$/);
+    await expect(page).toHaveURL(/work\/jobs$/);
     await fillQuickFilter(page, prefix);
     await expect(page.getByRole('row').filter({ hasText: customer.name })).toHaveCount(0);
 
@@ -67,15 +73,15 @@ test.describe('Jobs list: edit', () => {
     await page.goto(routes.jobs);
     await fillQuickFilter(page, prefix);
     await page.getByRole('row').filter({ hasText: customer.name }).click();
-    await expect(page).toHaveURL(/jobsList\/deleteJob$/);
+    await expect(page).toHaveURL(/work\/jobs\/\d+\/delete$/);
     await page.getByRole('tab', { name: 'Edit Job', exact: true }).click();
-    await expect(page).toHaveURL(/jobsList\/editJob$/);
+    await expect(page).toHaveURL(/work\/jobs\/\d+\/edit$/);
     // Lands on an editable job form pre-filled from the clicked row
     // (NewJobSelections, same fields createJob() uses), toggle completion,
     // and submit.
     await expect(page.getByLabel('Job Notes', { exact: true })).toHaveValue(prefix);
     await page.getByLabel('Is Job Complete?', { exact: true }).check();
     await submit(page, page, '/jobs/updateJob/', 'Submit');
-    await expect(page).toHaveURL(/jobsList$/);
+    await expect(page).toHaveURL(/work\/jobs$/);
   });
 });

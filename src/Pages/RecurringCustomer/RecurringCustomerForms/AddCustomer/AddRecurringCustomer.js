@@ -1,3 +1,4 @@
+import EntityPicker from '../../../../Components/BillingEntities/EntityPicker';
 import React, { useState } from 'react';
 import { Button, Alert, Box } from '@mui/material';
 import { formObjectForNewRecurringCustomerPost } from '../../../../Services/SharedPostObjects/SharedPostObjects';
@@ -22,6 +23,7 @@ export default function AddRecurringCustomer({ customerData, setCustomerData }) 
   const [selectedItems, setSelectedItems] = useState(initialState);
 
   const handleSubmit = async () => {
+    if (!selectedItems.entityId) { setPostStatus({status:400,message:'Choose a billing business.'}); return; }
     const dataToPost = formObjectForNewRecurringCustomerPost(selectedItems, loggedInUser);
     const postedItem = await postNewRecurringCustomer(dataToPost, accountID, userID);
 
@@ -35,6 +37,7 @@ export default function AddRecurringCustomer({ customerData, setCustomerData }) 
 
   return (
     <>
+      <EntityPicker value={selectedItems.entityId} customerId={selectedItems.selectedCustomer?.customer_id} onChange={entityId=>setSelectedItems(prev=>({...prev,entityId}))} />
       <Box sx={{ display: 'grid', gap: 3 }}>
         <RecurringOptions customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 

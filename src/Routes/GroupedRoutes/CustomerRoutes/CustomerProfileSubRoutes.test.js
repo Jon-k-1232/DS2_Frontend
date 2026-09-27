@@ -23,7 +23,7 @@ const loggedInUser = { accountID: 9001, userID: 90013, token: 'session', accessL
 
 it('adds Audit Record next to AI Audit with separate admin visibility',()=>{
  const navigate=jest.fn();const both=fetchMenuOptions(navigate,true,'/client/7',true);
- expect(both.map(x=>x.display).slice(-3)).toEqual(['AI Audit','Audit Record','Edit Customer Profile']);
+ expect(both.map(x=>x.display).slice(-3)).toEqual(['AI Audit','Audit Record','Edit client']);
  both.find(x=>x.value==='auditRecord').onClick();expect(navigate).toHaveBeenCalledWith('/client/7/auditRecord');
  expect(fetchMenuOptions(navigate,false,'/client/7',true).map(x=>x.display)).toContain('Audit Record');
  expect(fetchMenuOptions(navigate,false,'/client/7',false).map(x=>x.display)).not.toContain('Audit Record');
@@ -31,11 +31,11 @@ it('adds Audit Record next to AI Audit with separate admin visibility',()=>{
 
 const renderAt = customerId =>
    render(
-      <MemoryRouter initialEntries={[`/customers/customersList/customerProfile/${customerId}/customerInvoices`]}>
+      <MemoryRouter initialEntries={[`/clients/${customerId}/statements`]}>
          <context.Provider value={{ loggedInUser }}>
             <Routes>
                <Route
-                  path='/customers/customersList/customerProfile/:customerId/*'
+                  path='/clients/:customerId/*'
                   element={<CustomerProfileSubRoutes customerData={{}} setCustomerData={() => {}} />}
                />
             </Routes>
@@ -56,10 +56,10 @@ describe('CustomerProfileSubRoutes — gates children on a successful load', () 
       fetchCustomerProfileInformation.mockReturnValue(new Promise(resolve => (resolveFetch = resolve)));
 
       render(
-         <MemoryRouter initialEntries={['/customers/customersList/customerProfile/123/customerInvoices']}>
+         <MemoryRouter initialEntries={['/clients/123/statements']}>
             <context.Provider value={{ loggedInUser }}>
                <Routes>
-                  <Route path='/customers/customersList/customerProfile/:customerId/*' element={<CustomerProfileSubRoutes customerData={{}} setCustomerData={() => {}} />} />
+                  <Route path='/clients/:customerId/*' element={<CustomerProfileSubRoutes customerData={{}} setCustomerData={() => {}} />} />
                </Routes>
             </context.Provider>
          </MemoryRouter>
@@ -113,7 +113,7 @@ describe('CustomerProfileSubRoutes — gates children on a successful load', () 
       fetchCustomerProfileInformation.mockImplementation((accountID, userID, customerID) => new Promise(resolve => requests.push({ customerID, resolve })));
 
       render(
-         <MemoryRouter initialEntries={['/customers/customersList/customerProfile/1/customerInvoices']}>
+         <MemoryRouter initialEntries={['/clients/1/statements']}>
             <context.Provider value={{ loggedInUser }}>
                {/* A real in-tree link, so this exercises actual router
                    navigation (a new :customerId param on the SAME mounted
@@ -121,9 +121,9 @@ describe('CustomerProfileSubRoutes — gates children on a successful load', () 
                    MemoryRouter's initialEntries is a first-render-only lazy
                    initializer, so swapping it via rerender() wouldn't navigate
                    at all. */}
-               <Link to='/customers/customersList/customerProfile/2/customerInvoices'>Go to customer 2</Link>
+               <Link to='/clients/2/statements'>Go to customer 2</Link>
                <Routes>
-                  <Route path='/customers/customersList/customerProfile/:customerId/*' element={<CustomerProfileSubRoutes customerData={{}} setCustomerData={() => {}} />} />
+                  <Route path='/clients/:customerId/*' element={<CustomerProfileSubRoutes customerData={{}} setCustomerData={() => {}} />} />
                </Routes>
             </context.Provider>
          </MemoryRouter>

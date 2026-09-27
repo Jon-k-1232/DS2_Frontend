@@ -36,9 +36,9 @@ export default function PendingPaymentsPage({ customerData, setCustomerData }) {
          <TabContext value={activeTab}>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                <TabList onChange={(_, value) => setActiveTab(value)} aria-label='Pending payments tabs'>
-                  <Tab label={tabLabel('New Payments', counts.newPayments)} value='new' />
+                  <Tab label={tabLabel('New payments', counts.newPayments)} value='new' />
                   <Tab label='Processed' value='processed' />
-                  <Tab label={tabLabel('All Payments', counts.all)} value='all' />
+                  <Tab label={tabLabel('All payments', counts.all)} value='all' />
                   <Tab label='Upload' value='upload' />
                </TabList>
             </Box>

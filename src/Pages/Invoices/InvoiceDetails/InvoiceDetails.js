@@ -1,3 +1,4 @@
+import InvoiceCorrections from '../../Corrections/InvoiceCorrections';
 import InvoiceHistory from './InvoiceHistory';
 import { useContext, useState } from 'react';
 import { Stack, Divider, Button, Box, Alert } from '@mui/material';
@@ -154,6 +155,7 @@ export default function InvoiceDetails({ invoiceData, postStatus, setPostStatus 
          </Stack>
          {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
          <InvoiceHistory invoiceID={customer_invoice_id} onBalanceChange={setCurrentBalance} />
+         <InvoiceCorrections invoiceID={customer_invoice_id} />
          <Divider style={styles.divider} />
       </>
    );

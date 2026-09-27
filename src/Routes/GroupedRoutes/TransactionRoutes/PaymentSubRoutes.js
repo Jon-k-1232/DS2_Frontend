@@ -1,3 +1,4 @@
+import ReceiptApplicationNotice from '../../../Components/ReceiptApplicationNotice';
 import React, { useEffect, useState, useContext } from 'react';
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
 import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageNavigationHeader';
@@ -10,10 +11,10 @@ import ErrorBoundary from '../../../Components/ErrorBoundary';
 export default function PaymentSubRoutes({ customerData, setCustomerData }) {
    const navigate = useNavigate();
    const location = useLocation();
-   const { accountID, userID, token } = useContext(context).loggedInUser;
+   const { accountID, userID, token, accessLevel } = useContext(context).loggedInUser;
    const { rowData } = location?.state ?? {};
    const { customer_id, payment_id } = rowData ?? {};
-   const menuOptions = fetchMenuOptions(navigate);
+   const menuOptions = fetchMenuOptions(navigate).filter(m=>m.value!=='reversePayment' || ['admin','super admin'].includes((accessLevel || '').toLowerCase()));
 
    const [paymentData, setPaymentData] = useState({});
    const [customerProfileData, setCustomerProfileData] = useState([]);
@@ -35,6 +36,7 @@ export default function PaymentSubRoutes({ customerData, setCustomerData }) {
       <>
          <PageNavigationHeader menuOptions={menuOptions} onClickNavigation={() => {}} currentLocation={location} />
 
+         {paymentData.receipt_id && <ReceiptApplicationNotice receiptId={paymentData.receipt_id}/>}
          <Routes>
             <Route
                path='deletePayment'

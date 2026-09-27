@@ -1,3 +1,4 @@
+import ReceiptApplicationNotice from '../../../../Components/ReceiptApplicationNotice';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useContext } from 'react';
 import { Box, Stack, Typography, TextField, Button, Alert, Paper } from '@mui/material';
@@ -46,7 +47,7 @@ export default function ReversePayment({ paymentData, customerData, setCustomerD
                invoicesList: result.invoicesList,
                accountRetainersList: result.accountRetainersList
             });
-            setTimeout(() => navigate('/transactions/customerPayments'), 2500);
+            setTimeout(() => navigate('/payments/receipts/legacy'), 2500);
          }
       } catch (error) {
          setPostStatus({ status: 500, message: error.response?.data?.message || error.message || 'An error occurred while reversing the payment.' });
@@ -55,10 +56,13 @@ export default function ReversePayment({ paymentData, customerData, setCustomerD
       }
    };
 
+   if (!['admin','super admin'].includes((loggedInUser.accessLevel || '').toLowerCase())) return <Alert severity='info'>Only admins may reverse a payment.</Alert>;
+
    if (!hasPayment) {
       return <Alert severity='info'>Select a payment from the Payments grid first.</Alert>;
    }
 
+   if (paymentData?.receipt_id) return <ReceiptApplicationNotice receiptId={paymentData.receipt_id}/>;
    if (paymentData?.sent_locked) return <SentInvoiceNotice row={paymentData} />;
 
    return (

@@ -9,10 +9,10 @@ import ErrorBoundary from '../../../Components/ErrorBoundary';
 export default function WriteOffSubRoutes({ customerData, setCustomerData }) {
    const navigate = useNavigate();
    const location = useLocation();
-   const { accountID, userID, token } = useContext(context).loggedInUser;
+   const { accountID, userID, token, accessLevel } = useContext(context).loggedInUser;
    const { rowData } = location?.state ?? {};
    const { writeoff_id } = rowData ?? {};
-   const menuOptions = fetchMenuOptions(navigate);
+   const menuOptions = ['admin','super admin'].includes((accessLevel || '').toLowerCase())?fetchMenuOptions(navigate):[];
 
    const [writeOffData, setWriteOffData] = useState({});
 

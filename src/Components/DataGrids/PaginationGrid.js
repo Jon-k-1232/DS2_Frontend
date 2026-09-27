@@ -1,3 +1,5 @@
+import {presentationColumns} from './presentationColumns';
+import { canonicalPath } from '../../Routes/routePaths';
 import { withSentLockColumn } from './sentLockColumn';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Box } from '@mui/material';
@@ -27,6 +29,8 @@ const DataGridTable = ({
    loading = false,
    onFilterModelChange,
    getRowId,
+   sortModel,
+   onSortModelChange,
    showQuickFilter = true,
    renderToolbarContent,
    renderExport,
@@ -61,6 +65,7 @@ const DataGridTable = ({
 
    const gridProps = {
       density: 'compact',
+      localeText: {noRowsLabel:'No records to show for this selection.',noResultsOverlayLabel:'No records match these filters.'},
       // Toolbar must be a STABLE component reference (CustomToolbar itself),
       // not a new inline arrow function created on every render — DataGrid
       // treats a changed slot-component identity as a different component
@@ -94,6 +99,13 @@ const DataGridTable = ({
             setArrayOfSelectedRows?.(selectedRowsData);
          }
       },
+      onCellKeyDown: (params, event) => {
+         if (event.key === 'Enter' && enableSingleRowClick && routeToPass && event.target === event.currentTarget) {
+            event.preventDefault();
+            const path = typeof routeToPass === 'function' ? routeToPass(params.row) : routeToPass;
+            navigate(canonicalPath(path, params.row), {state:{rowData:params.row}});
+         }
+      },
       onRowClick: rowData => {
          if (enableSingleRowClick && !routeToPass) {
             setSingleSelectedRow?.(rowData.row);
@@ -102,10 +114,13 @@ const DataGridTable = ({
             // function form lets callers stamp row-derived ids into the URL
             // itself (preferred over location.state so Back-navigation works).
             const resolvedRoute = typeof routeToPass === 'function' ? routeToPass(rowData.row) : routeToPass;
-            navigate(resolvedRoute, { state: { rowData: rowData.row } });
+            navigate(canonicalPath(resolvedRoute, rowData.row), { state: { rowData: rowData.row } });
          }
       },
       paginationMode: useClientPagination ? 'client' : 'server',
+      sortingMode: onSortModelChange ? 'server' : 'client',
+      sortModel,
+      onSortModelChange,
       filterMode: isServerFiltering ? 'server' : 'client',
       rowCount: totalCount || rows.length,
       paginationModel: useClientPagination ? null : paginationModel,
@@ -113,14 +128,14 @@ const DataGridTable = ({
       onFilterModelChange: isServerFiltering ? onFilterModelChange : null,
       getRowId: deriveRowId,
       pageSize: pageSize || 10,
-      pageSizeOptions: [5, 10, 25, 50, 100],
+      pageSizeOptions: [5, 10, 20, 25, 50, 100],
       loading
    };
 
    // Width measurement walks every row x column with canvas text metrics —
    // recompute only when the data actually changes, not on every render.
    // eslint-disable-next-line react-hooks/exhaustive-deps
-   const dynamicColumns = useMemo(() => (rows.length && columns.length ? getDynamicColumnWidths(rows, columns) : columns), [rows, columns]);
+   const dynamicColumns = useMemo(() => (rows.length && columns.length ? getDynamicColumnWidths(rows, presentationColumns(columns)) : presentationColumns(columns)), [rows, columns]);
 
    // Build initial column visibility model: columns listed are hidden (false), others default to true
    const columnVisibilityModel = (initiallyHiddenColumns || []).reduce((acc, col) => {

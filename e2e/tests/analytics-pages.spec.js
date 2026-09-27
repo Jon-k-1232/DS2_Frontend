@@ -22,7 +22,7 @@ test.describe('Analytics CSV export (account 1, read-only)', () => {
     try {
       await authenticate(context, 'admin');
       const page = await context.newPage();
-      await page.goto('http://localhost:3003/analytics/clientRates');
+      await page.goto('http://localhost:3003/reports/client-rates');
       await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
       await expect(page.getByText('This page is restricted to super admins.', { exact: true })).toBeVisible();
     } finally {
@@ -31,7 +31,7 @@ test.describe('Analytics CSV export (account 1, read-only)', () => {
   });
 
   test('Client Rates CSV button downloads a file', async ({ page }) => {
-    await page.goto('/analytics/clientRates');
+    await page.goto('/reports/client-rates');
     await expect(page.getByRole('heading', { name: 'Client Rates', exact: true })).toBeVisible();
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'CSV', exact: true }).click();
@@ -41,7 +41,7 @@ test.describe('Analytics CSV export (account 1, read-only)', () => {
   });
 
   test('Time Allocation CSV button downloads a file', async ({ page }) => {
-    await page.goto('/analytics/timeAllocation');
+    await page.goto('/reports/time-allocation');
     await expect(page.getByRole('heading', { name: 'Time Allocation', exact: true })).toBeVisible();
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'CSV', exact: true }).click();

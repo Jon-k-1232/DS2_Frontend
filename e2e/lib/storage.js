@@ -19,6 +19,10 @@ async function cleanupObjects(prefix) {
   const keys = pending.get(prefix) || new Set();
   const customers = rows(`SELECT customer_id FROM customers WHERE account_id=9001 AND display_name LIKE ${literal(prefix+'%')}`).map(r => Number(r.customer_id));
   const auditPrefixes = customers.map(id => `audit-records/9001/${id}/`);
+  const correctionPrefixes = customers.map(id => `corrections/9001/${id}/`);
+  for (const table of ['credit_memos','credit_memo_reversals','invoice_voids','client_refunds']) {
+    for (const r of rows(`SELECT artifact_key FROM ${table} WHERE account_id=9001 AND customer_id IN (SELECT customer_id FROM customers WHERE account_id=9001 AND display_name LIKE ${literal(prefix+'%')})`)) if (r.artifact_key) keys.add(r.artifact_key);
+  }
   for (const r of rows(`SELECT storage_key,evidence_storage_key FROM audit_records WHERE account_id=9001 AND customer_id IN (SELECT customer_id FROM customers WHERE account_id=9001 AND display_name LIKE ${literal(prefix+'%')})`)) {
     if (r.storage_key) keys.add(r.storage_key);
     if (r.evidence_storage_key) keys.add(r.evidence_storage_key);
@@ -56,7 +60,7 @@ async function cleanupObjects(prefix) {
   const client = new S3Client({endpoint:env.S3_ENDPOINT,region:env.S3_REGION || 'us-east-1',forcePathStyle:true,credentials:{accessKeyId:env.S3_ACCESS_KEY_ID,secretAccessKey:env.S3_SECRET_ACCESS_KEY}});
   try {
     for (const key of keys) {
-      if ((!key.startsWith(invoicePrefix) && !uploadPrefixes.some(p => key.startsWith(p)) && !auditPrefixes.some(p => key.startsWith(p))) || key.includes('..')) throw new Error(`Refusing unexpected cleanup key: ${key}`);
+      if ((!key.startsWith(invoicePrefix) && !uploadPrefixes.some(p => key.startsWith(p)) && !auditPrefixes.some(p => key.startsWith(p)) && !correctionPrefixes.some(p => key.startsWith(p))) || key.includes('..')) throw new Error(`Refusing unexpected cleanup key: ${key}`);
       await client.send(new DeleteObjectCommand({Bucket:'ds2-local',Key:key}));
     }
     // Each real upload also records durable ownership of its object

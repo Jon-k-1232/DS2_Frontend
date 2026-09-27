@@ -1,3 +1,4 @@
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
 import { Stack, TextField, InputAdornment } from '@mui/material';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
 import SearchIcon from '@mui/icons-material/Search';
@@ -16,6 +17,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 export default function InvoicesGrid({ customerData }) {
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [gridData, setGridData] = useState({ rows: [], columns: [], totalCount: 0 });
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: DEFAULT_PAGE_SIZE });
    const [loading, setLoading] = useState(false);
@@ -75,9 +77,10 @@ export default function InvoicesGrid({ customerData }) {
    // which an invoice row has, so every row resolved to the SAME id
    // ("undefined-undefined") and MUI DataGrid deduplicates rows by id,
    // silently dropping every row but the last on the page.
-   const getRowId = useCallback(row => row.customer_invoice_id || row.id, []);
+   const getRowId = useCallback(row => row.notes?.includes('Legacy opening balance attributed')?`${row.customer_invoice_id}:${row.billing_entity_id}`:row.customer_invoice_id || row.id, []);
 
    const arrayOfColumnNames = [
+      'billing_entity_name',
       'customer_invoice_id',
       'parent_invoice_id',
       'customer_name',
@@ -140,14 +143,14 @@ export default function InvoicesGrid({ customerData }) {
          initializedRef.current = true;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [accountID, userID, token]);
+   }, [accountID, userID, token, entityId]);
 
    const fetchPageData = async (page = paginationModel.page + 1, pageSize = paginationModel.pageSize, searchValue = searchTerm) => {
       if (!accountID || !userID || !token) return;
       const request = ++requestRef.current;
       setLoading(true);
       try {
-         const response = await fetchInvoices(accountID, userID, token, page, pageSize, searchValue);
+         const response = await fetchInvoices(accountID, userID, token, page, pageSize, searchValue, entityId);
          if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
          if (response?.invoicesList?.activeInvoiceData) {
             const { invoicesList } = response;
@@ -175,13 +178,15 @@ export default function InvoicesGrid({ customerData }) {
       fetchPageData(page + 1, pageSize, searchTerm);
       previousSearchTermRef.current = searchTerm;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [paginationModel.page, paginationModel.pageSize, searchTerm]);
+   }, [paginationModel.page, paginationModel.pageSize, searchTerm, entityId]);
 
    // Focus the search input after data loads
    useEffect(() => {
       if (!initializedRef.current) return;
       const input = searchInputRef.current;
-      if (input && document.activeElement !== input) {
+      const focused = document.activeElement;
+      const canRestore = !focused || focused === document.body || focused.id === 'main-content';
+      if (input && canRestore && !document.querySelector('[role="dialog"]')) {
          input.focus({ preventScroll: true });
          const caret = input.value.length;
          input.setSelectionRange(caret, caret);
@@ -191,6 +196,7 @@ export default function InvoicesGrid({ customerData }) {
    return (
       <>
          <Stack spacing={3}>
+            <EntityPicker all value={entityId} onChange={v=>{setEntityId(v);setPaginationModel(p=>({...p,page:0}));}} />
             <PaginationGrid
                title='Invoices'
                passedHeight={window.innerHeight - 140}
@@ -198,7 +204,7 @@ export default function InvoicesGrid({ customerData }) {
                checkboxSelection={false}
                enableSingleRowClick
                rowSelectionOnly
-               routeToPass={'/invoices/invoices/invoiceDetail/invoiceTransactions'}
+               routeToPass={'/billing/invoices/selected/invoiceTransactions'}
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}
                loading={loading}

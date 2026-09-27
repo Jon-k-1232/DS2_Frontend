@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Box, TextField, Checkbox, FormControlLabel, Radio, RadioGroup, FormControl, Typography, Autocomplete } from '@mui/material';
 import dayjs from 'dayjs';
-import { handleBillableStatus, handleTimeCalculation } from './SharedTransactionsFunctions';
+import { handleTimeCalculation, useRecurringBillability } from './SharedTransactionsFunctions';
 
 export default function TimeOptions({ customerData, selectedItems, setSelectedItems }) {
    const [, setMinutes] = useState('');
@@ -13,19 +13,14 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
 
    const { workDescriptionsList: { activeWorkDescriptionsData: { workDescriptions = [] } = {} } = {} } = customerData || {};
 
-   const { selectedTeamMember, isTransactionBillable, detailedJobDescription, isInAdditionToMonthlyCharge, selectedCustomer, selectedGeneralWorkDescription } = selectedItems;
+   const { selectedTeamMember, isTransactionBillable, detailedJobDescription, isInAdditionToMonthlyCharge, selectedGeneralWorkDescription } = selectedItems;
+   const covered = useRecurringBillability(customerData, selectedItems, setSelectedItems);
 
    const updateSelectedItems = (key, value) => {
       setSelectedItems(prev => ({ ...prev, [key]: value }));
    };
 
    useEffect(() => {
-      // 1) Billable logic
-      const newBillableStatus = handleBillableStatus(selectedCustomer, isInAdditionToMonthlyCharge, isTransactionBillable);
-      if (newBillableStatus !== isTransactionBillable) {
-         updateSelectedItems('isTransactionBillable', newBillableStatus);
-      }
-
       // 2) If we already have minutes, set local state & run calculation.
       // selectedTeamMember must be a dependency: switching team members after
       // entering hours used to keep the OLD member's billing rate on the
@@ -37,7 +32,7 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
          handleTimeCalculation(selectedItems.minutes, selectedTeamMember, startTime, endTime, updateSelectedItems);
       }
       // eslint-disable-next-line
-   }, [isInAdditionToMonthlyCharge, selectedItems.minutes, selectedTeamMember, startTime, endTime]);
+   }, [selectedItems.minutes, selectedTeamMember, startTime, endTime]);
 
    useEffect(() => {
       if (selectedItems.transactionID && !selectedItems.minutes) setHoursInput(String(selectedItems.quantity ?? ''));
@@ -88,9 +83,9 @@ export default function TimeOptions({ customerData, selectedItems, setSelectedIt
 
          <FormControlLabel control={<Checkbox checked={isTransactionBillable} onChange={e => updateSelectedItems('isTransactionBillable', e.target.checked)} />} label='Billable' />
 
-         {selectedCustomer?.is_recurring && (
+         {covered && (
             <FormControl style={{ width: '100%', maxWidth: '350px' }} component='fieldset'>
-               <Typography variant='body1'>Is this in addition to the customers monthly base charge?</Typography>
+               <Typography variant='body1'>Is this in addition to the client's recurring base fee?</Typography>
                <RadioGroup
                   row
                   name='isInAdditionToMonthlyCharge'

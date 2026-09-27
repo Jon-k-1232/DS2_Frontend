@@ -2,7 +2,7 @@ import { cloneElement, Children } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Autocomplete } from '@mui/material';
 
 export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOpen, setDialogOpen, autoCompleteProps, onAdded }) {
-   const { autoCompleteLabel, autoCompleteOptionsList, onChangeKey, optionLabelProperty, valueTestProperty, addedOptionLabel, selectedOption, handleAutocompleteChange } = autoCompleteProps;
+   const { autoCompleteLabel, autoCompleteOptionsList, onChangeKey, optionLabelProperty, valueTestProperty, addedOptionLabel, selectedOption, handleAutocompleteChange, onSearch, loading, error, remote } = autoCompleteProps;
 
    const listWithAddOptions = () => {
       const addOption = {
@@ -34,12 +34,16 @@ export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOp
    return (
       <>
          <Autocomplete
+            onInputChange={(_,value,reason)=>{if(reason==='input'||reason==='clear')onSearch?.(value);}}
+            filterOptions={remote?x=>x:undefined}
+            loading={loading}
+            noOptionsText={error || 'No matching records'}
             size='small'
             sx={{ width: 350 }}
             value={selectedOption}
             onChange={(event, value) => handleAutocompleteChange(onChangeKey, value)}
             getOptionLabel={option => (option ? option[optionLabelProperty] : '') || ''}
-            isOptionEqualToValue={(option, value) => (option && value ? option[valueTestProperty] === value[valueTestProperty] : false) || true}
+            isOptionEqualToValue={(option, value) => (option && value ? option[valueTestProperty] === value[valueTestProperty] : false)}
             options={listWithAddOptions() || []}
             renderOption={(props, option) => {
                if (option[optionLabelProperty] === addedOptionLabel) {
@@ -52,7 +56,7 @@ export default function AutoCompleteWithDialog({ dialogTitle, children, dialogOp
 
                return <li {...props}>{option[optionLabelProperty]}</li>;
             }}
-            renderInput={params => <TextField {...params} label={autoCompleteLabel} variant='standard' />}
+            renderInput={params => <TextField {...params} label={autoCompleteLabel} variant='standard' error={!!error} helperText={error}/>}
          />
 
          <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth='md'>

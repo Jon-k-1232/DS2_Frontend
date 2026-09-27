@@ -51,7 +51,7 @@ export default function EditWorkDescription({ customerData, setCustomerData, wor
     if (postedItem.status === 200) {
       setCustomerData({ ...customerData, workDescriptionsList: postedItem.workDescriptionsList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/jobs/workDescriptionsList');
+      navigate('/settings/work-descriptions');
       setSelectedItems(initialState);
     }
   };

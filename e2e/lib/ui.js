@@ -2,9 +2,12 @@ const { expect } = require('@playwright/test');
 const { rows, literal } = require('./db');
 const { rememberObject } = require('./storage');
 const { saveDownload } = require('./download');
-const routes = { customers: '/customers/customersList', jobs: '/jobs/jobsList', transactions: '/transactions/customerTransactions', payments: '/transactions/customerPayments', writeoffs: '/transactions/customerWriteOffs', retainers: '/transactions/customerRetainers', createInvoice: '/invoices/createInvoice', invoices: '/invoices/invoices' };
+const routes = { customers: '/clients', jobs: '/work/jobs', transactions: '/work/entries', payments: '/payments/receipts/legacy', writeoffs: '/receivables/write-offs', retainers: '/payments/retainers', createInvoice: '/billing/create', invoices: '/billing/invoices' };
 async function choose(page, scope, label, text) {
   const input = scope.getByRole('combobox', { name: label, exact: true });
+  // A populated review/edit form may already have this value. Open the
+  // choices explicitly so selecting it still exercises the actual control.
+  await input.click();
   await input.fill(text);
   // .first(): this is a shared sandbox DB — a concurrent process can insert a
   // same-named fixture (observed live: a second "Eliza Smith", user_id 90047,
@@ -37,16 +40,11 @@ async function closeForm(page) {
   try { await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click({ timeout: 3000 }); } catch {}
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
-// Jobs/Retainers use the grid's default MUI quick filter (an <input type="search">,
-// ARIA role "searchbox" — GridToolbarQuickFilter's aria-label="Search" also lands on
-// the outer MuiFormControl wrapper, not the input, so no role/name query finds it).
-// Its wrapper's emotion-generated class is a single hashed token like
-// "css-11rtsvk-MuiFormControl-root-MuiTextField-root-MuiDataGrid-toolbarQuickFilter"
-// — "MuiDataGrid-toolbarQuickFilter" is a suffix of that one long class, not its own
-// space-separated class, so a plain ".MuiDataGrid-toolbarQuickFilter" selector (an
-// exact-class match) never matches; an attribute-contains selector is required.
+// Wait for the lazy route's actual search input. Jobs/retainers use server
+// search; older small catalogs still use the MUI quick filter.
 async function fillQuickFilter(page, value) {
-  await page.locator('[class*="MuiDataGrid-toolbarQuickFilter"] input').fill(value);
+  const serverSearch=page.getByRole('textbox',{name:/^Search (jobs|retainers and deposits)$/i});
+  await serverSearch.or(page.locator('[class*="MuiDataGrid-toolbarQuickFilter"] input')).first().fill(value);
 }
 async function createCustomer(page, prefix) {
   const name = `${prefix} Mary Ann Van Buren`;
@@ -132,18 +130,19 @@ async function selectInvoiceRow(page, row) {
 // new, already-committed-and-verified-in-the-DB customer) — a fresh mount
 // (re-navigate) picks up a fresh fetch. Retry the whole
 // navigate+search+wait-for-row cycle rather than trusting one mount's fetch.
-async function findInvoiceRow(page, customer) {
-  const row = page.getByRole('row').filter({hasText:customer.name});
+async function findInvoiceRow(page, customer,entityId) {
+  const row = page.getByRole('grid').getByRole('row').filter({hasText:customer.name});
   await expect(async () => {
     await page.goto(routes.createInvoice);
+    if(entityId)await page.getByRole('combobox',{name:/Billing business/}).selectOption(String(entityId));
     await page.getByPlaceholder('Search by name or business').fill(customer.prefix);
     await expect(row).toBeVisible({timeout:5000});
   }).toPass({timeout:60000});
   return row;
 }
-async function finalize(page, customer, { duplicate=false, testInfo } = {}) {
-  const row = await findInvoiceRow(page, customer);
-  if (!duplicate) await expectGridValue(page,customer.name,'invoice_total','22.50');
+async function finalize(page, customer, { duplicate=false, testInfo,entityId,expectedTotal='22.50' } = {}) {
+  const row = await findInvoiceRow(page, customer,entityId);
+  if (!duplicate) await expectGridValue(page,customer.name,'invoice_total',expectedTotal);
   await selectInvoiceRow(page, row);
   await page.getByLabel('Create CSV Only').uncheck();
   await page.getByLabel('Lock And Finalize Selected Invoices').check();
@@ -181,21 +180,15 @@ module.exports = { expectGridValue, expectGridValueInRow, invoicePreview, delete
 async function expectGridValue(page, rowText, field, value) {
   const grid = page.getByRole('grid');
   const scroller = grid.locator('.MuiDataGrid-virtualScroller');
-  const row = typeof rowText === 'string' ? page.getByRole('row').filter({hasText:rowText}) : rowText;
+  const row = typeof rowText === 'string' ? page.getByRole('grid').getByRole('row').filter({hasText:rowText}) : rowText;
   const id = await row.getAttribute('data-id');
   const cell = grid.locator(`[role="row"][data-id="${id}"] [data-field="${field}"]`);
   await expectCellValue(page, scroller, cell, value);
 }
-// Same scroll-until-materialized wait as expectGridValue, but reads the cell
-// directly off an already-unique row locator instead of re-deriving it by
-// data-id. The Invoices grid is the one exception to the getRowId note above
-// — DS2_Frontend's InvoicesGrid.js never passes a getRowId to PaginationGrid,
-// so every one of its rows renders with the literal id "undefined-undefined"
-// (a product defect: see CustomerGrid.js's working getRowId for comparison),
-// which makes a data-id re-lookup ambiguous whenever more than one row is on
-// screen. Only use this for a row locator you've already made unique some
-// other way (e.g. filtering out child invoice snapshot rows structurally).
+// Wait for the requested row before measuring its virtualized columns. A
+// search may still be loading when its input fill completes.
 async function expectGridValueInRow(page, row, field, value) {
+  await expect(row).toBeVisible();
   const grid = page.getByRole('grid');
   const scroller = grid.locator('.MuiDataGrid-virtualScroller');
   const cell = row.locator(`[data-field="${field}"]`);
@@ -211,9 +204,9 @@ async function expectCellValue(page, scroller, cell, value) {
   await expect(cell).toContainText(value);
   await scroller.evaluate(el => { el.scrollLeft=0; });
 }
-async function invoicePreview(page, customer, testInfo) {
-  const row = await findInvoiceRow(page, customer);
-  await expectGridValue(page,customer.name,'invoice_total','22.50');
+async function invoicePreview(page, customer, testInfo, {entityId,expectedTotal='22.50'} = {}) {
+  const row = await findInvoiceRow(page, customer,entityId);
+  await expectGridValue(page,customer.name,'invoice_total',expectedTotal);
   await selectInvoiceRow(page, row);
   await expect(page.getByLabel('Create CSV Only')).toBeChecked();
   const downloadPromise = page.waitForEvent('download');
@@ -231,10 +224,10 @@ async function deleteCustomer(page, customer) {
   await page.goto(routes.customers);
   await page.getByPlaceholder('Search customers').fill(customer.prefix);
   await page.getByRole('row').filter({hasText:customer.name}).click();
-  await page.getByRole('tab',{name:'Edit Customer Profile'}).click();
+  await page.getByRole('tab',{name:'Edit client'}).click();
   await expect(page.getByLabel('First Name',{exact:true})).not.toHaveValue('');
   await submit(page,page,'/customer/deleteCustomer/','Delete Customer');
-  await expect(page).toHaveURL(/customersList$/);
+  await expect(page).toHaveURL(/clients$/);
   await page.getByPlaceholder('Search customers').fill(customer.prefix);
   await expect(page.getByRole('row').filter({hasText:customer.name})).toHaveCount(0);
 }

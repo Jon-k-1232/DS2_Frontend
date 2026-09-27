@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper } from '@mui/material';
+import { Button, IconButton, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper } from '@mui/material';
 import Draggable from 'react-draggable';
 import { Tooltip } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
@@ -21,7 +21,7 @@ export default function InformationDialog({ toolTipText, dialogTitle, dialogText
   return (
     <>
       <Tooltip title={toolTipText}>
-        <InfoIcon onClick={handleClickOpen} color='primary' fontSize='small' style={buttonLocation} />
+        <IconButton aria-label={toolTipText || dialogTitle || 'More information'} onClick={handleClickOpen} size='small' style={buttonLocation}><InfoIcon color='primary' fontSize='small'/></IconButton>
       </Tooltip>
 
       <Dialog open={open} onClose={handleClose} PaperComponent={PaperComponent} aria-labelledby='draggable-dialog-title'>

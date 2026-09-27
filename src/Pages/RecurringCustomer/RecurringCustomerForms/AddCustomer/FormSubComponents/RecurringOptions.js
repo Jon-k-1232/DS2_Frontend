@@ -1,10 +1,11 @@
+import CustomerPicker from '../../../../../Components/Lookups/CustomerPicker';
 import React from 'react';
 import { Stack, TextField, Autocomplete } from '@mui/material';
 import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
-const frequencies = ['Month', 'Quarter', 'Year'];
+const frequencies = ['Monthly', 'Quarterly', 'Semiannual', 'Annual'];
 const billingDays = ['1', '15'];
 
 export default function RecurringOptions({ customerData, selectedItems, setSelectedItems }) {
@@ -37,12 +38,7 @@ export default function RecurringOptions({ customerData, selectedItems, setSelec
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Stack direction='column' spacing={{ xs: 1, sm: 2 }}>
-        {renderAutocomplete(
-          selectedCustomer,
-          handleAutocompleteChange('selectedCustomer'),
-          activeCustomers.filter(customer => !customer.is_recurring),
-          'Select Customer'
-        )}
+        <CustomerPicker customerData={customerData} label='Select Customer' value={selectedCustomer} onChange={value=>handleAutocompleteChange('selectedCustomer')(null,value)}/>
         {renderAutocomplete(selectedBillingDay, handleAutocompleteChange('selectedBillingDay'), billingDays, 'Select Billing Day')}
         {renderAutocomplete(selectedFrequency, handleAutocompleteChange('selectedFrequency'), frequencies, 'Select Billing Frequency')}
 

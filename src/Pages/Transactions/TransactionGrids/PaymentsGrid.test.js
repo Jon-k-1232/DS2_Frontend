@@ -1,3 +1,4 @@
+import {MemoryRouter} from 'react-router-dom';
 import { useState } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import PaymentsGrid from './PaymentsGrid';
@@ -36,10 +37,10 @@ const response = (searchTerm, id) => ({
 function Harness() {
    const [data, setData] = useState({ paymentsList: response('', 99).paymentsList });
    return (
-      <context.Provider value={{ loggedInUser: { accountID: 9001, userID: 90013, token: 'session' } }}>
+      <MemoryRouter><context.Provider value={{ loggedInUser: { accountID: 9001, userID: 90013, token: 'session' } }}>
          <PaymentsGrid customerData={data} setCustomerData={setData} />
          <pre data-testid='context'>{JSON.stringify(data)}</pre>
-      </context.Provider>
+      </context.Provider></MemoryRouter>
    );
 }
 

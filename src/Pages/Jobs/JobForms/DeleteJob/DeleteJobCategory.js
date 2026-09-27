@@ -1,3 +1,5 @@
+import ActorName from '../../../../Components/Workspace/ActorName';
+import useJobDependencies from '../../../../Components/Lookups/useJobDependencies';
 import React, { useState, useContext, useEffect } from 'react';
 import {
   Box,
@@ -42,17 +44,16 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
   const [selectedItems, setSelectedItems] = useState(initialState);
   const [postStatus, setPostStatus] = useState(null);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const [mappedJobs, setMappedJobs] = useState({ columns: [], rows: [] });
+  const dependencies=useJobDependencies('categoryId',jobCategoryData?.customer_job_category_id);
+  const mappedJobs=dependencies.grid;
 
-  const { accountJobsList: { activeJobData = [] } = [] } = { ...customerData };
+
   const { account_id, created_at, created_by_user_id, customer_job_category, customer_job_category_id, is_job_category_active } =
     jobCategoryData || {};
   const { selectedNewJobCategory, customerJobCategoryID, createdAt, isJobCategoryActive, createdByUserID } = selectedItems;
 
   useEffect(() => {
     if (jobCategoryData && Object.keys(jobCategoryData).length) {
-      const matchedJobRows = activeJobData.grid.rows.filter(job => job.customer_job_category_id === customer_job_category_id);
-      setMappedJobs({ columns: activeJobData.grid.columns, rows: matchedJobRows });
 
       setSelectedItems({
         selectedNewJobCategory: customer_job_category,
@@ -78,7 +79,7 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
     if (postedItem.status === 200) {
       setCustomerData({ ...customerData, jobCategoriesList: postedItem.jobCategoriesList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/jobs/jobCategoriesList');
+      navigate('/settings/job-categories');
       setSelectedItems(initialState);
     }
   };
@@ -89,6 +90,9 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
 
   return (
     <>
+      {dependencies.error && <Alert severity='error'>{dependencies.error}</Alert>}
+      {dependencies.loading && <Typography role='status'>Loading linked jobs…</Typography>}
+      {dependencies.total>100 && <Typography>Showing the first 100 of {dependencies.total} linked jobs.</Typography>}
       <Box style={{ width: 'fit-content' }}>
         <TableContainer component={Paper}>
           <Table>
@@ -97,7 +101,7 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
               <JobTypeRow label='Job Category ID:' value={customerJobCategoryID} />
               <JobTypeRow label='Created At:' value={createdAt ? dayjs(createdAt).format('MMMM DD, YYYY') : null} />
               <JobTypeRow label='Is Job Category Active:' value={isJobCategoryActive !== null ? String(isJobCategoryActive) : null} />
-              <JobTypeRow label='Created By User ID:' value={createdByUserID} />
+              <JobTypeRow label='Created by:' value={<ActorName id={createdByUserID} name={jobCategoryData?.created_by_user_name || customerData?.teamMembersList?.activeUserData?.activeUsers?.find(u=>u.user_id===createdByUserID)?.display_name}/>} />
             </TableBody>
           </Table>
         </TableContainer>
@@ -123,7 +127,7 @@ export default function DeleteJobCategory({ customerData, setCustomerData, jobCa
                 tableData={mappedJobs}
                 passedHeight='350px'
                 enableSingleRowClick
-                routeToPass={'/jobs/jobsList/editJob'}
+                routeToPass={'/work/jobs/editJob'}
               />
             </Box>
           </Box>

@@ -1,3 +1,4 @@
+import AdminAdjustment from '../../../../Components/AdminAdjustment';
 import useFinancialSubmit, { validateFinancialForm } from './FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext } from 'react';
 import { Box, Button, Typography, Alert } from '@mui/material';
@@ -23,7 +24,7 @@ const initialState = {
    quantity: 1
 };
 
-export default function WriteOff({ customerData, setCustomerData }) {
+function WriteOffForm({ customerData, setCustomerData }) {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
@@ -88,11 +89,13 @@ export default function WriteOff({ customerData, setCustomerData }) {
 }
 
 const helpText = [
-   'Adjustments are not currently supported.',
-   'If you need to adjust a current transaction, please edit or delete the transaction directly from the transactions list.',
+   'Only admins may create, edit or remove write-offs and adjustments.',
+   'For a finalized invoice, use Credit memo or Void and rebill from invoice detail. Unissued work may be edited from the transactions list.',
    'You can either write off a portion or the entire amount of a job as long as the job has an outstanding amount for the current billing cycle.',
    'Definition of a Write Off: The inability to collect payment from a customer for a job that has been completed.',
    'When writing off a prior amount (an invoice) you need to include the invoice number in the reason field.',
    'An invoice write off will always show on the bill and be visible to the customer.',
    `'Reasons' will be visible to the customer on the bill.`
 ];
+
+export default function WriteOff(props){return <AdminAdjustment><WriteOffForm {...props}/></AdminAdjustment>;}

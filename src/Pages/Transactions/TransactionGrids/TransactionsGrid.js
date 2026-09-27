@@ -1,3 +1,6 @@
+import {useSearchParams} from 'react-router-dom';
+import GeneralDialog from '../../../Components/Dialogs/GeneralDialog';
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, TextField, InputAdornment } from '@mui/material';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
@@ -36,8 +39,11 @@ const TRANSACTION_COLUMNS = [
 ];
 
 export default function TransactionsGrid({ customerData, setCustomerData }) {
+   const [searchParams,setSearchParams]=useSearchParams();
+   const closeTime=()=>{const next=new URLSearchParams(searchParams);next.delete('entry');setSearchParams(next,{replace:true});};
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [gridData, setGridData] = useState({ rows: [], columns: [], totalCount: 0 });
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: DEFAULT_PAGE_SIZE });
    const [loading, setLoading] = useState(false);
@@ -189,21 +195,21 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
       window.addEventListener('transactions:updated', handler);
       return () => window.removeEventListener('transactions:updated', handler);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [paginationModel.page, paginationModel.pageSize, searchTerm, accountID, userID, token]);
+   }, [paginationModel.page, paginationModel.pageSize, searchTerm, accountID, userID, token,entityId]);
 
    const handleExportAllTransactions = useCallback(async () => {
       if (!accountID || !userID || !token) return;
       setExportingAll(true);
       try {
          const normalizedSearch = searchTerm.trim();
-         await exportAllTransactions(accountID, userID, token, normalizedSearch);
+         await exportAllTransactions(accountID, userID, token, normalizedSearch,entityId);
       } catch (error) {
          console.error('Error exporting all transactions:', error);
          window.alert('Unable to export all transactions. Please try again.');
       } finally {
          setExportingAll(false);
       }
-   }, [accountID, userID, token, searchTerm]);
+   }, [accountID, userID, token, searchTerm,entityId]);
 
    const renderExportComponent = useCallback(
       () => (
@@ -222,7 +228,7 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
       const request = ++requestRef.current;
       setLoading(true);
       try {
-         const response = await fetchTransactions(accountID, userID, token, page, pageSize, searchValue);
+         const response = await fetchTransactions(accountID, userID, token, page, pageSize, searchValue, entityId);
          if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
 
          if (response?.transactionsList?.activeTransactionsData) {
@@ -253,12 +259,13 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
       fetchPageData(page + 1, pageSize, searchTerm);
       previousSearchTermRef.current = searchTerm;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [paginationModel.page, paginationModel.pageSize, searchTerm]);
+   }, [paginationModel.page, paginationModel.pageSize, searchTerm, entityId]);
 
 
 
    return (
       <Stack spacing={3}>
+         {searchParams.get('entry')==='time' && <GeneralDialog dialogTitle='Add Time' openDialogWindow onClose={closeTime}><Time customerData={customerData} setCustomerData={setCustomerData}/></GeneralDialog>}
          <PaginationGrid
             title='Charges and Time'
             passedHeight={window.innerHeight - 140}
@@ -267,13 +274,13 @@ export default function TransactionsGrid({ customerData, setCustomerData }) {
             enableSingleRowClick
             rowSelectionOnly
             arrayOfButtons={gridButtons}
-            routeToPass={'/transactions/customerTransactions/deleteTimeOrCharge'}
+            routeToPass={'/work/entries/deleteTimeOrCharge'}
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             loading={loading}
             getRowId={getTransactionRowId}
             showQuickFilter={false}
-            renderToolbarContent={() => searchField}
+            renderToolbarContent={() => <>{searchField}<EntityPicker all value={entityId} onChange={v=>{requestRef.current++;setEntityId(v);setPaginationModel(p=>({...p,page:0}));}} /></>}
             renderExport={renderExportComponent}
          />
       </Stack>

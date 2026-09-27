@@ -1,0 +1,13 @@
+import React from 'react';
+import {render,screen,fireEvent,waitFor} from '@testing-library/react';
+import {context} from '../../../../App';
+import ReviewBillingDialog from './ReviewBillingDialog';
+import {applyHeldEntry,reprocessHeldEntryWithOverrides} from '../../../../Services/ApiCalls/BillingReviewCalls';
+jest.mock('../../../../App',()=>({context:require('react').createContext({})}));
+jest.mock('../../../../Services/ApiCalls/BillingReviewCalls',()=>({applyHeldEntry:jest.fn(),reprocessHeldEntryWithOverrides:jest.fn()}));
+jest.mock('../../TransactionForms/AddTransaction/Time',()=>({passedPostCall,secondaryButton})=><><button onClick={()=>passedPostCall({loggedForUserID:2,minutes:90,costChangeReason:'Correct original employee'},9001,90013)}>Apply correction</button><button onClick={()=>secondaryButton.onClick({selectedTeamMember:{user_id:2},minutes:90,costChangeReason:'Correct original employee'})}>Rerun correction</button></>);
+const entry={timesheet_entry_id:42,employee_name:'Original employee',duration:120,category:'Tax',date:'2026-09-26',hold_reason:'low_ai_confidence'};
+const mount=()=>render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013,token:'test'}}}><ReviewBillingDialog open entry={entry} onClose={jest.fn()} onApplied={jest.fn()} customerData={{}} setCustomerData={jest.fn()}/></context.Provider>);
+beforeEach(()=>jest.clearAllMocks());
+it('preserves the audit reason while translating manual apply fields',async()=>{applyHeldEntry.mockRejectedValueOnce(Error('Synthetic refusal'));mount();fireEvent.click(screen.getByText('Apply correction'));await waitFor(()=>expect(applyHeldEntry).toHaveBeenCalledWith(9001,90013,42,{logged_for_user_id:2,duration_minutes:90,costChangeReason:'Correct original employee'},'test'));});
+it('preserves the reason for AI rerun and keeps the review dialog on a hold',async()=>{reprocessHeldEntryWithOverrides.mockResolvedValueOnce({decision:'hold',reason:'low_ai_confidence'});mount();fireEvent.click(screen.getByText('Rerun correction'));await waitFor(()=>expect(reprocessHeldEntryWithOverrides).toHaveBeenCalledWith(9001,90013,42,{logged_for_user_id:2,duration_minutes:90,costChangeReason:'Correct original employee'},'test'));expect(await screen.findByText(/AI still rejected this row/)).toBeInTheDocument();expect(screen.getByRole('dialog')).toBeVisible();});

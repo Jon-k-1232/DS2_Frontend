@@ -40,7 +40,7 @@ test('payment, write-off, positive reversal and original-payment refusal refresh
   await page.getByRole('tab',{name:'Reverse Payment (NSF)',exact:true}).click();
   await page.getByLabel('Reason',{exact:true}).fill(`${prefix} NSF returned check`);
   await submit(page,page,'/payments/reversePayment/','Reverse Payment');
-  await expect(page).toHaveURL(/customerPayments$/);
+  await expect(page).toHaveURL(/receipts\/legacy$/);
   await page.getByPlaceholder('Search payments').fill(prefix);
   const reversal = rows(`SELECT payment_id,payment_amount FROM customer_payments WHERE account_id=9001 AND customer_id=${c.id} AND payment_amount>0`);
   expect(reversal).toHaveLength(1);
@@ -92,8 +92,36 @@ test('create a negative retainer credit and delete it through the UI', async ({p
   await row.click();
   await page.getByRole('button',{name:/Delete Retainer/i}).click();
   await submit(page,page.getByRole('dialog'),'/retainers/delete','Delete');
-  await expect(page).toHaveURL(/customerRetainers$/);
+  await expect(page).toHaveURL(/retainers$/);
   await fillQuickFilter(page, prefix);
   await expect(page.getByRole('row').filter({hasText:prefix})).toHaveCount(0);
   await require('../lib/ui').deleteCustomer(page,c);
+});
+
+test('current-cycle write-off jobs search on demand, recover from a failed lookup and preserve the selected amount',async({page,prefix})=>{
+  const c=await billedCustomer(page,prefix);
+  const [job]=rows(`SELECT customer_job_id FROM customer_transactions WHERE account_id=9001 AND customer_id=${c.id} ORDER BY transaction_id DESC LIMIT 1`);
+  const profiles=[];let fail=true;
+  page.on('request',request=>{if(request.url().includes('/customer/activeCustomers/customerByID/'))profiles.push(new URL(request.url()));});
+  await page.route('**/jobs/getActiveCustomerJobs/**',async route=>{
+    if(fail && new URL(route.request().url()).searchParams.get('currentCycle')==='true')return route.fulfill({status:500,json:{status:500,message:'Temporary current-cycle lookup failure'}});
+    return route.continue();
+  });
+  const d=await openForm(page,routes.writeoffs,'New Write Off');
+  const invoiceLoad=page.waitForResponse(r=>r.url().includes(`/customer/activeCustomers/customerByID/9001/90013/${c.id}`)&&new URL(r.url()).searchParams.get('section')==='invoices');
+  await choose(page,d,'Select Customer',c.name);
+  expect(Object.keys(await (await invoiceLoad).json()).sort()).toEqual(['customerInvoiceData','status']);
+  await expect(d.getByText('Temporary current-cycle lookup failure')).toBeVisible();
+  fail=false;
+  const lookup=page.waitForResponse(r=>r.url().includes('/jobs/getActiveCustomerJobs/')&&new URL(r.url()).searchParams.get('search')===String(job.customer_job_id));
+  const picker=d.getByRole('combobox',{name:'Select Current Cycle Job'});await picker.fill(String(job.customer_job_id));
+  const response=await lookup;expect(new URL(response.url()).searchParams.get('entityId')).toBeTruthy();
+  const choices=(await response.json()).activeCustomerJobData.activeCustomerJobs;expect(choices.length).toBeLessThanOrEqual(100);
+  expect(Number(choices.find(j=>j.customer_job_id===job.customer_job_id).total_transaction)).toBe(22.5);
+  await page.getByRole('option').filter({hasText:`(#${job.customer_job_id})`}).click();await expect(picker).toHaveValue(/Current Cycle:\$22.50/);
+  await choose(page,d,'Select Team Member','Admin Person');await d.getByLabel('Reason For Write Off').fill(`${prefix} current cycle courtesy`);await d.getByLabel('Write Off Amount').fill('2');
+  await submit(page,d,'/writeOffs/createWriteOffs/');
+  const [saved]=rows(`SELECT customer_job_id,customer_invoice_id,writeoff_amount FROM customer_writeoffs WHERE account_id=9001 AND customer_id=${c.id}`);
+  expect(saved.customer_job_id).toBe(job.customer_job_id);expect(saved.customer_invoice_id).toBeNull();expect(Number(saved.writeoff_amount)).toBe(-2);
+  expect(profiles.length).toBeGreaterThan(0);expect(profiles.every(url=>url.searchParams.get('section')==='invoices')).toBeTruthy();
 });

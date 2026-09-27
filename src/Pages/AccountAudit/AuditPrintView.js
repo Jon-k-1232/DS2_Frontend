@@ -74,26 +74,29 @@ export default function AuditPrintView({ audit }) {
          )}
 
          <SectionHeader>Lifetime totals</SectionHeader>
-         <Row label='Total invoiced (parent invoices)' value={formatCurrency(totals.total_invoiced)} />
-         <Row label='Total paid (lifetime |payments|)' value={formatCurrency(totals.total_paid)} />
+         <Row label='Original statement totals (includes balance forward)' value={formatCurrency(totals.total_invoiced)} />
+         <Row label='Total payments recorded (lifetime)' value={formatCurrency(totals.total_paid)} />
          <Row label='Total transactions' value={formatCurrency(totals.total_transactions)} />
          <Row label='Total write-offs (lifetime)' value={formatCurrency(totals.total_writeoffs)} />
 
          <SectionHeader>Audit balance breakdown</SectionHeader>
-         <Row label='Outstanding on invoices (latest snapshot per chain)' value={formatCurrency(totals.outstanding_invoices)} />
-         <Row label='Unbilled billable transactions' value={`+ ${formatCurrency(totals.unbilled_billable)}`} />
+         <Row label='Outstanding on invoices (current balance)' value={formatCurrency(totals.outstanding_invoices)} />
+         <Row label='Unbilled work' value={`+ ${formatCurrency(totals.unbilled_billable)}`} />
          <Row label='Unbilled payments' value={`− ${formatCurrency(totals.unbilled_payments)}`} />
          <Divider sx={{ my: 1, borderColor: '#000' }} />
          <Row label='Audit balance (matches app)' value={formatCurrency(totals.audit_balance)} strong />
+         {totals.held_receipt_credit != null && <><Row label='Held receipt credit (separate funds)' value={formatCurrency(totals.held_receipt_credit)}/><Row label='Proposed automatic credit use' value={formatCurrency(totals.proposed_credit_use)}/><Row label='Proposed next statement' value={formatCurrency(totals.proposed_statement_total)} strong/></>}
          <Row label='Unbilled write-offs (pending adjustment)' value={`− ${formatCurrency(totals.unbilled_writeoffs)}`} />
          <Divider sx={{ my: 1, borderColor: '#000' }} />
-         <Row label='Strict ledger balance (after pending writeoffs applied)' value={formatCurrency(totals.strict_ledger_balance)} strong />
+         <Row label='Next statement balance (after pending write-offs)' value={formatCurrency(totals.strict_ledger_balance)} strong />
 
          {summary.retainers && summary.retainers.total_chains > 0 && (
             <>
                <SectionHeader>Retainers & deposits</SectionHeader>
                <Row label='Total prepaid (lifetime)' value={formatCurrency(totals.retainer_total_prepaid_lifetime)} />
                <Row label='Drawn down to date' value={formatCurrency(totals.retainer_drawn)} />
+               {!!totals.retainer_transferred_in && <Row label='Credit transferred in (noncash)' value={formatCurrency(totals.retainer_transferred_in)} />}
+               {!!totals.retainer_transferred_out && <Row label='Credit transferred out (noncash)' value={formatCurrency(totals.retainer_transferred_out)} />}
                <Row label='Currently available (active retainers)' value={formatCurrency(totals.retainer_available)} strong />
                <Row label='Audit balance' value={formatCurrency(totals.audit_balance)} />
                <Row label='Net position after applying available retainer' value={formatCurrency(totals.net_position_after_retainer)} strong />

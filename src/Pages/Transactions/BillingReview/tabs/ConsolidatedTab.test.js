@@ -1,14 +1,46 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import axios from 'axios';
+import useJobChoices from '../../../../Components/Lookups/useJobChoices';
 import { context } from '../../../../App';
 import ConsolidatedTab from './ConsolidatedTab';
-import { fetchConsolidatedTransactions, fetchDistinctEntities, fetchEarliestUnbilledMonth } from '../../../../Services/ApiCalls/BillingReviewCalls';
+import { fetchConsolidatedTransactions, fetchDistinctEntities, fetchEarliestUnbilledMonth, updateFinalizedTransaction } from '../../../../Services/ApiCalls/BillingReviewCalls';
 jest.mock('../../../../App',()=>({context:require('react').createContext({})}));
 jest.mock('../../../../Services/ApiCalls/BillingReviewCalls',()=>({fetchConsolidatedTransactions:jest.fn(),fetchDistinctEntities:jest.fn(),fetchEarliestUnbilledMonth:jest.fn(),updateFinalizedTransaction:jest.fn()}));
 jest.mock('../../../Jobs/JobForms/AddJob/NewJob',()=>()=>null);
+jest.mock('axios');
+jest.mock('../../../../Components/Lookups/useJobChoices',()=>jest.fn());
+beforeEach(()=>{jest.clearAllMocks();useJobChoices.mockReturnValue({rows:[],loading:false,error:''});});
 it('identifies a sent transaction and disables inline editing',async()=>{
  fetchDistinctEntities.mockResolvedValue([]);fetchEarliestUnbilledMonth.mockResolvedValue('2026-09-01');
  fetchConsolidatedTransactions.mockResolvedValue({transactions:[{transaction_id:10,customer_id:1,customer_name:'Synthetic customer',transaction_date:'2026-09-25',quantity:1,unit_cost:100,total_transaction:100,sent_locked:true,locked_invoice_number:'INV-10'}],totalCount:1,totalSum:100});
  render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013,token:'local'}}}><ConsolidatedTab period='month' customerData={{}} setCustomerData={()=>{}} /></context.Provider>);
  expect(await screen.findByText('Sent — locked · INV-10')).toBeInTheDocument();
  expect(screen.getByRole('button',{name:'Edit'})).toBeDisabled();
+});
+
+it('remote inline client search clears the old job, keeps the business scope and refuses saving until a new job is chosen',async()=>{
+ const clients=[{customer_id:1,display_name:'Original client'},{customer_id:2,display_name:'Replacement client'}];
+ axios.get.mockResolvedValue({data:{customers:clients}});
+ useJobChoices.mockImplementation(customerId=>({rows:customerId?[{customer_job_id:customerId===1?77:88,job_description:customerId===1?'Original job':'Replacement job',customer_id:customerId}]:[],loading:false,error:''}));
+ fetchDistinctEntities.mockResolvedValue([]);
+ fetchConsolidatedTransactions.mockResolvedValue({transactions:[{transaction_id:10,customer_id:1,customer_display_name:'Original client',customer_job_id:77,billing_entity_id:9,transaction_date:'2026-09-25',quantity:1,unit_cost:100,total_transaction:100}],totalCount:1,totalSum:100});
+ updateFinalizedTransaction.mockResolvedValue({sideEffects:[]});
+ const data={customersList:{activeCustomerData:{activeCustomers:[],remote:true,threshold:1000,totalCount:1001}}};
+ render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013,token:'local'}}}><ConsolidatedTab period='month' customerData={data} setCustomerData={()=>{}}/></context.Provider>);
+ fireEvent.click(await screen.findByRole('button',{name:'Edit',exact:true}));
+ const client=screen.getByRole('combobox',{name:'Client for transaction',exact:true});
+ await waitFor(()=>expect(client).toHaveValue('Original client'));
+ fireEvent.change(screen.getByRole('combobox',{name:'Select Job',exact:true}),{target:{value:'Old search'}});
+ fireEvent.change(client,{target:{value:'Replacement'}});
+ fireEvent.click(await screen.findByRole('option',{name:'Replacement client',exact:true}));
+ expect(useJobChoices).toHaveBeenLastCalledWith(2,9,'',0,null);
+ expect(screen.getByRole('combobox',{name:'Select Job',exact:true})).toHaveValue('');
+ fireEvent.click(screen.getByRole('button',{name:'Save',exact:true}));
+ expect(await screen.findByText('Select a job for this transaction before saving.')).toBeVisible();
+ expect(updateFinalizedTransaction).not.toHaveBeenCalled();
+ fireEvent.mouseDown(screen.getByRole('combobox',{name:'Select Job',exact:true}));
+ fireEvent.click(await screen.findByRole('option',{name:'Replacement job',exact:true}));
+ fireEvent.click(screen.getByRole('button',{name:'Save',exact:true}));
+ await waitFor(()=>expect(updateFinalizedTransaction).toHaveBeenCalledWith(9001,90013,10,{updates:expect.objectContaining({customer_id:2,customer_job_id:88,total_transaction:100}),confirmCustomerChange:true},'local'));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Edit',exact:true})).toBeEnabled());
 });

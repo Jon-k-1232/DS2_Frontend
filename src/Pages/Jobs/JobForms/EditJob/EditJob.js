@@ -24,7 +24,7 @@ export default function EditJob({ customerData, setCustomerData, jobData }) {
    const [postStatus, setPostStatus] = useState(null);
    const [selectedItems, setSelectedItems] = useState(initialState);
 
-   const { customersList: { activeCustomerData: { activeCustomers } = [] } = [], accountJobsList: { activeJobData: { activeJobs } = [] } = [] } = { ...customerData };
+   const { customersList: { activeCustomerData: { activeCustomers } = [] } = [] } = { ...customerData };
 
    const {
       account_id,
@@ -55,7 +55,7 @@ export default function EditJob({ customerData, setCustomerData, jobData }) {
             parentJobID: parent_job_id,
             customerJobID: customer_job_id,
             selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
-            selectedJobDescription: activeJobs.find(jobType => jobType.job_type_id === job_type_id),
+            selectedJobDescription: (customerData?.jobTypesList?.activeJobTypesData?.jobTypesData || []).find(jobType => jobType.job_type_id === job_type_id),
             createdByUserID: created_by_user_id,
             isQuote: is_quote,
             quoteAmount: job_quote_amount,
@@ -75,7 +75,7 @@ export default function EditJob({ customerData, setCustomerData, jobData }) {
       if (postedItem.status === 200) {
          setCustomerData({ ...customerData, accountJobsList: postedItem.accountJobsList });
          setTimeout(() => setPostStatus(null), 2000);
-         navigate('/jobs/jobsList');
+         navigate('/work/jobs');
          setSelectedItems(initialState);
       }
    };

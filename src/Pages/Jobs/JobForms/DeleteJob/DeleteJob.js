@@ -1,3 +1,5 @@
+import ActorName from '../../../../Components/Workspace/ActorName';
+import {gridFor} from '../../../../Services/listViews';
 import React, { useState, useContext, useEffect } from 'react';
 import {
   Box,
@@ -73,10 +75,10 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
       const foundCustomer = activeCustomers.find(customer => customer.customer_id === customer_id);
       const foundJobType = jobTypesData.find(type => type.job_type_id === job_type_id);
 
-      const newWriteOffRows = activeWriteOffsData.grid.rows.filter(writeOff => writeOff.customer_job_id === customer_job_id);
-      const newTransactionRows = activeTransactionsData.grid.rows.filter(transaction => transaction.customer_job_id === customer_job_id);
-      setMappedWriteOffs({ columns: activeWriteOffsData.grid.columns, rows: newWriteOffRows });
-      setMappedTransactions({ columns: activeTransactionsData.grid.columns, rows: newTransactionRows });
+      const newWriteOffRows = jobData.dependencies?.writeoffs || (activeWriteOffsData.grid?.rows || []).filter(writeOff => writeOff.customer_job_id === customer_job_id);
+      const newTransactionRows = jobData.dependencies?.transactions || (activeTransactionsData.grid?.rows || []).filter(transaction => transaction.customer_job_id === customer_job_id);
+      setMappedWriteOffs(gridFor(newWriteOffRows));
+      setMappedTransactions(gridFor(newTransactionRows));
 
       setSelectedJob({
         accountID: account_id,
@@ -87,12 +89,15 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
         isJobComplete: is_job_complete,
         isQuote: is_quote,
         jobQuoteAmount: job_quote_amount,
-        jobTypeID: foundJobType ? foundJobType.job_description : null,
+        jobTypeID: jobData.job_description || (foundJobType ? foundJobType.job_description : null),
         notes
       });
     }
     // eslint-disable-next-line
   }, [jobData]);
+
+  const linkedPaymentCount = Number(jobData?.dependencies?.paymentsCount || 0);
+  const hasLinks = mappedWriteOffs.rows.length > 0 || mappedTransactions.rows.length > 0 || linkedPaymentCount > 0;
 
   const handleSubmit = () => {
     setIsConfirmationOpen(true);
@@ -106,7 +111,7 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
     if (postedJob.status === 200) {
       setCustomerData({ ...customerData, accountJobsList: postedJob.accountJobsList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/jobs/jobsList');
+      navigate('/work/jobs');
       setSelectedJob(initialState);
     }
   };
@@ -122,23 +127,23 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
           <Table>
             <TableBody>
               <TableRow>
-                <TableCell>Created At:</TableCell>
+                <TableCell>Created on:</TableCell>
                 <TableCell>{selectedJob.createdAt ? dayjs(selectedJob.createdAt).format('MMMM DD, YYYY') : 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Created By:</TableCell>
-                <TableCell>{selectedJob.createdByUserID || 'N/A'}</TableCell>
+                <TableCell>Created by:</TableCell>
+                <TableCell><ActorName id={created_by_user_id} name={jobData?.created_by_user_name || selectedJob.createdByUserID}/></TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Is Job Complete:</TableCell>
+                <TableCell>Completed:</TableCell>
                 <TableCell>{selectedJob.isJobComplete !== null ? String(selectedJob.isJobComplete) : 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Job Quote Amount:</TableCell>
+                <TableCell>Quoted amount:</TableCell>
                 <TableCell>{selectedJob.jobQuoteAmount || 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Job Type ID:</TableCell>
+                <TableCell>Service:</TableCell>
                 <TableCell>{selectedJob.jobTypeID || 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
@@ -150,19 +155,20 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
         </TableContainer>
 
         <Box style={{ margin: '10px', textAlign: 'center' }}>
-          <Button disabled={mappedWriteOffs.rows.length > 0 || mappedTransactions.rows.length > 0} onClick={handleSubmit}>
+          <Button disabled={hasLinks} onClick={handleSubmit}>
             Delete Job
           </Button>
           {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
         </Box>
 
-        {mappedWriteOffs.rows.length > 0 ||
-          (mappedTransactions.rows.length > 0 && (
+        {hasLinks && (
             <Box style={{ width: '100vh' }}>
               <Typography variant='h6' style={{ color: 'red' }}>
-                Before deletion, please re-parent the following items:
+                Before deleting this job, move the linked records to the correct job:
               </Typography>
 
+              {linkedPaymentCount > 0 && <Alert severity='info'>{linkedPaymentCount} payment(s) are linked to this job family. Review those payments before deleting the job.</Alert>}
+              <Typography variant='body2'>Showing up to 100 linked records of each kind across all job versions.</Typography>
               <Divider />
 
               {mappedWriteOffs.rows.length > 0 && (
@@ -172,7 +178,7 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
                     tableData={mappedWriteOffs}
                     passedHeight='350px'
                     enableSingleRowClick
-                    routeToPass={'/transactions/customerWriteOffs/editWriteOff'}
+                    routeToPass={'/receivables/write-offs/editWriteOff'}
                   />
                 </Box>
               )}
@@ -183,12 +189,12 @@ export default function DeleteJob({ customerData, setCustomerData, jobData }) {
                     tableData={mappedTransactions}
                     passedHeight='350px'
                     enableSingleRowClick
-                    routeToPass={'/transactions/customerTransactions/editTransaction'}
+                    routeToPass={'/work/entries/editTransaction'}
                   />
                 )}
               </Box>
             </Box>
-          ))}
+          )}
 
         <Dialog open={isConfirmationOpen} onClose={handleCancel}>
           <DialogTitle>Confirmation</DialogTitle>

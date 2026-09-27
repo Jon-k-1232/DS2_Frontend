@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
-import RecurringCustomers from '../../../Pages/RecurringCustomer/RecurringCustomerGrids/RecurringCustomerGrid';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Customers from '../../../Pages/Customer/CustomerGrids/CustomerGrid';
 import CustomerProfileSubRoutes from './CustomerProfileSubRoutes';
 import Page from '../../../Components/Page';
@@ -22,7 +21,7 @@ export default function CustomerRoutes({ setPageTitle, customerData, setCustomer
           />
           <Route
             path='/recurringCustomers'
-            element={<RecurringCustomers customerData={customerData} setCustomerData={data => setCustomerData(data)} />}
+            element={<Navigate replace to='/billing/recurring' />}
           />
           <Route
             path='/customersList/customerProfile/:customerId/*'

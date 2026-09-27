@@ -11,7 +11,9 @@ const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).diges
 async function openInvoice(page,c,invoice) {
   await page.goto(routes.invoices); await page.getByPlaceholder('Search invoices').fill(invoice.invoice_number);
   await page.getByRole('row').filter({hasText:invoice.invoice_number}).first().click();
-  await expect(page.getByText(/Sent — locked ·/)).toBeVisible();
+  // Lazy navigation can retain several locked grid rows until detail is ready.
+  // Wait for the selected invoice's actual lock alert, not an outgoing row.
+  await expect(page.getByRole('alert').filter({hasText:`Sent — locked · ${invoice.invoice_number}.`})).toBeVisible();
 }
 async function issue(page,c,{sameDay=false,credit=false,double=false}={}) {
   await page.goto(routes.createInvoice); await page.getByPlaceholder('Search by name or business').fill(c.prefix);
@@ -93,7 +95,7 @@ test('optional credit excludes bulk selection and explicitly issues -$27.50 with
 
 test('duplicate flag rejects missing IDs, supports dismissal and removes only an unbilled duplicate',async({page,prefix})=>{
   const c=await billedCustomer(page,prefix);const [work]=saved('time',c);const before=financial(c);
-  await page.goto('/transactions/possibleDuplicates');
+  await page.goto('/work/duplicates');
   const reason=page.getByRole('textbox',{name:/^Reason/});
   await reason.fill('Manual review');await page.getByLabel('Record ID',{exact:true}).fill('2147483000');
   await page.getByRole('button',{name:'Flag possible duplicate',exact:true}).click();await expect(page.getByRole('alert')).toContainText(/not found|not.*exist|missing|unavailable/i);expect(financial(c)).toEqual(before);
@@ -108,7 +110,7 @@ test('duplicate flag rejects missing IDs, supports dismissal and removes only an
   // The unchanged dismissed pair stays resolved. A separate unbilled charge
   // gives the permitted removal case without weakening that conflict rule.
   await addTransaction(page,c,'Charge');const candidate=saved('charge',c).find(r=>r.transaction_type==='Charge');
-  await page.goto('/transactions/possibleDuplicates');await reason.fill('Confirmed extra charge');await page.getByLabel('Record ID',{exact:true}).fill(String(candidate.transaction_id));await page.getByRole('button',{name:'Flag possible duplicate',exact:true}).click();
+  await page.goto('/work/duplicates');await reason.fill('Confirmed extra charge');await page.getByLabel('Record ID',{exact:true}).fill(String(candidate.transaction_id));await page.getByRole('button',{name:'Flag possible duplicate',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText(/flag/i);
   [flag]=rows(`SELECT duplicate_id FROM duplicate_flags WHERE account_id=9001 AND customer_id=${c.id} ORDER BY duplicate_id DESC`);
   await page.getByRole('button',{name:`Review #${flag.duplicate_id}`,exact:true}).click();await reason.fill('Remove confirmed duplicate');

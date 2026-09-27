@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import EntityPicker from '../../../../Components/BillingEntities/EntityPicker';
+import React, { useState, useRef } from 'react';
 import { Button, Alert, Box } from '@mui/material';
 import { formObjectForJobPost } from '../../../../Services/SharedPostObjects/SharedPostObjects';
 import { postNewCustomerJob } from '../../../../Services/ApiCalls/PostCalls';
@@ -19,36 +20,28 @@ export default function NewJob({ customerData, setCustomerData, onSuccess, defau
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = useContext(context).loggedInUser;
 
+   const flight=useRef(false);
+   const [busy,setBusy]=useState(false);
    const [postStatus, setPostStatus] = useState(null);
    // Pre-fill the customer when the parent form already knows who the job is for —
    // saves the reviewer from re-picking the customer they just selected outside.
    const [selectedItems, setSelectedItems] = useState({ ...initialState, selectedCustomer: defaultCustomer || null });
 
    const handleSubmit = async () => {
-      // Snapshot the existing parent-job IDs for this customer BEFORE posting,
-      // so we can identify the newly-created one by diff (more reliable than
-      // sorting by created_at — child tracking rows can clutter the list).
-      const customerID = selectedItems.selectedCustomer?.customer_id;
-      const beforeIds = new Set(
-         ((customerData?.accountJobsList?.activeJobData?.activeJobs || [])
-            .filter(j => Number(j.customer_id) === Number(customerID) && !j.parent_job_id)
-            .map(j => j.customer_job_id))
-      );
-
+    if(flight.current)return;
+    if (!selectedItems.entityId) { setPostStatus({status:400,message:'Choose a billing business.'}); return; }
+      flight.current=true;setBusy(true);
+      try {
       const dataToPost = formObjectForJobPost(selectedItems, loggedInUser);
       const postedItem = await postNewCustomerJob(dataToPost, accountID, userID);
 
       setPostStatus(postedItem);
       if (postedItem.status === 200) {
-         const afterJobs = postedItem?.accountJobsList?.activeJobData?.activeJobs || [];
-         const newJob = customerID
-            ? afterJobs
-                 .filter(j => Number(j.customer_id) === Number(customerID) && !j.parent_job_id)
-                 .find(j => !beforeIds.has(j.customer_job_id))
-            : null;
+         const newJob = postedItem.changed?.jobs?.[0] || null;
          resetState(postedItem);
          if (typeof onSuccess === 'function') onSuccess(newJob);
       }
+      }catch(e){setPostStatus({status:500,message:e.message||'Unable to save job. Check the list before retrying.'});}finally{flight.current=false;setBusy(false);}
    };
 
    const resetState = postedItem => {
@@ -59,13 +52,14 @@ export default function NewJob({ customerData, setCustomerData, onSuccess, defau
 
    return (
       <>
+      <EntityPicker value={selectedItems.entityId} customerId={selectedItems.selectedCustomer?.customer_id} onChange={entityId=>setSelectedItems(prev=>({...prev,entityId}))} />
          <Box>
             <Box>
                <NewJobSelections customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} pageName='newJob' />
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-               <Button onClick={handleSubmit}>Submit</Button>
+               <Button disabled={busy} onClick={handleSubmit}>Submit</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
             </Box>
          </Box>

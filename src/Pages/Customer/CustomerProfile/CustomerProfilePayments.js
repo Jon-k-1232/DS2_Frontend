@@ -1,8 +1,9 @@
-import { Stack } from '@mui/material';
+import ReceiptsPage from '../../Payments/ReceiptsPage';
+import { Stack, Typography } from '@mui/material';
 import DataGridTable from '../../../Components/DataGrids/DataGrid';
 import { filterGridByColumnName } from '../../../Services/SharedFunctions';
 
-export default function CustomerProfilePayments({ profileData }) {
+export default function CustomerProfilePayments({ profileData, entityId }) {
    const customerPayments = profileData?.customerPaymentData?.grid ?? {};
 
    const arrayOfColumnNames = [
@@ -26,6 +27,8 @@ export default function CustomerProfilePayments({ profileData }) {
    return (
       <>
          <Stack spacing={3}>
+            <ReceiptsPage key={`${profileData?.customerData?.customerData?.customer_id}:${entityId || 'all'}`} customerId={profileData?.customerData?.customerData?.customer_id} billingEntityId={entityId}/>
+            <Typography variant='h6'>Payment applications and legacy entries</Typography>
             <DataGridTable tableData={filteredGrid} />
          </Stack>
       </>

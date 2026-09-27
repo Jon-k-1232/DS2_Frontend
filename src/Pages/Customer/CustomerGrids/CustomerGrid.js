@@ -123,22 +123,12 @@ export default function Customers({ customerData, setCustomerData }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [accountID, userID, token]);
 
-   // After first mount, sync only the grid rows when the cached
-   // customersList changes (e.g. an add/edit elsewhere updated it).
-   // Do NOT touch searchInput/searchTerm/pagination — those are
-   // user-driven now and must not be clobbered.
-   useEffect(() => {
-      if (!initializedRef.current) return;
-      const activeCustomerData = customerData?.customersList?.activeCustomerData;
-      if (!activeCustomerData?.grid) return;
-      const filteredGrid = filterGridByColumnName(activeCustomerData.grid, arrayOfColumnNames);
-      const totalCount = activeCustomerData.pagination?.totalItems ?? filteredGrid.rows.length ?? 0;
-      setGridData(prev => {
-         if (prev.totalCount === totalCount && prev.rows === filteredGrid.rows) return prev;
-         return { rows: filteredGrid.rows, columns: filteredGrid.columns, totalCount };
-      });
+   // Reference-directory patches invalidate this query; a directory is never
+   // a grid page, and a save cannot replace a filtered/paged table with it.
+   useEffect(()=>{
+      if(initializedRef.current && customerData?.customersList?.activeCustomerData?.revision)fetchPageData();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [customerData?.customersList]);
+   },[customerData?.customersList?.activeCustomerData?.revision]);
 
    const fetchPageData = async (page = paginationModel.page + 1, pageSize = paginationModel.pageSize, searchValue = searchTerm) => {
       if (!accountID || !userID || !token) return;
@@ -178,8 +168,12 @@ export default function Customers({ customerData, setCustomerData }) {
 
    useEffect(() => {
       if (!initializedRef.current) return;
+      // A delayed grid response must not steal typing from an open form.
+      if (document.querySelector('[role="dialog"]')) return;
       const input = searchInputRef.current;
-      if (input && document.activeElement !== input) {
+      const focused = document.activeElement;
+      const canRestore = !focused || focused === document.body || focused.id === 'main-content';
+      if (input && canRestore && !document.querySelector('[role="dialog"]')) {
          input.focus({ preventScroll: true });
          const caret = input.value.length;
          input.setSelectionRange(caret, caret);
@@ -196,7 +190,7 @@ export default function Customers({ customerData, setCustomerData }) {
                arrayOfButtons={gridButtons}
                enableSingleRowClick
                rowSelectionOnly
-               routeToPass={row => `/customers/customersList/customerProfile/${row.customer_id}/customerInvoices`}
+               routeToPass={row => `/clients/${row.customer_id}/statements`}
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}
                loading={loading}

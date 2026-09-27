@@ -12,13 +12,13 @@ const formatDate = value => {
 };
 
 export const getNewPaymentColumns = ({ onDelete }) => [
-   { field: 'customer_name', headerName: 'OCR Name', flex: 1.2, minWidth: 150 },
-   { field: 'matched_customer_name', headerName: 'Matched Customer', flex: 1.5, minWidth: 170 },
+   { field: 'customer_name', headerName: 'Name on payment', flex: 1.2, minWidth: 150 },
+   { field: 'matched_customer_name', headerName: 'Matched client', flex: 1.5, minWidth: 170 },
    { field: 'payment_amount', headerName: 'Amount', width: 110, valueFormatter: ({ value }) => formatCurrency(value) },
    { field: 'payment_date', headerName: 'Date', width: 105, valueFormatter: ({ value }) => formatDate(value) },
    { field: 'form_of_payment', headerName: 'Type', width: 90 },
-   { field: 'payment_reference_number', headerName: 'Ref #', width: 110 },
-   { field: 'source_file', headerName: 'Source File', flex: 1, minWidth: 140 },
+   { field: 'payment_reference_number', headerName: 'Reference', width: 110 },
+   { field: 'source_file', headerName: 'Source file', flex: 1, minWidth: 140 },
    {
       field: 'actions',
       headerName: '',
@@ -41,12 +41,12 @@ export const getNewPaymentColumns = ({ onDelete }) => [
 ];
 
 export const getProcessedPaymentColumns = ({ onViewFile }) => [
-   { field: 'customer_name', headerName: 'OCR Name', flex: 1, minWidth: 140 },
-   { field: 'matched_customer_name', headerName: 'Matched Customer', flex: 1.3, minWidth: 160 },
+   { field: 'customer_name', headerName: 'Name on payment', flex: 1, minWidth: 140 },
+   { field: 'matched_customer_name', headerName: 'Matched client', flex: 1.3, minWidth: 160 },
    { field: 'payment_amount', headerName: 'Amount', width: 110, valueFormatter: ({ value }) => formatCurrency(value) },
    { field: 'payment_date', headerName: 'Date', width: 105, valueFormatter: ({ value }) => formatDate(value) },
    { field: 'form_of_payment', headerName: 'Type', width: 90 },
-   { field: 'payment_reference_number', headerName: 'Ref #', width: 110 },
+   { field: 'payment_reference_number', headerName: 'Reference', width: 110 },
    { field: 'date_processed', headerName: 'Processed', width: 130, valueFormatter: ({ value }) => value ? dayjs(value).format('MM/DD/YY h:mm A') : '' },
    {
       field: 'view_file',
@@ -63,12 +63,12 @@ export const getProcessedPaymentColumns = ({ onViewFile }) => [
 ];
 
 export const getAllPaymentColumns = ({ onViewFile }) => [
-   { field: 'customer_name', headerName: 'OCR Name', flex: 1, minWidth: 140 },
-   { field: 'matched_customer_name', headerName: 'Matched Customer', flex: 1.3, minWidth: 160 },
+   { field: 'customer_name', headerName: 'Name on payment', flex: 1, minWidth: 140 },
+   { field: 'matched_customer_name', headerName: 'Matched client', flex: 1.3, minWidth: 160 },
    { field: 'payment_amount', headerName: 'Amount', width: 110, valueFormatter: ({ value }) => formatCurrency(value) },
    { field: 'payment_date', headerName: 'Date', width: 105, valueFormatter: ({ value }) => formatDate(value) },
    { field: 'form_of_payment', headerName: 'Type', width: 90 },
-   { field: 'payment_reference_number', headerName: 'Ref #', width: 110 },
+   { field: 'payment_reference_number', headerName: 'Reference', width: 110 },
    {
       field: 'status',
       headerName: 'Status',

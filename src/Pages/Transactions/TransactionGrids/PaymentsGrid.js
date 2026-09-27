@@ -1,6 +1,9 @@
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
 import { Stack, TextField, InputAdornment } from '@mui/material';
 import PaginationGrid from '../../../Components/DataGrids/PaginationGrid';
 import Payment from '../TransactionForms/AddTransaction/Payment';
+import {Link} from 'react-router-dom';
+import {Button} from '@mui/material';
 import PaymentIcon from '@mui/icons-material/Payment';
 import SearchIcon from '@mui/icons-material/Search';
 import palette from '../../../Theme/palette';
@@ -15,6 +18,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 export default function PaymentsGrid({ customerData, setCustomerData }) {
    const { accountID, userID, token } = useContext(context).loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [gridData, setGridData] = useState({ rows: [], columns: [], totalCount: 0 });
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: DEFAULT_PAGE_SIZE });
    const [loading, setLoading] = useState(false);
@@ -171,7 +175,7 @@ export default function PaymentsGrid({ customerData, setCustomerData }) {
       const request = ++requestRef.current;
       setLoading(true);
       try {
-         const response = await fetchPayments(accountID, userID, token, page, pageSize, searchValue);
+         const response = await fetchPayments(accountID, userID, token, page, pageSize, searchValue, entityId);
          if (request !== requestRef.current || searchValue.trim() !== currentSearchRef.current.trim()) return;
          if (response?.paymentsList?.activePaymentsData) {
             const { paymentsList } = response;
@@ -203,7 +207,7 @@ export default function PaymentsGrid({ customerData, setCustomerData }) {
       fetchPageData(page + 1, pageSize, searchTerm);
       previousSearchTermRef.current = searchTerm;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [paginationModel.page, paginationModel.pageSize, searchTerm]);
+   }, [paginationModel.page, paginationModel.pageSize, searchTerm, entityId]);
 
    // Focus the search input after data loads
 
@@ -222,6 +226,7 @@ export default function PaymentsGrid({ customerData, setCustomerData }) {
    return (
       <>
          <Stack spacing={3}>
+            <Button component={Link} to='/payments/receive' variant='contained'>Receive payment across invoices</Button>
             <PaginationGrid
                title='Payments'
                passedHeight={window.innerHeight - 140}
@@ -230,13 +235,13 @@ export default function PaymentsGrid({ customerData, setCustomerData }) {
                enableSingleRowClick
                rowSelectionOnly
                arrayOfButtons={gridButtons}
-               routeToPass={'/transactions/customerPayments/deletePayment'}
+               routeToPass={'/payments/receipts/deletePayment'}
                paginationModel={paginationModel}
                onPaginationModelChange={setPaginationModel}
                loading={loading}
                getRowId={getRowId}
                showQuickFilter={false}
-               renderToolbarContent={() => searchField}
+               renderToolbarContent={() => <>{searchField}<EntityPicker all value={entityId} onChange={v=>{requestRef.current++;setEntityId(v);setPaginationModel(p=>({...p,page:0}));}} /></>}
             />
          </Stack>
       </>

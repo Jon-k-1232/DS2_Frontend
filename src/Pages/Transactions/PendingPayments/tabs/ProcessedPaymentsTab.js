@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { Stack, Box, TextField, Autocomplete, Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
+import React, { useState } from 'react';
+import { Stack, Alert, Button, Box, TextField, Autocomplete, Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { DataGrid } from '@mui/x-data-grid';
+import usePendingPaymentList from '../usePendingPaymentList';
 import dayjs from 'dayjs';
-import { context } from '../../../../App';
-import { fetchPendingPayments } from '../../../../Services/ApiCalls/PendingPaymentsCalls';
 import { getProcessedPaymentColumns } from '../components/PendingPaymentColumns';
 import PaymentPdfPreview from '../components/PaymentPdfPreview';
 
@@ -23,40 +22,12 @@ const generateMonthOptions = () => {
 };
 
 export default function ProcessedPaymentsTab() {
-   const { loggedInUser } = useContext(context);
-   const { accountID, userID, token } = loggedInUser;
-
    const monthOptions = generateMonthOptions();
    const [selectedMonth, setSelectedMonth] = useState(monthOptions[0]);
-   const [rows, setRows] = useState([]);
-   const [loading, setLoading] = useState(false);
    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 20 });
-   const [totalCount, setTotalCount] = useState(0);
    const [viewFileName, setViewFileName] = useState(null);
 
-   const loadData = useCallback(async () => {
-      if (!accountID || !userID || !token || !selectedMonth) return;
-      setLoading(true);
-      try {
-         const response = await fetchPendingPayments(accountID, userID, token, {
-            page: paginationModel.page + 1,
-            limit: paginationModel.pageSize,
-            status: 'processed',
-            month: selectedMonth.month,
-            year: selectedMonth.year
-         });
-         setRows(response?.payments || []);
-         setTotalCount(response?.pagination?.totalItems || 0);
-      } catch (error) {
-         console.error('Error loading processed payments:', error);
-      } finally {
-         setLoading(false);
-      }
-   }, [accountID, userID, token, paginationModel, selectedMonth]);
-
-   useEffect(() => {
-      loadData();
-   }, [loadData]);
+   const {rows,totalCount,loading,error,loadData}=usePendingPaymentList({status: 'processed', paginationModel, month: selectedMonth?.month, year: selectedMonth?.year});
 
    const columns = getProcessedPaymentColumns({ onViewFile: fileName => setViewFileName(fileName) });
 
@@ -78,7 +49,9 @@ export default function ProcessedPaymentsTab() {
             />
          </Box>
 
-         <DataGrid
+         {error && <Alert severity='error' action={<Button onClick={loadData}>Reload payments</Button>}>{error}</Alert>}
+         {!error && <DataGrid
+            localeText={{noRowsLabel: 'No processed payments for this month. Choose another month to see earlier payments.', noResultsOverlayLabel: 'No payments match these filters.'}}
             rows={rows}
             columns={columns}
             getRowId={row => row.payment_id}
@@ -89,7 +62,7 @@ export default function ProcessedPaymentsTab() {
             paginationMode='server'
             loading={loading}
             autoHeight
-         />
+         />}
 
          {/* PDF Viewer Dialog */}
          <Dialog open={Boolean(viewFileName)} onClose={() => setViewFileName(null)} maxWidth='lg' fullWidth>

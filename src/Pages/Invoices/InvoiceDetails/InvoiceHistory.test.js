@@ -9,7 +9,7 @@ jest.mock('../../../Services/ApiCalls/FetchCalls', () => ({ fetchFileDownload: j
 const base = { status:200, sent_locked:true, locked_invoice_number:'INV-2026-00001', conditions:[{code:'bounced_check',label:'Bounced check'}],
    exceptions:[], revisions:[{revision:0,artifact_key:'original.zip',issued_amount:400}], events:[],
    statementPayments:[{payment_id:8,payment_amount:-100,eligible_for_exception:true}] };
-const draw = () => render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><InvoiceHistory invoiceID={7} /></context.Provider>);
+const draw = () => render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013,accessLevel:'admin'}}}><InvoiceHistory invoiceID={7} /></context.Provider>);
 beforeEach(()=> { jest.clearAllMocks(); invoiceExceptionCall.mockResolvedValue(base); fetchFileDownload.mockResolvedValue({status:200}); });
 it('shows the lock and reprints the original without a money mutation',async()=> {
    draw(); expect(await screen.findByText(/Sent — locked/)).toBeInTheDocument();
@@ -59,7 +59,7 @@ it('shows a history load error',async()=> {
 it('reports the refreshed current balance after correction and shows cancellation evidence',async()=>{
  const onBalanceChange=jest.fn();
  invoiceExceptionCall.mockResolvedValue({...base,current_remaining_balance:500,events:[{history_id:2,created_at:'2026-09-25T12:00:00Z',actor_id:1,event:'exception_reversed',detail:{reversal_ids:[9],retainer_cancellations:[{retainer_id:4,amount:50}],after_balance:500}}]});
- render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><InvoiceHistory invoiceID={7} onBalanceChange={onBalanceChange} /></context.Provider>);
+ render(<context.Provider value={{loggedInUser:{accountID:9001,userID:90013,accessLevel:'admin'}}}><InvoiceHistory invoiceID={7} onBalanceChange={onBalanceChange} /></context.Provider>);
  expect(await screen.findByText(/Reversals 9.*retainer #4 \$50.00/)).toBeInTheDocument();
  expect(onBalanceChange).toHaveBeenCalledWith(500);
 });
@@ -70,3 +70,5 @@ it('explains how to reprint the complete revision package',async()=>{
  fireEvent.click(screen.getByRole('button',{name:/Reprint revision 1/}));
  await waitFor(()=>expect(fetchFileDownload).toHaveBeenCalledWith('revision.zip','invoice_revision_1.zip',9001,90013));
 });
+
+it('uses a named staff actor in invoice history',async()=>{invoiceExceptionCall.mockResolvedValue({...base,events:[{history_id:1,actor_id:90013,actor_name:'Ada Admin',event:'issued',created_at:'2026-09-26',detail:{}}]});draw();expect(await screen.findByText('Ada Admin')).toBeVisible();expect(screen.queryByText(/User #90013/)).not.toBeInTheDocument();});

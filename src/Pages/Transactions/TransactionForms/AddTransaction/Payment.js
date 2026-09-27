@@ -39,12 +39,15 @@ export default function Payment({ customerData, setCustomerData }) {
    const [selectedItems, setSelectedItems] = useState(initialState);
    const [customerProfileData, setCustomerProfileData] = useState([]);
 
-   const { unitCost, quantity, selectedCustomer, note } = selectedItems;
+   const { unitCost, quantity, selectedCustomer, note, entityId } = selectedItems;
 
    useEffect(() => {
+      let active=true;
+      setCustomerProfileData({});
       if (selectedCustomer) {
          const fetchCustomerData = async () => {
-            const customerInfo = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token);
+            const customerInfo = await fetchCustomerProfileInformation(accountID, userID, selectedCustomer.customer_id, token, entityId, 'invoices');
+            if(!active)return;
             setCustomerProfileData({ ...customerInfo });
 
             // Auto select the user. Functional update — the await above means any
@@ -55,8 +58,9 @@ export default function Payment({ customerData, setCustomerData }) {
          };
          fetchCustomerData();
       }
+      return()=>{active=false;};
       // eslint-disable-next-line
-   }, [selectedCustomer]);
+   }, [selectedCustomer,entityId]);
 
    const validatePayment = () => {
       if (!selectedItems.selectedCustomer) return 'Select a customer.';

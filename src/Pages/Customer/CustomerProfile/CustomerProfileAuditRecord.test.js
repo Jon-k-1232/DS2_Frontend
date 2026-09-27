@@ -19,7 +19,7 @@ it('filters and paginates history and records independently',async()=>{
  await waitFor(()=>expect(screen.getByText('Next history')).not.toBeDisabled());fireEvent.click(screen.getByText('Next history'));
  await waitFor(()=>expect(calls.fetchAuditRecord).toHaveBeenLastCalledWith(expect.any(Object),expect.objectContaining({offset:25})));
  await waitFor(()=>expect(screen.getByText('Next records')).not.toBeDisabled());fireEvent.click(screen.getByText('Next records'));
- await waitFor(()=>expect(calls.fetchPrintedRecords).toHaveBeenLastCalledWith(expect.any(Object),25));
+ await waitFor(()=>expect(calls.fetchPrintedRecords).toHaveBeenLastCalledWith(expect.any(Object),25,null));
 });
 it('validates reversed ranges without fetching',async()=>{render(view());await screen.findByText(/SHA-256: 123abc/);const count=calls.fetchAuditRecord.mock.calls.length;fireEvent.change(screen.getByLabelText('From'),{target:{value:'2027-01-01'}});fireEvent.change(screen.getByLabelText('Through'),{target:{value:'2026-01-01'}});fireEvent.click(screen.getByText('Apply dates'));expect(screen.getByRole('alert')).toHaveTextContent('Start date');expect(calls.fetchAuditRecord).toHaveBeenCalledTimes(count);});
 it('prints the applied range, reopens its ID and reopens older stored bytes without regeneration',async()=>{
@@ -60,4 +60,11 @@ it('shows one archive summary with its full change count and plain verification 
  expect(screen.queryByText(/Retrieve via GET/)).not.toBeInTheDocument();
  fireEvent.change(screen.getByLabelText('Print option'),{target:{value:'full_evidence'}});
  expect(table).toHaveTextContent(summary);expect(table).not.toHaveTextContent('(statement copy)');
+});
+
+
+it('keeps held receipt credit separate from the raw balance and shows the proposed next statement',async()=>{
+ calls.fetchAuditRecord.mockResolvedValue({...history,current:{running_balance:500,billed_balance:0,unbilled_balance:500,retainer_available:80,held_credit_available:350,proposed_statement_balance:150}});
+ render(view());expect(await screen.findByText('Held receipt credit $350.00 · Proposed next statement after credit $150.00')).toBeVisible();
+ expect(screen.getByText(/Current \$500.00/)).toHaveTextContent('Retainer available $80.00');
 });

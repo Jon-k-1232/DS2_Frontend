@@ -33,8 +33,8 @@ async function searchAndWait(page, placeholder, endpointFragment, value) {
 }
 
 test('account 1 Accounts Receivable has aging rows, chips and CSV export', async ({page}) => {
-  await page.goto('/invoices/accountsReceivable');
-  await expect(page.getByRole('heading',{name:'Accounts Receivable',exact:true})).toBeVisible();
+  await page.goto('/receivables/aging');
+  await expect(page.getByRole('heading',{name:'Accounts receivable',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Export CSV',exact:true})).toBeEnabled();
   // Each bucket label is also a sortable table column header (MuiTableSortLabel,
   // role=button, same accessible name) further down the page — the filter chip
@@ -50,7 +50,7 @@ test('account 1 Accounts Receivable has aging rows, chips and CSV export', async
 });
 
 test('account 1 Account Audit list displays real customers without running an audit', async ({page}) => {
-  await page.goto('/invoices/accountAudit');
+  await page.goto('/reports/account-audit');
   await expect(page.getByRole('heading',{name:'Account Audit',exact:true})).toBeVisible();
   await expect(page.locator('tbody tr').first()).toContainText(/\$[\d,]+\.\d{2}/);
   await healthy(page);
@@ -107,7 +107,7 @@ for (const [route, heading, metric] of [
 
   test(`account 1 Analytics / ${heading} shows numeric data`, async ({page}) => {
     const api = page.waitForResponse(r => r.url().includes(`/analytics/${route}/1/21`) && r.request().method()==='GET');
-    await page.goto(`/analytics/${route}`);
+    await page.goto(require('../../src/Routes/legacyRoutes.json')['/analytics/'+route]);
     expect((await api).ok()).toBe(true);
     await expect(page.getByRole('heading',{name:heading,exact:true})).toBeVisible();
     if (route === 'jobBudgets') {

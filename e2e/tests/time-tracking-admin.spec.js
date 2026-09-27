@@ -7,7 +7,7 @@ const { createCustomer } = require('../lib/ui');
 // identity this suite writes with, not something to work around.
 test.describe('Update Master Tracker Template (super-admin gate)', () => {
   test('admin identity is refused uploading a template', async ({ page }) => {
-    await page.goto('/time-tracking/update-template');
+    await page.goto('/settings/tracker-template');
     await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
     await expect(page.getByText('This page is restricted to super admins.', { exact: true })).toBeVisible();
     await expect(page.locator('input[type=file]')).toHaveCount(0);
@@ -22,7 +22,7 @@ test.describe('Customer AI Audit tab (super-admin gate)', () => {
     // fetchMenuOptions only adds it when showAudit is true) and the route itself
     // — confirm neither is reachable for admin.
     await expect(page.getByRole('tab', { name: 'AI Audit', exact: true })).toHaveCount(0);
-    await page.goto(`/customers/customersList/customerProfile/${customer.id}/aiAudit`);
+    await page.goto(`/clients/${customer.id}/aiAudit`);
     await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
     await expect(page.getByText('You are not authorized to access the Account Audit module.', { exact: true })).toBeVisible();
   });

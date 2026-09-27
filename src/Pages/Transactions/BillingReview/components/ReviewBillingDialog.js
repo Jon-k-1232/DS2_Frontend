@@ -1,3 +1,4 @@
+import useReviewReferences from '../../../../Components/Lookups/useReviewReferences';
 import { useContext, useMemo, useState } from 'react';
 import { Alert, Box, Chip, Dialog, DialogContent, DialogTitle, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { context } from '../../../../App';
@@ -62,7 +63,8 @@ const camelToSnake = {
    isTransactionBillable: 'is_transaction_billable',
    note: 'note',
    detailedJobDescription: 'detailed_work_description',
-   transactionType: 'transaction_type'
+   transactionType: 'transaction_type',
+   costChangeReason: 'costChangeReason'
 };
 
 const buildEditsPayload = camelObj => {
@@ -75,7 +77,8 @@ const buildEditsPayload = camelObj => {
    return edits;
 };
 
-export default function ReviewBillingDialog({ open, entry, onClose, onApplied, customerData, setCustomerData }) {
+export default function ReviewBillingDialog({ open, entry, onClose, onApplied, customerData:workspaceData, setCustomerData }) {
+   const customerData=useReviewReferences(workspaceData,open?entry:null);
    const { loggedInUser } = useContext(context);
    const { accountID, userID, token } = loggedInUser;
    // Banner shown when "Rerun AI Processing" returns a hold or error so the
@@ -268,7 +271,7 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
          if (!matchedCustomer) return { value: null, source: 'none' };
          const allJobs = customerData?.accountJobsList?.activeJobData?.activeJobs || [];
          const customerOpenJobs = allJobs.filter(
-            j => Number(j.customer_id) === Number(matchedCustomer.customer_id) && !j.is_job_complete && !j.parent_job_id
+            j => Number(j.customer_id) === Number(matchedCustomer.customer_id) && !j.is_job_complete
          );
          const catWords = norm(entry.category).split(/\s+/).filter(w => w.length >= 4);
          if (catWords.length === 0) return { value: null, source: 'none' };
@@ -355,8 +358,7 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
          ? (customerData?.accountJobsList?.activeJobData?.activeJobs || []).filter(
               j =>
                  Number(j.customer_id) === Number(resolvedCustomerObj.customer_id) &&
-                 !j.is_job_complete &&
-                 !j.parent_job_id // parents only — child rows are internal tracking
+                 !j.is_job_complete
            )
          : [];
       return { rows, unmatchedRequired, resolvedCustomerObj, customerOpenJobs };
@@ -401,6 +403,7 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
       if (items?.selectedGeneralWorkDescription?.general_work_description_id) {
          overrides.general_work_description_id = items.selectedGeneralWorkDescription.general_work_description_id;
       }
+      if (items?.costChangeReason) overrides.costChangeReason = items.costChangeReason;
       if (items?.selectedTeamMember?.user_id) overrides.logged_for_user_id = items.selectedTeamMember.user_id;
       if (items?.selectedDate) overrides.transaction_date = items.selectedDate.format ? items.selectedDate.format('YYYY-MM-DD') : items.selectedDate;
       if (items?.minutes != null && items.minutes !== '') overrides.duration_minutes = Number(items.minutes);
@@ -578,7 +581,8 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
                {/* Form — pre-filled. Job dropdown's last item ("Add New Job") creates a new job inline.
                    Two action buttons: Manual Submission bypasses AI; Rerun AI Processing re-runs the
                    orchestrator with the reviewer's overrides as trusted inputs. */}
-               <Time
+               {customerData.referencesError && <Alert severity='warning'>{customerData.referencesError} Choose the client and job in the form to retry.</Alert>}
+               {customerData.referencesLoading ? <Typography role='status'>Loading suggested client and jobs…</Typography> : <Time
                   key={entry.timesheet_entry_id}
                   customerData={customerData}
                   setCustomerData={setCustomerData}
@@ -592,7 +596,7 @@ export default function ReviewBillingDialog({ open, entry, onClose, onApplied, c
                      variant: 'outlined'
                   }}
                   helperText='Manual submission bypasses AI review and inserts directly into processed transactions. Rerun AI Processing re-runs the AI orchestrator with your manual edits as trusted hints.'
-               />
+               />}
             </Stack>
          </DialogContent>
       </Dialog>

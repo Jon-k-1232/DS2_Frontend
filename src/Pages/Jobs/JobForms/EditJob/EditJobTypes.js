@@ -62,7 +62,7 @@ export default function EditJobTypes({ customerData, setCustomerData, jobTypeDat
     if (postedItem.status === 200) {
       setCustomerData({ ...customerData, jobTypesList: postedItem.jobTypesList });
       setTimeout(() => setPostStatus(null), 2000);
-      navigate('/jobs/jobTypesList');
+      navigate('/settings/job-types');
       setSelectedItems(initialState);
     }
   };

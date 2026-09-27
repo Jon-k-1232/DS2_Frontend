@@ -7,10 +7,13 @@ import dayjs from 'dayjs';
  * @returns  {object} - returns an object with the columns and rows filtered based on user input
  */
 export const filterGridByColumnName = (data, columns) => {
+   columns=[...new Set([...columns,'billing_entity_name'])];
+   data={columns:[],rows:[],...data};
    // Filter and sort columns based on the order in the 'columns' array
    const filteredColumns = columns
       .map(colName => {
-         return data.columns.find(col => col.field === colName);
+         const col=data.columns.find(col => col.field === colName);
+         return col && colName==='billing_entity_name'?{...col,headerName:'Billing business',minWidth:210}:col;
       })
       .filter(Boolean); // Remove undefined items
 
@@ -33,7 +36,7 @@ export const filterGridByColumnName = (data, columns) => {
                }
                return acc;
             },
-            { id: row.id }
+            { id: row.id, ...(row.billing_entity_id!==undefined?{billing_entity_id:row.billing_entity_id}:{}), ...(row.sent_locked!==undefined?{sent_locked:row.sent_locked}:{}) }
          ); // Initialize with the 'id' field
 
          // If the row has children, recursively filter them

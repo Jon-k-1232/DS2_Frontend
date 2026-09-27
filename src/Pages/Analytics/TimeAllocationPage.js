@@ -1,3 +1,5 @@
+import ReportingBasis from './ReportingBasis';
+import EntityPicker from '../../Components/BillingEntities/EntityPicker';
 import React, { useState, useEffect, useContext } from 'react';
 import {
    Box,
@@ -54,6 +56,7 @@ export default function TimeAllocationPage() {
    const { loggedInUser } = useContext(context);
    const { accountID, userID } = loggedInUser;
 
+   const [entityId,setEntityId]=useState(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
    const [year, setYear] = useState(new Date().getFullYear() - 1);
@@ -64,9 +67,10 @@ export default function TimeAllocationPage() {
       let cancelled = false;
       const load = async () => {
          setLoading(true);
+         setData(null);
          setError(null);
          try {
-            const res = await fetchTimeAllocation(accountID, userID, { year, exclude: excludedIds });
+            const res = await fetchTimeAllocation(accountID, userID, { year, exclude: excludedIds, entityId });
             if (cancelled) return;
             if (res?.timeAllocation) setData(res.timeAllocation);
             else setError(res?.message || 'Unable to load time allocation.');
@@ -81,7 +85,7 @@ export default function TimeAllocationPage() {
       return () => {
          cancelled = true;
       };
-   }, [accountID, userID, year, ready, excludedIds]);
+   }, [accountID, userID, year, ready, excludedIds, entityId]);
 
    // Always include the selected year so the controlled Select never holds a
    // value missing from its options.
@@ -96,6 +100,8 @@ export default function TimeAllocationPage() {
 
    return (
       <Stack spacing={2}>
+         <ReportingBasis kind="time" />
+         <EntityPicker all allowInactive value={entityId} onChange={setEntityId} />
          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent='space-between'>
             <Box>
                <Typography variant='h5'>Time Allocation</Typography>
@@ -114,14 +120,14 @@ export default function TimeAllocationPage() {
                </TextField>
                <Button
                   startIcon={<DownloadIcon />}
-                  onClick={() => downloadTimeAllocationCsv(accountID, userID, { year, exclude: excludedIds }).catch(err => setError(err.message || 'CSV export failed.'))}
+                  onClick={() => downloadTimeAllocationCsv(accountID, userID, { year, exclude: excludedIds, entityId }).catch(err => setError(err.message || 'CSV export failed.'))}
                >
                   CSV
                </Button>
                <Button
                   startIcon={<DownloadIcon />}
                   variant='outlined'
-                  onClick={() => downloadYearEndPacket(accountID, userID, { year, exclude: excludedIds }).catch(err => setError(err.message || 'Packet export failed.'))}
+                  onClick={() => downloadYearEndPacket(accountID, userID, { year, exclude: excludedIds, entityId }).catch(err => setError(err.message || 'Packet export failed.'))}
                >
                   Year-End Packet
                </Button>
@@ -140,7 +146,8 @@ export default function TimeAllocationPage() {
                   <SummaryCard label='Total Hours' value={fmtHours(data.summary.total_hours)} hint={`${data.summary.entries.toLocaleString()} entries`} />
                   <SummaryCard label='Billable Hours' value={fmtHours(data.summary.billable_hours)} hint={data.summary.billable_pct == null ? '' : `${data.summary.billable_pct}% of total`} />
                   <SummaryCard label='Non-Billable Hours' value={fmtHours(data.summary.nonbillable_hours)} />
-                  <SummaryCard label='Billed' value={fmtMoney(data.summary.billed_amount)} />
+                  <SummaryCard label='Work entered value' value={fmtMoney(data.summary.work_entered_value)} />
+                  <SummaryCard label='Net issued' value={fmtMoney(data.summary.billed_amount)} />
                </Stack>
 
                <Grid container spacing={2}>
@@ -155,7 +162,7 @@ export default function TimeAllocationPage() {
                                  <TableCell>Work</TableCell>
                                  <TableCell align='right'>Hours</TableCell>
                                  <TableCell sx={{ width: 120 }} />
-                                 <TableCell align='right'>Billed</TableCell>
+                                 <TableCell align='right'>Net issued</TableCell>
                               </TableRow>
                            </TableHead>
                            <TableBody>

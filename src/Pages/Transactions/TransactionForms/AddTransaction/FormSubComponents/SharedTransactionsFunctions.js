@@ -1,5 +1,31 @@
+import { useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import { sixMinuteIncrementTimeCalculation } from './TimeTrackingIncrements';
+export const hasRecurringCoverage = (customerData, selectedItems) => {
+   const customerId = selectedItems.selectedCustomer?.customer_id;
+   const entityId = selectedItems.entityId;
+   if (!customerId || !entityId) return false;
+   const date = dayjs(selectedItems.selectedDate || undefined).format('YYYY-MM-DD');
+   const plans = customerData?.recurringCustomersList?.activeRecurringCustomersData?.activeRecurringCustomers || [];
+   return plans.some(p => Number(p.customer_id) === Number(customerId) && Number(p.billing_entity_id) === Number(entityId) && p.is_recurring_customer_active &&
+      String(p.start_date).slice(0, 10) <= date && (!p.end_date || String(p.end_date).slice(0, 10) >= date));
+};
+
+// Recalculate defaults only when coverage or the explicit excess choice changes.
+// A saved billable choice survives opening an edit form and changing its hours.
+export function useRecurringBillability(customerData, selectedItems, setSelectedItems) {
+   const covered = hasRecurringCoverage(customerData, selectedItems);
+   const previous = useRef({ covered: false, transactionID: null, excess: undefined });
+   const { transactionID, isInAdditionToMonthlyCharge } = selectedItems;
+   useEffect(() => {
+      const prior = previous.current;
+      previous.current = { covered, transactionID, excess: isInAdditionToMonthlyCharge };
+      if (transactionID && (transactionID !== prior.transactionID || prior.excess === isInAdditionToMonthlyCharge)) return;
+      if (covered || prior.covered) setSelectedItems(value => ({ ...value, isTransactionBillable: covered ? Boolean(isInAdditionToMonthlyCharge) : true }));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [covered, isInAdditionToMonthlyCharge, transactionID]);
+   return covered;
+}
 
 /**
  * Conditionally toggle 'isTransactionBillable' based on recurring logic
@@ -83,7 +109,7 @@ export const populateState = (passedTransactionData, customerData, initialState)
    let foundJob = null;
    if (foundCustomer && catWords.length > 0) {
       const customerOpenJobs = activeJobs.filter(
-         j => Number(j.customer_id) === Number(foundCustomer.customer_id) && !j.is_job_complete && !j.parent_job_id
+         j => Number(j.customer_id) === Number(foundCustomer.customer_id) && !j.is_job_complete
       );
       const scored = customerOpenJobs
          .map(j => {
@@ -98,6 +124,7 @@ export const populateState = (passedTransactionData, customerData, initialState)
 
    return {
       ...initialState,
+      entityId: passedTransactionData?.billing_entity_id || passedTransactionData?.entityId || null,
       selectedCustomer: foundCustomer || initialState.selectedCustomer,
       selectedJob: foundJob,
       selectedTeamMember: foundTeamMember || null,

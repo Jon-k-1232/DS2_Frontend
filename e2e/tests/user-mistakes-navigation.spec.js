@@ -19,11 +19,11 @@ test('pagination and no-match filters reset correctly; audit history pages prese
  await page.getByRole('button',{name:'Go to next page',exact:true}).click();
  await expect(page.getByText('21–26 of 26',{exact:true})).toBeVisible();
  await page.getByPlaceholder('Search transactions').fill(`${prefix} no-such-entry`);
- await expect(page.getByText('No rows',{exact:true})).toBeVisible();
+ await expect(page.getByText('No records to show for this selection.',{exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Go to previous page',exact:true})).toBeDisabled();
  await page.getByPlaceholder('Search transactions').fill(prefix);
  await expect(page.getByText('1–20 of 26',{exact:true})).toBeVisible();
- await page.goto(`/customers/customersList/customerProfile/${c.id}/auditRecord`);
+ await page.goto(`/clients/${c.id}/auditRecord`);
  await expect(page.getByRole('table',{name:'Account history'})).toBeVisible();
  await expect(page.getByText(/Current \$520.00/)).toBeVisible();
  await page.getByRole('button',{name:'Next history',exact:true}).click();
@@ -37,7 +37,7 @@ test('pagination and no-match filters reset correctly; audit history pages prese
 
 test('retainer adjustments and stale refunds: $25 + $5 - $10 = $20; a stale $25 refund refuses',async({page,browser,prefix})=>{
  const c=await createCustomer(page,prefix);const d=await prepare(page,c,'retainer');await submit(page,d,types.retainer.endpoint);await closeForm(page);
- const route=`http://localhost:3003/customers/customersList/customerProfile/${c.id}/retainersAndPrePayments`;
+ const route=`http://localhost:3003/clients/${c.id}/credits`;
  await page.goto(route);await expect(page.getByText('Available credit: $25.00',{exact:true})).toBeVisible();
  const amount=page.getByLabel('Amount',{exact:true});const reason=page.getByRole('textbox',{name:/^Reason/});
  for(const value of ['garbage','-1','0','1.001']){
@@ -60,7 +60,7 @@ test('retainer adjustments and stale refunds: $25 + $5 - $10 = $20; a stale $25 
  }finally{await other.close();}
  const before=financial(c);
  await page.getByRole('button',{name:'Review event',exact:true}).click();await page.getByRole('button',{name:'Confirm record event',exact:true}).click();
- await expect(page.getByRole('alert')).toContainText(/available|funds|exceed/i);
+ await expect(page.getByRole('alert').filter({hasText:'Only $20.00 is available. Funds already applied cannot be refunded or removed.'})).toBeVisible();
  expect(financial(c)).toEqual(before);
  expect(rows(`SELECT amount,available_after FROM retainer_events WHERE account_id=9001 AND customer_id=${c.id} ORDER BY event_id`).map(r=>[Number(r.amount),Number(r.available_after)])).toEqual([[5,30],[10,20]]);
 });

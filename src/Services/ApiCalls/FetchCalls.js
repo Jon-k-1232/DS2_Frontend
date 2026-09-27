@@ -52,9 +52,9 @@ export const getInitialAppData = async (accountID, userID, token) => {
    }
 };
 
-export const fetchCustomerProfileInformation = async (accountID, userID, customerID, token) => {
+export const fetchCustomerProfileInformation = async (accountID, userID, customerID, token, entityId=null, section=null) => {
    try {
-      const response = await axios.get(`${config.API_ENDPOINT}/customer/activeCustomers/customerByID/${accountID}/${userID}/${customerID}`, headers(token));
+      const response = await axios.get(`${config.API_ENDPOINT}/customer/activeCustomers/customerByID/${accountID}/${userID}/${customerID}`, {...headers(token),params:{...(entityId?{entityId}:{}),...(section?{section}:{})}});
       const customerContactInformation = response.data;
       return customerContactInformation;
    } catch (error) {
@@ -107,9 +107,9 @@ export const fetchSingleUser = async (accountID, userID, token) => {
    }
 };
 
-export const getOutstandingBalanceList = async (accountID, userID, token) => {
+export const getOutstandingBalanceList = async (accountID, userID, token, entityId) => {
    try {
-      const response = await axios.get(`${config.API_ENDPOINT}/invoices/createInvoice/AccountsWithBalance/${accountID}/${userID}`, headers(token));
+      const response = await axios.get(`${config.API_ENDPOINT}/invoices/createInvoice/AccountsWithBalance/${accountID}/${userID}${entityId ? `?entityId=${entityId}` : ''}`, headers(token));
       const outstandingInvoicesList = response.data;
       return outstandingInvoicesList;
    } catch (error) {
@@ -129,12 +129,13 @@ export const fetchSingleTransaction = async (customer_id, transaction_id, accoun
    }
 };
 
-export const fetchTransactions = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+export const fetchTransactions = async (accountID, userID, token, page = 1, limit = 20, search = '', entityId=null) => {
    const params = {
       page,
       limit
    };
 
+   if(entityId)params.entityId=entityId;
    if (search && search.trim().length) {
       params.search = search.trim();
    }
@@ -166,9 +167,9 @@ export const fetchTransactions = async (accountID, userID, token, page = 1, limi
    }
 };
 
-export const exportAllTransactions = async (accountID, userID, token, search = '') => {
+export const exportAllTransactions = async (accountID, userID, token, search = '',entityId=null) => {
    try {
-      const params = {};
+      const params = entityId?{entityId}:{};
       if (search && search.trim().length) {
          params.search = search.trim();
       }
@@ -196,8 +197,9 @@ export const exportAllTransactions = async (accountID, userID, token, search = '
    }
 };
 
-export const fetchPayments = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+export const fetchPayments = async (accountID, userID, token, page = 1, limit = 20, search = '', entityId=null) => {
    const params = { page, limit };
+   if(entityId)params.entityId=entityId;
    if (search && search.trim().length) {
       params.search = search.trim();
    }
@@ -229,8 +231,8 @@ export const fetchPayments = async (accountID, userID, token, page = 1, limit = 
    }
 };
 
-export const fetchInvoices = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
-   const params = { page, limit };
+export const fetchInvoices = async (accountID, userID, token, page = 1, limit = 20, search = '', entityId = null) => {
+   const params = { page, limit,...(entityId?{entityId}:{}) };
    if (search && search.trim().length) params.search = search.trim();
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/invoices/getInvoicesPaginated/${accountID}/${userID}`, {
@@ -276,8 +278,9 @@ export const fetchSingleWriteOff = async (writeOffID, accountID, userID, token) 
    }
 };
 
-export const fetchWriteOffs = async (accountID, userID, token, page = 1, limit = 20, search = '') => {
+export const fetchWriteOffs = async (accountID, userID, token, page = 1, limit = 20, search = '', entityId=null) => {
    const params = { page, limit };
+   if(entityId)params.entityId=entityId;
    if (search && search.trim().length) params.search = search.trim();
    try {
       const response = await axios.get(`${config.API_ENDPOINT}/writeOffs/getWriteOffs/${accountID}/${userID}`, {

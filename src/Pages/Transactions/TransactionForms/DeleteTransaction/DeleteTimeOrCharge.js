@@ -1,3 +1,4 @@
+import RecurringWorkNotice from '../../../../Components/RecurringWorkNotice';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import useFinancialSubmit from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import React, { useState, useContext, useEffect } from 'react';
@@ -116,11 +117,11 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
          if (postedItem.warning) {
             setTimeout(() => {
                setPostStatus(null);
-               navigate('/transactions/customerTransactions');
+               navigate('/work/entries');
             }, 4000);
          } else {
             setTimeout(() => setPostStatus(null), 2000);
-            navigate('/transactions/customerTransactions');
+            navigate('/work/entries');
          }
       }
    });
@@ -130,6 +131,7 @@ export default function DeleteTimeOrCharge({ customerData, setCustomerData, tran
    };
 
    if (transactionData?.sent_locked) return <SentInvoiceNotice row={transactionData} />;
+   if (transactionData?.recurring_plan_id) return <RecurringWorkNotice planId={transactionData.recurring_plan_id} />;
 
    return (
       <>

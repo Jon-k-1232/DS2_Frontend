@@ -9,7 +9,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { execFileSync } = require('child_process');
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-const url = c => `/customers/customersList/customerProfile/${c.id}/auditRecord`;
+const url = c => `/clients/${c.id}/auditRecord`;
 const api = c => `http://localhost:8003/auditRecord/customer/${c.id}/9001/90013`;
 
 test('client and full evidence: print, list, reopen, verify; plain language and one invoice archive summary', async ({page,prefix},info) => {
@@ -38,7 +38,7 @@ test('client and full evidence: print, list, reopen, verify; plain language and 
       expect(pdf).toMatch(/recomputes.*SHA-256/i);
       const summaries = pdf.split('\n').filter(line=>/statement items archived/i.test(line));
       expect(summaries).toHaveLength(1);
-      expect(summaries[0]).toMatch(/2 statement items archived - 1 invoice balance, 1 work item/);
+      expect(summaries[0]).toMatch(/3 statement items archived - 1 invoice balance, 1 work item, 1 original obligation/);
     } else {
       expect(pdf).toMatch(/\/auditRecord\/customer\//);
       expect(pdf).toMatch(/JSON Pointer|\/entries\//i);
@@ -113,7 +113,7 @@ test('employee refused all manager pages and every Audit Record operation withou
   const c=await createCustomer(page,prefix); const before=financial(c);
   const employee=await browser.newContext(); await authenticate(employee,'employee'); const p=await employee.newPage();
   try {
-    for(const route of [routes.customers,routes.transactions,routes.payments,routes.writeoffs,routes.retainers,routes.createInvoice,'/transactions/possibleDuplicates',url(c)]) {
+    for(const route of [routes.customers,routes.transactions,routes.payments,routes.writeoffs,routes.retainers,routes.createInvoice,'/work/duplicates',url(c)]) {
       await p.goto('http://localhost:3003'+route); await expect(p.getByRole('heading',{name:'Unauthorized',exact:true})).toBeVisible();
     }
     const base=api(c).replace('/90013','/90011');

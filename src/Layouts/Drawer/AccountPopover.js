@@ -3,18 +3,19 @@ import { useRef, useState } from 'react';
 import homeFill from '@iconify/icons-eva/home-fill';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
-import { Button, Box, Divider, MenuItem, Typography, Avatar, IconButton } from '@mui/material';
+import { Box, Divider, MenuItem, MenuList, Typography, Avatar, IconButton } from '@mui/material';
 import MenuPopover from '../../Components/MenuPopover';
 import TokenService from '../../Services/TokenService';
 import { postLogout } from '../../Services/ApiCalls/PostCalls';
 import { useContext } from 'react';
 import { context } from '../../App';
+import { getDefaultLandingRoute } from '../../utils/navigation';
 
 const MENU_OPTIONS = [
    {
       label: 'Home',
       icon: homeFill,
-      linkTo: '/customers/customersList'
+      linkTo: '/clients'
    }
 ];
 
@@ -50,6 +51,10 @@ export default function AccountPopover() {
       <>
          <IconButton
             ref={anchorRef}
+            aria-label="Account menu"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            aria-controls={open ? "account-menu" : undefined}
             onClick={handleOpen}
             sx={{
                padding: 0,
@@ -68,10 +73,10 @@ export default function AccountPopover() {
                })
             }}
          >
-            <Avatar alt='photoURL' />
+            <Avatar alt={loggedInUser.displayName || 'Account'} />
          </IconButton>
 
-         <MenuPopover open={open} onClose={handleClose} anchorEl={anchorRef.current} sx={{ width: 220 }}>
+         <MenuPopover id="account-menu" open={open} onClose={handleClose} anchorEl={anchorRef.current} sx={{ width: 220 }}>
             <Box sx={{ my: 1.5, px: 2.5 }}>
                <Typography variant='subtitle1' noWrap>
                   {loggedInUser.displayName}
@@ -83,8 +88,11 @@ export default function AccountPopover() {
 
             <Divider sx={{ my: 1 }} />
 
+            <MenuList autoFocusItem={open} aria-label='Account actions' onKeyDown={event => {
+               if (event.key === 'Tab') { event.preventDefault(); handleClose(); }
+            }}>
             {MENU_OPTIONS.map(option => (
-               <MenuItem key={option.label} to={option.linkTo} component={RouterLink} onClick={handleClose} sx={{ typography: 'body2', py: 1, px: 2.5 }}>
+               <MenuItem key={option.label} to={option.label === 'Home' ? getDefaultLandingRoute(loggedInUser.accessLevel) : option.linkTo} component={RouterLink} onClick={handleClose} sx={{ typography: 'body2', py: 1, px: 2.5 }}>
                   <Box
                      component={Icon}
                      icon={option.icon}
@@ -99,11 +107,9 @@ export default function AccountPopover() {
                </MenuItem>
             ))}
 
-            <Box sx={{ p: 2, pt: 1.5 }}>
-               <Button onClick={() => handleLogout()} fullWidth color='inherit' variant='outlined'>
-                  Logout
-               </Button>
-            </Box>
+            <Divider />
+            <MenuItem onClick={handleLogout}>Log out</MenuItem>
+            </MenuList>
          </MenuPopover>
       </>
    );

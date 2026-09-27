@@ -125,7 +125,7 @@ export default function UploadTab({ onCountsChanged }) {
          {processingNotice && (
             <Alert severity='info' onClose={() => setProcessingNotice(false)}>
                <AlertTitle>File Processing In Progress</AlertTitle>
-               Uploaded files typically take 5-10 minutes to process. Payments will appear in the "New Payments"
+               Uploaded files typically take 5-10 minutes to process. Payments will appear in the "New payments"
                tab once extraction is complete. If a file shows an "Error" status in the table below after 15 minutes,
                the processing may have failed — please re-upload the file or contact support.
             </Alert>

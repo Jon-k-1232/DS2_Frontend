@@ -37,7 +37,7 @@ export default function WorkDescriptionsGrid({ customerData, setCustomerData }) 
                enableSingleRowClick
                rowSelectionOnly
                arrayOfButtons={gridButtons}
-               routeToPass={'/jobs/workDescriptionsList/deleteWorkDescription'}
+               routeToPass={'/settings/work-descriptions/deleteWorkDescription'}
             />
          </Stack>
       </>

@@ -1,8 +1,9 @@
 import RetainerEvents from './RetainerEvents';
-import { Stack } from '@mui/material';
+import { Link } from 'react-router-dom';
+import { Alert, Button, Stack } from '@mui/material';
 import ExpandableGrid from '../../../Components/DataGrids/ExpandableGrid';
 
-export default function CustomerRetainers({ profileData, onChanged }) {
+export default function CustomerRetainers({ profileData, onChanged, entityId }) {
    const { customerRetainerData = {} } = profileData || {};
 
    if (!profileData || !profileData.customerRetainerData) {
@@ -29,6 +30,9 @@ export default function CustomerRetainers({ profileData, onChanged }) {
    return (
       <>
          <Stack spacing={3}>
+            <Alert severity='info'>Receipt credits and retainers are separate funds. Choose the business above to review its available credit.
+               <Button component={Link} to={`/payments/credits?customerId=${profileData?.customerData?.customerData?.customer_id}${entityId?'&entityId='+entityId:''}`}>View client credits</Button>
+            </Alert>
             <RetainerEvents rows={customerRetainerData.customerRetainers || customerRetainerData.grid?.rows || []} onChanged={onChanged} />
             <ExpandableGrid
                idField='retainer_id'

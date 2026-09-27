@@ -1,3 +1,5 @@
+import {presentationColumns} from './presentationColumns';
+import { canonicalPath } from '../../Routes/routePaths';
 import { withSentLockColumn } from './sentLockColumn';
 import { useMemo } from 'react';
 import { Box } from '@mui/material';
@@ -31,6 +33,7 @@ const DataGridTable = ({
 
    const gridProps = {
       density: 'compact',
+      localeText: {noRowsLabel:'No records to show for this selection.',noResultsOverlayLabel:'No records match these filters.'},
       components: {
          Toolbar: CustomToolbar
       },
@@ -42,13 +45,20 @@ const DataGridTable = ({
             setArrayOfSelectedRows(selectedRowsData);
          }
       },
+      onCellKeyDown: (params, event) => {
+         if (event.key === 'Enter' && enableSingleRowClick && routeToPass && event.target === event.currentTarget) {
+            event.preventDefault();
+            const path = typeof routeToPass === 'function' ? routeToPass(params.row) : routeToPass;
+            navigate(canonicalPath(path, params.row), {state:{rowData:params.row}});
+         }
+      },
       onRowClick: rowData => {
          enableSingleRowClick && !routeToPass && setSingleSelectedRow(rowData.row);
          if (enableSingleRowClick && routeToPass) {
             // routeToPass may be a string OR (row) => string — function form
             // lets callers stamp row ids into the URL itself.
             const resolvedRoute = typeof routeToPass === 'function' ? routeToPass(rowData.row) : routeToPass;
-            navigate(resolvedRoute, { state: { rowData: rowData.row } });
+            navigate(canonicalPath(resolvedRoute, rowData.row), { state: { rowData: rowData.row } });
          }
       },
       onCellClick: (cellParams, event) => {
@@ -71,7 +81,7 @@ const DataGridTable = ({
                columnName: field,
                columnValue: value
             };
-            navigate(routeTo, { state: { rowData: columnData } });
+            navigate(canonicalPath(routeTo, columnData), { state: { rowData: columnData } });
          }
       },
       pageSize,
@@ -81,7 +91,7 @@ const DataGridTable = ({
 
    // Recompute widths only when the data changes (canvas-measures every cell).
    // eslint-disable-next-line react-hooks/exhaustive-deps
-   const dynamicColumns = useMemo(() => rows && columns && getDynamicColumnWidths(rows, columns), [rows, columns]);
+   const dynamicColumns = useMemo(() => rows && columns && getDynamicColumnWidths(rows, presentationColumns(columns)), [rows, columns]);
 
    // Build initial visibility model where listed columns are hidden
    const columnVisibilityModel = (initiallyHiddenColumns || []).reduce((acc, col) => {

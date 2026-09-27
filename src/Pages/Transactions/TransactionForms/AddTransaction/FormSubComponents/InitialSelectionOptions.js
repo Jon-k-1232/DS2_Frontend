@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useContext } from 'react';
+import useJobSearch from '../../../../../Components/Lookups/useJobSearch';
+import useJobChoices from '../../../../../Components/Lookups/useJobChoices';
+import {useCustomerChoices} from '../../../../../Components/Lookups/CustomerPicker';
+import EntityPicker, {sameEntity} from '../../../../../Components/BillingEntities/EntityPicker';
+import React, { useState, useEffect } from 'react';
 import { Box, Stack, Tooltip, IconButton, TextField, Autocomplete } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
@@ -7,9 +11,7 @@ import dayjs from 'dayjs';
 import AutoCompleteWithDialog from '../../../../../Components/Dialogs/AutoCompleteWithDialog';
 import NewJob from '../../../../Jobs/JobForms/AddJob/NewJob';
 import NewCustomer from '../../../../Customer/CustomerForms/AddCustomer/NewCustomer';
-import { getCustomerJobsList } from '../../../../../Services/ApiCalls/FetchCalls';
 import { getOpenInvoicesForPayment } from '../../../../../Services/SharedFunctions';
-import { context } from '../../../../../App';
 import './Transactions.css';
 import SplitOptionLabel from '../../../../../Components/SplitOptionLabel';
 
@@ -29,13 +31,13 @@ export default function InitialSelectionOptions({
    const combinedData = { ...customerData, ...selectedItems, ...customerProfileData };
    const { selectedCustomer, selectedJob, selectedTeamMember, selectedDate, selectedInvoice } = combinedData;
 
-   const activeCustomers = combinedData.customersList?.activeCustomerData?.activeCustomers || [];
    const activeUsers = combinedData.teamMembersList?.activeUserData?.activeUsers || [];
-   const customerInvoiceData = combinedData?.customerInvoiceData?.customerInvoices || [];
+   const customerInvoiceData = (combinedData?.customerInvoiceData?.customerInvoices || []).filter(r=>sameEntity(r,selectedItems.entityId));
 
-   const { accountID, userID, token } = useContext(context).loggedInUser;
 
-   const [customerJobs, setCustomerJobs] = useState([]);
+   const [jobSearch,setJobSearch,jobScope]=useJobSearch(selectedCustomer?.customer_id,selectedItems.entityId);
+   const [customerSearch,setCustomerSearch]=useState('');
+   const clients=useCustomerChoices(customerData,customerSearch,selectedCustomer?.customer_id);
    const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
    const [jobDialogOpen, setJobDialogOpen] = useState(false);
 
@@ -79,10 +81,13 @@ export default function InitialSelectionOptions({
          setSelectedItems(prev => ({
             ...prev,
             [key]: value,
+            entityId:prev.entityLocked?prev.entityId:null,
+            customerInvoicesID:null,
             selectedJob: null,
             // An invoice belongs to one customer — carrying the selection across
             // a customer switch posted payments against the wrong customer's invoice.
             selectedInvoice: null,
+            selectedRetainer: null,
             foundInvoiceID: null
             // preserve everything else
          }));
@@ -103,34 +108,16 @@ export default function InitialSelectionOptions({
       setSelectedItems(prev => ({ ...prev, [key]: value }));
    };
 
-   // Fetch jobs when a customer is selected
-   const [externalJobBump, setExternalJobBump] = useState(0);
-   const [refreshingJobsLocal, setRefreshingJobsLocal] = useState(false);
-   const fetchJobsForCustomer = React.useCallback(async () => {
-      if (!selectedCustomer) return;
-      setRefreshingJobsLocal(true);
-      try {
-         const customerJobsList = await getCustomerJobsList(accountID, userID, selectedCustomer.customer_id, token);
-         const activeCustomerJobs = customerJobsList?.activeCustomerJobData?.activeCustomerJobs || [];
-         setCustomerJobs(activeCustomerJobs);
-      } finally {
-         setRefreshingJobsLocal(false);
-      }
-   }, [selectedCustomer, accountID, userID, token]);
-
-   useEffect(() => {
-      fetchJobsForCustomer();
-   }, [selectedCustomer, jobDialogOpen, externalJobBump, fetchJobsForCustomer]);
-
-   useEffect(() => {
-      const handler = () => setExternalJobBump(n => n + 1);
-      window.addEventListener('jobs:updated', handler);
-      return () => window.removeEventListener('jobs:updated', handler);
-   }, []);
+   const [externalJobBump,setExternalJobBump]=useState(0);
+   const jobChoices=useJobChoices(page==='Retainer'||page==='WriteOff'?undefined:selectedCustomer?.customer_id,selectedItems.entityId,jobSearch,externalJobBump,selectedJob?.customer_job_id);
+   const customerJobs=jobChoices.rows,refreshingJobsLocal=jobChoices.loading;
+   const fetchJobsForCustomer=()=>setExternalJobBump(n=>n+1);
+   useEffect(()=>{const refresh=()=>setExternalJobBump(n=>n+1);window.addEventListener('jobs:updated',refresh);return()=>window.removeEventListener('jobs:updated',refresh);},[]);
 
    const jobAutoCompleteProps = {
       autoCompleteLabel: 'Select Job',
       autoCompleteOptionsList: customerJobs,
+      onSearch:setJobSearch,loading:jobChoices.loading,error:jobChoices.error,remote:true,
       onChangeKey: 'selectedJob',
       optionLabelProperty: 'job_description',
       valueTestProperty: 'customer_job_id',
@@ -141,7 +128,8 @@ export default function InitialSelectionOptions({
 
    const customerAutoCompleteProps = {
       autoCompleteLabel: 'Select Customer',
-      autoCompleteOptionsList: activeCustomers,
+      autoCompleteOptionsList: clients.rows,
+      onSearch:setCustomerSearch,loading:clients.loading,error:clients.error,remote:clients.remote,
       onChangeKey: 'selectedCustomer',
       optionLabelProperty: 'display_name',
       valueTestProperty: 'customer_id',
@@ -157,6 +145,7 @@ export default function InitialSelectionOptions({
 
    return (
       <>
+         <EntityPicker disabled={selectedItems.entityLocked} value={selectedItems.entityId} preferredId={selectedItems.selectedJob?.billing_entity_id} customerId={selectedItems.selectedCustomer?.customer_id} onChange={entityId=>setSelectedItems(prev=>({...prev,entityId,...(prev.entityId && prev.entityId!==entityId?{selectedJob:null,selectedInvoice:null,selectedRetainer:null,foundInvoiceID:null,customerInvoicesID:null}:{})}))} />
          <LocalizationProvider dateAdapter={AdapterDayjs}>
             {/* Use local dateValue for DateTimePicker */}
             <DateTimePicker
@@ -181,6 +170,7 @@ export default function InitialSelectionOptions({
                <Stack direction='row' alignItems='center' spacing={0.5} sx={{ width: '100%', maxWidth: 350 }}>
                   <Box sx={{ flex: 1 }}>
                      <AutoCompleteWithDialog
+                        key={jobScope}
                         dialogTitle='New Job'
                         dialogOpen={jobDialogOpen}
                         setDialogOpen={setJobDialogOpen}
@@ -244,6 +234,7 @@ export default function InitialSelectionOptions({
                   <Autocomplete
                      size='small'
                      sx={{ width: '100%', maxWidth: 350, marginTop: '15px' }}
+                     key={jobScope}
                      value={selectedJob}
                      onChange={(event, value) => handleAutocompleteChange('selectedJob', value)}
                      getOptionLabel={option => option.job_description}
@@ -253,6 +244,8 @@ export default function InitialSelectionOptions({
                      // / customerJobData that aren't populated on the Payment form, so the
                      // dropdown was always empty.
                      options={customerJobs || []}
+                     onInputChange={(_,v,reason)=>{if(reason==='input'||reason==='clear')setJobSearch(v);}}
+                     filterOptions={x=>x}
                      noOptionsText={selectedCustomer ? 'No jobs found for this customer' : 'Select a customer first'}
                      renderInput={params => (
                         <TextField

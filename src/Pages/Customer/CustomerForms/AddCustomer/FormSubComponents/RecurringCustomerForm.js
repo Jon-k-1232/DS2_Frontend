@@ -1,16 +1,17 @@
+import EntityPicker from '../../../../../Components/BillingEntities/EntityPicker';
 import { Stack, TextField, FormControl, RadioGroup, FormControlLabel, Radio, Autocomplete } from '@mui/material';
 import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
-const frequencies = ['Monthly', 'Quarterly', 'Yearly'];
+const frequencies = ['Monthly', 'Quarterly', 'Semiannual', 'Annual'];
 
 export default function RecurringCustomerForm({ selectedItems, setSelectedItems }) {
   const { recurringAmount, billingCycle, subscriptionFrequency, selectedStartDate } = selectedItems;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Stack spacing={2}>
+      <Stack spacing={2}><EntityPicker value={selectedItems.entityId} onChange={entityId=>setSelectedItems(v=>({...v,entityId}))} />
         <DateTimePicker
           sx={{ width: 350 }}
           className='recurringDate'

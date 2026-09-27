@@ -3,14 +3,14 @@ import { Autocomplete, TextField, Checkbox, Tooltip } from '@mui/material';
 import { context } from '../../App';
 import { fetchExclusions } from '../../Services/ApiCalls/AnalyticsCalls';
 
-const STORAGE_KEY = 'ds2_analytics_exclude';
+const storageKey = accountID => `ds2_analytics_exclude_${accountID}`;
 
-const readStored = () => {
+const readStored = accountID => {
    try {
-      const raw = window.sessionStorage.getItem(STORAGE_KEY);
+      const raw = window.sessionStorage.getItem(storageKey(accountID));
       if (!raw) return null;
       const ids = JSON.parse(raw);
-      return Array.isArray(ids) ? ids.map(Number).filter(Number.isInteger) : null;
+      return Array.isArray(ids) ? ids.map(Number).filter(id => Number.isInteger(id) && id > 0) : null;
    } catch {
       return null;
    }
@@ -35,9 +35,13 @@ export default function useExcludedCustomers() {
    const [customers, setCustomers] = useState([]);
    const [excludedIds, setExcludedIds] = useState([]);
    const [ready, setReady] = useState(false);
+   const [loadedAccount, setLoadedAccount] = useState(null);
 
    useEffect(() => {
       let cancelled = false;
+      setReady(false);
+      setCustomers([]);
+      setExcludedIds([]);
       const load = async () => {
          try {
             const res = await fetchExclusions(accountID, userID);
@@ -47,15 +51,16 @@ export default function useExcludedCustomers() {
             setCustomers(list);
             // Stored selection wins so the choice sticks across pages/reloads;
             // first visit falls back to the firm's default exclusions.
-            const stored = readStored();
+            const stored = readStored(accountID);
             setExcludedIds(stored ?? defaults);
          } catch (err) {
-            // Non-fatal: pages still render, just unfiltered.
+            if (cancelled) return;
+            // Non-fatal: pages still render with only this account's choices.
             console.error('Error loading analytics exclusions:', err);
             setCustomers([]);
-            setExcludedIds(readStored() ?? []);
+            setExcludedIds(readStored(accountID) ?? []);
          } finally {
-            if (!cancelled) setReady(true);
+            if (!cancelled) { setLoadedAccount(accountID); setReady(true); }
          }
       };
       if (accountID && userID) load();
@@ -68,16 +73,16 @@ export default function useExcludedCustomers() {
       const ids = selected.map(c => c.customer_id);
       setExcludedIds(ids);
       try {
-         window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+         window.sessionStorage.setItem(storageKey(accountID), JSON.stringify(ids));
       } catch {
          // sessionStorage unavailable — selection is still live in state.
       }
-   }, []);
+   }, [accountID]);
 
    const value = useMemo(() => customers.filter(c => excludedIds.includes(c.customer_id)), [customers, excludedIds]);
 
    const filter = (
-      <Tooltip title='Customers excluded from every analytics page. Defaults to the firm’s own related entities.'>
+      <Tooltip disableInteractive title='Customers excluded from every analytics page. Defaults to the firm’s own related entities.'>
          <Autocomplete
             multiple
             size='small'
@@ -107,5 +112,5 @@ export default function useExcludedCustomers() {
       </Tooltip>
    );
 
-   return { ready, excludedIds, filter };
+   return { ready: ready && loadedAccount === accountID, excludedIds: loadedAccount === accountID ? excludedIds : [], filter };
 }

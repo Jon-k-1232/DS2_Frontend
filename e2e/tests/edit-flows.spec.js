@@ -13,7 +13,7 @@ test.describe('Billed transaction delete refusal', () => {
     await page.goto(routes.transactions);
     await page.getByPlaceholder('Search transactions').fill(prefix);
     await page.locator(`[role="row"][data-id="${transaction.transaction_id}"]`).click();
-    await expect(page).toHaveURL(/deleteTimeOrCharge$/);
+    await expect(page).toHaveURL(/delete$/);
     await expect(page.getByRole('alert')).toContainText('Sent — locked');
     await expect(page.getByRole('button', { name: 'Delete Transaction', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open invoice history', exact: true })).toBeVisible();
@@ -28,13 +28,13 @@ test.describe('Pending payments page', () => {
   // fetchPendingPayments + the Upload tab) this task didn't otherwise touch —
   // not constructed here (see final report). This confirms the page's other
   // three tabs are at least reachable and error-free, extending the existing
-  // sidebar-navigation coverage of the New Payments tab alone.
-  test('Processed, All Payments and Upload tabs render without error', async ({ page }) => {
+  // sidebar-navigation coverage of the New payments tab alone.
+  test('Processed, All payments and Upload tabs render without error', async ({ page }) => {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto('/transactions/pendingPayments');
-    await expect(page.getByRole('tab', { name: 'New Payments', exact: false })).toBeVisible();
-    for (const tab of ['Processed', 'All Payments', 'Upload']) {
+    await page.goto('/payments/imports');
+    await expect(page.getByRole('tab', { name: 'New payments', exact: false })).toBeVisible();
+    for (const tab of ['Processed', 'All payments', 'Upload']) {
       await page.getByRole('tab', { name: tab, exact: false }).click();
       await expect(page.locator('[role="alert"].MuiAlert-standardError')).toHaveCount(0);
     }

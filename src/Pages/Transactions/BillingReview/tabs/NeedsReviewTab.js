@@ -1,3 +1,4 @@
+import CustomerPicker from '../../../../Components/Lookups/CustomerPicker';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Checkbox, Chip, CircularProgress, MenuItem, Stack, Table, TableBody, TableCell, TableHead, TablePagination, TableRow, TableSortLabel, TextField, Tooltip, Typography } from '@mui/material';
 import { context } from '../../../../App';
@@ -71,7 +72,6 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
    useEffect(() => { const t = setTimeout(() => setDebouncedTracker(filterTracker), 300); return () => clearTimeout(t); }, [filterTracker]);
    useEffect(() => { const t = setTimeout(() => setDebouncedNotes(filterNotes), 300); return () => clearTimeout(t); }, [filterNotes]);
 
-   const customers = customerData?.customersList?.activeCustomerData?.activeCustomers || [];
    const employees = customerData?.teamMembersList?.activeUserData?.activeUsers || [];
    const workDescriptions = customerData?.workDescriptionsList?.activeWorkDescriptionsData?.workDescriptions || [];
 
@@ -309,7 +309,7 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
                   size='small'
                   disabled={reprocessing || !reprocessEligible || selectedIds.size === 0}
                   onClick={onReprocessSelected}
-                  title={!reprocessEligible ? 'TIME_TRACKER_AI_FEATURE_FLAG must be on for this account' : ''}
+                  title={!reprocessEligible ? 'Ask an administrator about automated matching' : ''}
                >
                   {reprocessing ? 'Processing…' : `Run AI on ${selectedIds.size} selected`}
                </Button>
@@ -319,7 +319,7 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
                   size='small'
                   disabled={reprocessing || !reprocessEligible || reprocessCount === 0}
                   onClick={onReprocess}
-                  title={!reprocessEligible ? 'TIME_TRACKER_AI_FEATURE_FLAG must be on for this account' : ''}
+                  title={!reprocessEligible ? 'Ask an administrator about automated matching' : ''}
                >
                   {reprocessing ? 'Processing…' : `Run AI on ${reprocessCount} pending`}
                </Button>
@@ -327,7 +327,7 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
          </Stack>
          {!reprocessEligible && (
             <Alert severity='info'>
-               The AI pipeline isn't enabled for this account yet. Set <code>TIME_TRACKER_AI_FEATURE_FLAG=test</code> and add this account to <code>TIME_TRACKER_AI_TEST_ACCOUNT_IDS</code> to enable the reprocess button.
+               Automated matching is unavailable for this account. Review held entries manually or ask an administrator for help.
             </Alert>
          )}
          {reprocessNotice && <Alert severity='info'>{reprocessNotice}</Alert>}
@@ -378,19 +378,14 @@ export default function NeedsReviewTab({ customerData, setCustomerData }) {
                      <MenuItem key={e} value={e}>{e}</MenuItem>
                   ))}
                </TextField>
-               <TextField
-                  select
+               <CustomerPicker menu customerData={customerData}
+                  
                   size='small'
                   label='Customer'
                   value={filterCustomerId}
-                  onChange={e => setFilterCustomerId(e.target.value)}
+                  onChange={value=> setFilterCustomerId(value)}
                   sx={{ minWidth: 220 }}
-               >
-                  <MenuItem value=''>(any)</MenuItem>
-                  {customers.map(c => (
-                     <MenuItem key={c.customer_id} value={c.customer_id}>{c.display_name}</MenuItem>
-                  ))}
-               </TextField>
+                />
                <TextField
                   select
                   size='small'

@@ -14,6 +14,8 @@ const HIDDEN_FIELDS = new Set(['customer_id', 'write_off_count', 'customer_name'
 const CURRENCY_FIELDS = {
    outstanding_invoice_total: 'Outstanding Balance',
    billable_transactions_total: 'New Work Total',
+   held_credit_available: 'Available receipt credit',
+   held_credit_applied: 'Receipt credit applied',
    invoice_total: 'Invoice Total'
 };
 
@@ -189,7 +191,7 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
          // Hide-zero uses the real invoice_total from the backend calculation
          // engine. Must compare the MAGNITUDE — a credit balance (negative
          // invoice_total) is not "zero" and shouldn't be swept away with it.
-         if (hideZero && !Number(row.retainer_event_count) && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
+         if (hideZero && !Number(row.retainer_event_count) && !Number(row.held_credit_applied) && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
 
          // Name search
          const term = searchText.trim().toLowerCase();
@@ -347,7 +349,7 @@ export default function CreateInvoiceGridTable({ gridData, passedHeight, selecte
             if (!selectedRowIds.includes(row.customer_id)) return false;
             // Double-guard: strip zero-balance rows from submission when filter is
             // active — by magnitude, so a credit balance is never swept out.
-            if (hideZero && !Number(row.retainer_event_count) && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
+            if (hideZero && !Number(row.retainer_event_count) && !Number(row.held_credit_applied) && Math.abs(Number(row.invoice_total) || 0) < 0.005) return false;
             return true;
          })
          .map(row => ({

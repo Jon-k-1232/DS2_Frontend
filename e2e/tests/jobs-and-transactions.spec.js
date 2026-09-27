@@ -13,7 +13,7 @@ test('create job, bill 0.3 hours at $75, add charge and delete through UI', asyn
   await charge.click();
   await page.getByRole('button',{name:'Delete Transaction',exact:true}).click();
   await submit(page,page.getByRole('dialog'),'/transactions/delete','Delete');
-  await expect(page).toHaveURL(/customerTransactions$/);
+  await expect(page).toHaveURL(/work\/entries$/);
   await page.getByPlaceholder('Search transactions').fill(prefix);
   await expect(charge).toHaveCount(0);
   await expect(time).toBeVisible();

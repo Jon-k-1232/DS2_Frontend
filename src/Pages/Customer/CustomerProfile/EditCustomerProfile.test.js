@@ -40,12 +40,12 @@ describe('EditCustomerProfile — body-status 404 profileData', () => {
       } finally {
          silence.mockRestore();
       }
-      expect(mockNavigate).toHaveBeenCalledWith('/customers/customersList');
+      expect(mockNavigate).toHaveBeenCalledWith('/clients');
    });
 
    it('navigates away for a missing profileData too (pre-existing "nothing loaded yet" path)', () => {
       expect(() => renderWith(null)).not.toThrow();
-      expect(mockNavigate).toHaveBeenCalledWith('/customers/customersList');
+      expect(mockNavigate).toHaveBeenCalledWith('/clients');
    });
 
    it('renders the edit form (does not navigate away) for a genuine successful profile load', () => {

@@ -41,7 +41,7 @@ test.describe.serial('Pass 3 owner decisions on the local screens', () => {
     await page.goto(routes.invoices);
     await page.getByPlaceholder('Search invoices').fill(invoice.invoice_number);
     await page.getByRole('row').filter({ hasText: invoice.invoice_number }).first().click();
-    await expect(page.getByText(/Sent — locked ·/)).toBeVisible();
+    await expect(page.getByRole('alert').filter({hasText:`Sent — locked · ${invoice.invoice_number}`})).toBeVisible();
     await page.getByRole('button', { name: 'Flag exception', exact: true }).click();
     await expect(page.getByText('No eligible receipts on this statement.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Record exception', exact: true })).toBeDisabled();
@@ -60,7 +60,7 @@ test.describe.serial('Pass 3 owner decisions on the local screens', () => {
     await d.getByLabel('Note', { exact: true }).fill(prefix);
     await submit(page, d, '/retainers/create'); await closeForm(page);
     const before = financial();
-    await page.goto(`/customers/customersList/customerProfile/${customer.id}/retainersAndPrePayments`);
+    await page.goto(`/clients/${customer.id}/credits`);
     await expect(page.getByText('Available credit: $25.00', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Review event', exact: true })).toBeDisabled();
     await page.getByLabel('Amount', { exact: true }).fill('26');
@@ -81,7 +81,7 @@ test.describe.serial('Pass 3 owner decisions on the local screens', () => {
   test('duplicate review requires a reason and refuses removal of the sent charge', async ({ page }) => {
     const [work] = rows(`SELECT transaction_id,total_transaction FROM customer_transactions WHERE account_id=9001 AND customer_id=${customer.id}`);
     const before = financial();
-    await page.goto('/transactions/possibleDuplicates');
+    await page.goto('/work/duplicates');
     await expect(page.getByRole('button', { name: 'Flag possible duplicate', exact: true })).toBeDisabled();
     await page.getByLabel('Record ID', { exact: true }).fill(String(work.transaction_id));
     await expect(page.getByRole('button', { name: 'Flag possible duplicate', exact: true })).toBeDisabled();
@@ -99,7 +99,7 @@ test.describe.serial('Pass 3 owner decisions on the local screens', () => {
   });
   test('Audit Record rejects reversed dates, prints and reopens identical verified bytes without changing money', async ({ page }, info) => {
     const before = financial();
-    await page.goto(`/customers/customersList/customerProfile/${customer.id}/auditRecord`);
+    await page.goto(`/clients/${customer.id}/auditRecord`);
     await expect(page.getByRole('table', { name: 'Account history', exact: true })).toBeVisible();
     await page.getByLabel('From', { exact: true }).fill('2026-09-25');
     await page.getByLabel('Through', { exact: true }).fill('2026-09-24');
@@ -122,7 +122,7 @@ test.describe.serial('Pass 3 owner decisions on the local screens', () => {
   test('employee cannot reach Audit Record or its API', async ({ browser }) => {
     guard(); const context = await browser.newContext(); await authenticate(context, 'employee'); const page = await context.newPage();
     try {
-      await page.goto(`http://localhost:3003/customers/customersList/customerProfile/${customer.id}/auditRecord`);
+      await page.goto(`http://localhost:3003/clients/${customer.id}/auditRecord`);
       await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
       await expect(page.getByRole('tab', { name: 'Audit Record', exact: true })).toHaveCount(0);
       const response = await context.request.get(`http://localhost:8003/auditRecord/customer/${customer.id}/9001/90011`);

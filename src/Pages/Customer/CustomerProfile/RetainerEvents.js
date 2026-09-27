@@ -1,3 +1,4 @@
+import ActorName from '../../../Components/Workspace/ActorName';
 import React, {useContext,useEffect,useMemo,useState} from 'react';
 import {Alert,Button,Stack,TextField,MenuItem,Typography,Table,TableHead,TableRow,TableCell,TableBody} from '@mui/material';
 import {context} from '../../../App';
@@ -5,7 +6,8 @@ import {retainerEventsCall} from '../../../Services/ApiCalls/LedgerReviewCalls';
 const dollars=n=>`$${Number(n || 0).toFixed(2)}`;
 const localDate=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);};
 export default function RetainerEvents({rows=[],onChanged}) {
- const {accountID,userID}=useContext(context).loggedInUser;
+ const {accountID,userID,accessLevel}=useContext(context).loggedInUser;
+ const admin=['admin','super admin'].includes((accessLevel || '').toLowerCase());
  const roots=useMemo(()=>rows.filter(r=>!r.parent_retainer_id),[rows]);
  const [selected,setSelected]=useState(roots[0]?.retainer_id || '');
  const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState(''),[confirm,setConfirm]=useState(false);
@@ -37,6 +39,8 @@ export default function RetainerEvents({rows=[],onChanged}) {
   {data && <>
    <Typography>Available credit: {dollars(data.available)}</Typography>
    {data.lockedInvoice && <Alert severity='info'>Original records are locked to {data.lockedInvoice}. This records new activity on the next statement.</Alert>}
+   {!admin && <Alert severity='info'>Only admins may refund or adjust retainers.</Alert>}
+   {admin && <>
    <TextField select label='Event type' value={form.kind} disabled={busy} onChange={e=>change('kind',e.target.value)}><MenuItem value='refund'>Refund to client</MenuItem><MenuItem value='adjustment'>Adjustment</MenuItem></TextField>
    {form.kind==='adjustment' && <TextField select label='Direction' value={form.direction} disabled={busy} onChange={e=>change('direction',e.target.value)}><MenuItem value='increase'>Increase credit</MenuItem><MenuItem value='decrease'>Decrease credit</MenuItem></TextField>}
    <TextField label='Amount' value={form.amount} disabled={busy} error={!!form.amount && !amountValid} helperText={form.amount && !amountValid ? 'Enter a positive amount with at most two decimal places, up to $99,999,999.99.' : ''} onChange={e=>change('amount',e.target.value)} inputProps={{inputMode:'decimal'}} />
@@ -48,9 +52,10 @@ export default function RetainerEvents({rows=[],onChanged}) {
    {after<0 && <Alert severity='error'>The amount exceeds available credit. Funds already applied cannot be removed.</Alert>}
    {!confirm ? <Button disabled={!valid || busy} onClick={()=>setConfirm(true)}>Review event</Button> : <Alert severity='warning'>Confirm {form.kind} of {dollars(form.amount)}. Availability changes from {dollars(data.available)} to {dollars(after)}. Saved events cannot be edited.
     <Button disabled={busy} onClick={submit}>Confirm record event</Button><Button disabled={busy} onClick={()=>setConfirm(false)}>Cancel</Button></Alert>}
+   </>}
    <Typography variant='h6'>Retainer event history</Typography>
    <Table size='small'><TableHead><TableRow>{['Date','Event','Amount','Available before / after','Method / Reference','Reason','Recorded by / at'].map(x=><TableCell key={x}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{data.events.map(e=><TableRow key={e.event_id}>
-    <TableCell>{String(e.event_date).slice(0,10)}</TableCell><TableCell>{e.kind} {e.direction}</TableCell><TableCell>{dollars(e.amount)}</TableCell><TableCell>{dollars(e.available_before)} / {dollars(e.available_after)}</TableCell><TableCell>{e.method} / {e.reference}</TableCell><TableCell>{e.reason}</TableCell><TableCell>User {e.actor_id} / {new Date(e.created_at).toLocaleString()}</TableCell>
+    <TableCell>{String(e.event_date).slice(0,10)}</TableCell><TableCell>{e.kind} {e.direction}</TableCell><TableCell>{dollars(e.amount)}</TableCell><TableCell>{dollars(e.available_before)} / {dollars(e.available_after)}</TableCell><TableCell>{e.method} / {e.reference}</TableCell><TableCell>{e.reason}</TableCell><TableCell><ActorName id={e.actor_id} name={e.actor_name}/> / {new Date(e.created_at).toLocaleString()}</TableCell>
    </TableRow>)}</TableBody></Table>
   </>}
  </Stack>;

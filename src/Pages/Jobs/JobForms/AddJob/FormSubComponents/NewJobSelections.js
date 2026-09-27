@@ -1,3 +1,4 @@
+import CustomerPicker from '../../../../../Components/Lookups/CustomerPicker';
 import { useState } from 'react';
 import { Box, Autocomplete, TextField, FormControlLabel, Checkbox } from '@mui/material';
 
@@ -7,7 +8,6 @@ export default function NewJobSelections({ customerData, selectedItems, setSelec
 
    const {
       jobCategoriesList: { activeJobCategoriesData: { activeJobCategories } = {} } = {},
-      customersList: { activeCustomerData: { activeCustomers } = {} } = {},
       jobTypesList: { activeJobTypesData: { jobTypesData } = {} } = {}
    } = customerData ?? {};
 
@@ -28,15 +28,7 @@ export default function NewJobSelections({ customerData, selectedItems, setSelec
    return (
       <>
          <Box>
-            <Autocomplete
-               size='small'
-               sx={{ width: 350 }}
-               value={selectedCustomer}
-               onChange={(event, newValue) => setSelectedItems(otherItems => ({ ...otherItems, selectedCustomer: newValue }))}
-               getOptionLabel={option => option.display_name || ''}
-               options={activeCustomers || []}
-               renderInput={params => <TextField {...params} label='Select Customer' variant='standard' />}
-            />
+            <CustomerPicker customerData={customerData} label='Select Customer' value={selectedCustomer} onChange={value=>setSelectedItems(items=>({...items,selectedCustomer:value}))} size='small' sx={{width:350}}/>
             <TextField
                sx={{ width: '350px' }}
                variant='standard'

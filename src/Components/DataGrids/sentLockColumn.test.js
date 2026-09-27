@@ -8,5 +8,5 @@ it('keeps a visible status after feature column filtering',()=> {
 });
 it('adds a visible duplicate badge linking to its review after grid filtering',()=>{
  const row={possible_duplicate:true,duplicate_ids:[8]};const cols=withSentLockColumn([{field:'name'}],[row]);
- expect(cols[0].headerName).toBe('Duplicate review');const chip=cols[0].renderCell({row});expect(chip.props.label).toBe('Possible duplicate');expect(chip.props.href).toBe('/transactions/possibleDuplicates?duplicateId=8');expect(cols[0].renderCell({row:{}})).toBe(null);
+ expect(cols[0].headerName).toBe('Duplicate review');const chip=cols[0].renderCell({row});expect(chip.props.label).toBe('Possible duplicate');expect(chip.props.href).toBe('/work/duplicates?duplicateId=8');expect(cols[0].renderCell({row:{}})).toBe(null);
 });

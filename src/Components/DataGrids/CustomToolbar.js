@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { GridToolbarContainer, GridToolbarExport, GridToolbarFilterButton, GridToolbarColumnsButton, GridToolbarQuickFilter } from '@mui/x-data-grid';
 import { DialogContent, DialogTitle, Dialog, IconButton, Box, Tooltip, Button } from '@mui/material';
 
@@ -13,6 +13,7 @@ const CustomToolbar = ({
    renderToolbarContent,
    renderExport
 }) => {
+   const titleId=useId();
    const [openDialog, setOpenDialog] = useState(null);
 
    const handleClickOpen = index => () => setOpenDialog(index);
@@ -25,10 +26,10 @@ const CustomToolbar = ({
             arrayOfButtons.map((button, index) => (
                <div key={index}>
                   <Tooltip title={button.tooltipText || 'Add'}>
-                     <IconButton onClick={handleClickOpen(index)}>{button.icon()}</IconButton>
+                     <IconButton aria-label={button.tooltipText || button.dialogTitle || 'Add'} onClick={handleClickOpen(index)}>{button.icon()}</IconButton>
                   </Tooltip>
-                  <Dialog maxWidth={dialogSize ? dialogSize : 'md'} fullWidth style={{ display: 'flex', justifyContent: 'center' }} open={openDialog === index} onClose={handleClose}>
-                     <DialogTitle>{button.dialogTitle}</DialogTitle>
+                  <Dialog aria-labelledby={`${titleId}-${index}`} maxWidth={dialogSize ? dialogSize : 'md'} fullWidth style={{ display: 'flex', justifyContent: 'center' }} open={openDialog === index} onClose={handleClose}>
+                     <DialogTitle id={`${titleId}-${index}`}>{button.dialogTitle}</DialogTitle>
                      <DialogContent>{button.component()}</DialogContent>
                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', padding: '10px' }}>
                         <Button onClick={handleClose}>Cancel</Button>

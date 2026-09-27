@@ -1,7 +1,7 @@
 import useFinancialSubmit, { validateFinancialForm } from './FormSubComponents/useFinancialSubmit';
 import { priceQuantity } from './FormSubComponents/TimeTrackingIncrements';
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { Button, Typography, Alert, Box } from '@mui/material';
+import { Button, Typography, Alert, Box, TextField } from '@mui/material';
 import dayjs from 'dayjs';
 import InitialSelectionOptions from './FormSubComponents/InitialSelectionOptions';
 import TimeOptions from './FormSubComponents/TimeOptions';
@@ -28,6 +28,7 @@ const initialState = {
    transactionType: 'Time',
    selectedRetainer: null,
    minutes: '',
+   costChangeReason: '',
    timesheetEntryID: null
 };
 
@@ -74,6 +75,9 @@ export default function Time({
       // eslint-disable-next-line
    }, []);
 
+   const employeeChanged = passedTransactionData.timesheet_entry_id && passedTransactionData.user_id && selectedItems.selectedTeamMember && Number(passedTransactionData.user_id) !== Number(selectedItems.selectedTeamMember.user_id);
+   const employeeReasonError = employeeChanged && !selectedItems.costChangeReason?.trim() ? 'Enter a reason for changing the employee.' : null;
+
    const handleSubmit = () => submit(async () => {
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser);
       const postedItem = await passedPostCall(dataToPost, accountID, userID);
@@ -98,7 +102,7 @@ export default function Time({
             onSuccess();
          }
       }
-   }, validateFinancialForm(selectedItems, 'Time'));
+   }, employeeReasonError || validateFinancialForm(selectedItems, 'Time'));
 
    return (
       <>
@@ -123,6 +127,8 @@ export default function Time({
             fieldSuggestions={{ generalWorkDescription: suggestionDetails.generalWorkDescription, confidence: suggestionDetails.confidence }}
          />
 
+         {employeeChanged && <TextField fullWidth required label='Reason for employee change' value={selectedItems.costChangeReason || ''} onChange={e => setSelectedItems(prev => ({...prev, costChangeReason:e.target.value}))} helperText='Captures the selected employee’s cost rate for this work.' />}
+
          <Typography variant='body1'>
             Total:
             {(priceQuantity(quantity, unitCost))
@@ -136,7 +142,7 @@ export default function Time({
                <Button onClick={handleSubmit} variant='contained' disabled={submitting}>{submitting ? 'Submitting…' : submitLabel}</Button>
                {secondaryButton && (
                   <Button
-                     onClick={() => secondaryButton.onClick && secondaryButton.onClick(selectedItems)}
+                     onClick={() => employeeReasonError ? setPostStatus({status:400,message:employeeReasonError}) : secondaryButton.onClick?.(selectedItems)}
                      variant={secondaryButton.variant || 'outlined'}
                      disabled={secondaryButton.disabled}
                   >

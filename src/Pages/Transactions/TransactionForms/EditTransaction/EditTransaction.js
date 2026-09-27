@@ -1,6 +1,9 @@
+import RecurringWorkNotice from '../../../../Components/RecurringWorkNotice';
+import ReclassifyWork from '../../../../Components/BillingEntities/ReclassifyWork';
+import useFinancialSubmit, { validateFinancialForm } from '../AddTransaction/FormSubComponents/useFinancialSubmit';
 import { priceQuantity } from '../AddTransaction/FormSubComponents/TimeTrackingIncrements';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { context } from '../../../../App';
 import { TextField, Typography, Autocomplete, Box, Alert, Button } from '@mui/material';
@@ -37,6 +40,15 @@ export default function EditTransaction({ customerData, setCustomerData, transac
 
    const [selectedItems, setSelectedItems] = useState(initialState);
    const [postStatus, setPostStatus] = useState(null);
+   const [costChangeReason, setCostChangeReason] = useState('');
+   const { submitting, submit } = useFinancialSubmit(setPostStatus);
+   const initializedRecord = useRef(null);
+   const referencesReady = [
+      customerData?.customersList?.activeCustomerData?.activeCustomers,
+      customerData?.teamMembersList?.activeUserData?.activeUsers,
+      customerData?.accountJobsList?.activeJobData?.activeJobs,
+      customerData?.workDescriptionsList?.activeWorkDescriptionsData?.workDescriptions
+   ].every(Array.isArray);
 
    const { quantity, unitCost, transactionType } = selectedItems;
 
@@ -64,30 +76,40 @@ export default function EditTransaction({ customerData, setCustomerData, transac
    } = transactionData || {};
 
    useEffect(() => {
-      if (transactionData && Object.keys(transactionData).length) {
+      if (referencesReady && transactionData?.transaction_id && initializedRecord.current !== transactionData) {
+         initializedRecord.current = transactionData;
          setSelectedItems({
             ...selectedItems,
+            entityId:transactionData.billing_entity_id,
+            entityLocked:true,
             transactionID: transaction_id,
             quantity: Number(transactionData.quantity),
-            selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
-            selectedJob: activeJobs.find(job => job.customer_job_id === customer_job_id),
-            selectedTeamMember: activeUsers.find(user => user.user_id === logged_for_user_id),
+            selectedCustomer: (activeCustomers || []).find(customer => customer.customer_id === customer_id),
+            selectedJob: (activeJobs || []).find(job => job.customer_job_id === customer_job_id),
+            selectedTeamMember: (activeUsers || []).find(user => user.user_id === logged_for_user_id),
             isTransactionBillable: is_transaction_billable,
             detailedJobDescription: detailed_work_description,
             isInAdditionToMonthlyCharge: is_excess_to_subscription,
             unitCost: unit_cost,
             selectedDate: dayjs(transaction_date),
             transactionType: transaction_type,
-            selectedGeneralWorkDescription: workDescriptions.find(workDescription => workDescription.general_work_description_id === general_work_description_id),
-            selectedRetainer: activeRetainers.find(retainer => retainer.retainer_id === retainer_id) || null
+            selectedGeneralWorkDescription: (workDescriptions || []).find(workDescription => workDescription.general_work_description_id === general_work_description_id),
+            selectedRetainer: (activeRetainers || []).find(retainer => retainer.retainer_id === retainer_id) || null
          });
       }
       // eslint-disable-next-line
-   }, [transactionData]);
+   }, [transactionData, customerData, referencesReady]);
 
-   const handleSubmit = async () => {
+   const handleSubmit = () => submit(async () => {
+      if (Number(selectedItems.selectedTeamMember?.user_id) !== Number(logged_for_user_id) && !costChangeReason.trim()) {
+         setPostStatus({status:400,message:'Enter a reason for changing the employee.'});
+         return;
+      }
       const dataToPost = formObjectForTransactionPost(selectedItems, loggedInUser);
-      const postedItem = await putEditTransaction(dataToPost, accountID, userID);
+      dataToPost.costChangeReason = costChangeReason;
+      let postedItem;
+      try { postedItem = await putEditTransaction(dataToPost, accountID, userID); }
+      catch (error) { setPostStatus({ status:error.response?.status || 500, message:error.response?.data?.message || error.message || 'Unable to save work.' }); return; }
 
       setPostStatus(postedItem);
 
@@ -101,20 +123,25 @@ export default function EditTransaction({ customerData, setCustomerData, transac
          if (postedItem.warning) {
             setTimeout(() => {
                setPostStatus(null);
-               navigate('/transactions/customerTransactions');
+               navigate('/work/entries');
             }, 4000);
          } else {
             setTimeout(() => setPostStatus(null), 2000);
-            navigate('/transactions/customerTransactions');
+            navigate('/work/entries');
          }
       }
-   };
+   }, validateFinancialForm({...selectedItems, minutes:selectedItems.minutes ?? Number(selectedItems.quantity)*60}, transactionType));
 
    if (transactionData?.sent_locked) return <SentInvoiceNotice row={transactionData} />;
+   if (transactionData?.recurring_plan_id) return <RecurringWorkNotice planId={transactionData.recurring_plan_id} />;
+
+   if (!referencesReady || selectedItems.transactionID !== transaction_id) return <Alert severity='info'>Loading transaction choices…</Alert>;
 
    return (
       <>
          <Box style={{ width: 'fit-content' }}>
+            <ReclassifyWork transactionId={transaction_id} jobs={activeJobs} onChanged={()=>navigate('/work/entries')} />
+            {Number(selectedItems.selectedTeamMember?.user_id) !== Number(logged_for_user_id) && <TextField fullWidth required label='Reason for employee change' value={costChangeReason} onChange={e => setCostChangeReason(e.target.value)} helperText='Captures the selected employee’s cost rate for this unissued work.' />}
             <InitialSelectionOptions customerData={customerData} selectedItems={selectedItems} setSelectedItems={data => setSelectedItems(data)} />
 
             <Autocomplete
@@ -139,7 +166,7 @@ export default function EditTransaction({ customerData, setCustomerData, transac
             </Typography>
 
             <Box style={{ margin: '10px', textAlign: 'center' }}>
-               <Button onClick={handleSubmit}>Submit</Button>
+               <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit'}</Button>
                {postStatus && <Alert severity={postStatus.status === 200 ? 'success' : 'error'}>{postStatus.message}</Alert>}
                {postStatus?.warning && (
                   <Alert severity='info' sx={{ mt: 1 }}>

@@ -1,3 +1,4 @@
+import {sameEntity} from '../../../../../Components/BillingEntities/EntityPicker';
 import { useState, useEffect, useContext } from 'react';
 import { TextField, Autocomplete } from '@mui/material';
 import { fetchCustomerRetainerAndPrepaymentList } from '../../../../../Services/ApiCalls/FetchCalls';
@@ -38,7 +39,7 @@ export default function RetainerSelection({ selectedItems, setSelectedItems }) {
                      <SplitOptionLabel alignLeft={option.display_name} alignRight={`Remaining: $${option.current_amount}`} />
                   </li>
                )}
-               options={customerRetainersAndPrePayments || []}
+               options={(customerRetainersAndPrePayments || []).filter(r=>sameEntity(r,selectedItems.entityId))}
                renderInput={params => (
                   <TextField
                      {...params}

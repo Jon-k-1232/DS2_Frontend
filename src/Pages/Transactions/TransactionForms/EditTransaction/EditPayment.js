@@ -1,3 +1,4 @@
+import ReceiptApplicationNotice from '../../../../Components/ReceiptApplicationNotice';
 import SentInvoiceNotice from '../../../../Components/SentInvoiceNotice';
 import React, { useState, useEffect, useContext } from 'react';
 import { Box, Alert, Button, TextField, Stack, Typography } from '@mui/material';
@@ -69,6 +70,8 @@ export default function EditPayment({ customerData, setCustomerData, paymentData
 
          setSelectedItems({
             ...selectedItems,
+            entityId:paymentData.billing_entity_id,
+            entityLocked:true,
             accountID: account_id,
             selectedCustomer: activeCustomers.find(customer => customer.customer_id === customer_id),
             selectedInvoice: invoiceObject,
@@ -99,10 +102,11 @@ export default function EditPayment({ customerData, setCustomerData, paymentData
          setTimeout(() => setPostStatus(null), 2000);
          setSelectedItems(initialState);
          setCustomerData({ ...customerData, paymentsList: postedItem.paymentsList });
-         navigate('/transactions/customerPayments');
+         navigate('/payments/receipts/legacy');
       }
    };
 
+   if (paymentData?.receipt_id) return <ReceiptApplicationNotice receiptId={paymentData.receipt_id}/>;
    if (paymentData?.sent_locked) return <SentInvoiceNotice row={paymentData} />;
 
    return (

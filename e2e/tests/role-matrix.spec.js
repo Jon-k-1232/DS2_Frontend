@@ -1,37 +1,19 @@
 const { test, expect } = require('../lib/fixtures');
 
-// Manager tier is not covered: account 9001 has no manager-level fixture user
-// (only 90011/90012 employee, 90013 admin, 90014 inactive employee — verified
-// via SELECT access_level FROM users WHERE account_id=9001), and the only way
-// to create one through the UI (Account Users) is itself blocked by the
-// super-admin gate documented in account-users.spec.js. Creating one by
-// direct SQL insert into the `users` table would be fabricating a new login
-// identity outside the task's enumerated fixture set — out of scope here.
-// Admin's own full access is already exercised throughout every other spec
-// in this suite (and explicitly, page by page, in auth-and-navigation.spec.js).
+// Ordinary financial pages keep their existing employee restrictions.
+// H1 transfer history remains readable; H3's correction suite independently
+// covers manager, employee and both admin action permissions.
 test.describe('Employee role gating', () => {
   test.use({ identity: 'employee' });
 
-  // Correction to the task's assumption: buildSidebarRoutes (SidebarRoutes.js)
-  // only filters entries flagged requiresAuditor/requiresSuperAdmin — none of
-  // Customers/Transactions/Invoices/Jobs/Account Settings carry either flag,
-  // and DashboardSidebar.js applies no further access-level filtering of its
-  // own. So the sidebar leaf links themselves stay visible (and reachable by
-  // expanding their group, same as any role) for every role; only the ROUTE
-  // guard (ManagerAndAdminProtectedAccessRoute) refuses the page once you
-  // click through. Both halves are verified below: the leaf link is there,
-  // and using it lands on the Unauthorized page, not the real one.
-  test('sidebar leaf links stay visible but Customers/Transactions/Invoices/Jobs pages are refused', async ({ page }) => {
+  test('employee navigation retains transfer history while guarded financial pages stay protected', async ({ page }) => {
     await page.goto('/time-tracking/upload');
-    await expect(page.getByRole('heading', { name: 'Submit Your Time Tracker', exact: true })).toBeVisible();
-
-    for (const [group, leaf] of [['Customers', 'Customers List'], ['Transactions', 'Transactions'], ['Invoices', 'Invoices'], ['Jobs', 'Customer Jobs']]) {
-      const link = page.getByRole('link', { name: leaf, exact: true });
-      if (!(await link.isVisible())) await page.getByRole('button', { name: group, exact: true }).click();
-      await expect(link).toBeVisible();
-    }
-
-    for (const path of ['/customers/customersList', '/transactions/customerTransactions', '/invoices/invoices', '/jobs/jobsList']) {
+    const nav=page.getByRole('navigation',{name:'Primary navigation'});
+    for(const group of ['Clients','Time & Work','Billing','Receivables','Reports','Settings'])await expect(nav.getByRole('button',{name:group,exact:true})).toHaveCount(0);
+    await expect(nav.getByRole('link',{name:'Upload time tracker',exact:true})).toBeVisible();
+    await expect(nav.getByRole('link',{name:'Your trackers',exact:true})).toBeVisible();
+    const payments=nav.getByRole('button',{name:'Payments & Credits',exact:true});await payments.click();await expect(nav.getByRole('link',{name:'Credit transfers',exact:true})).toBeVisible();await expect(nav.getByRole('link',{name:'Receive payment',exact:true})).toHaveCount(0);
+    for (const path of ['/clients','/work/entries','/billing/invoices','/work/jobs','/customers/customersList','/transactions/customerTransactions','/jobs/jobsList','/invoices/invoices']) {
       await page.goto(path);
       await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
       await expect(page.getByText('You are not authorized to access this page.', { exact: true })).toBeVisible();
@@ -59,10 +41,12 @@ test.describe('Employee role gating', () => {
     await expect(page.getByRole('heading', { name: 'Time Tracker History', exact: true })).toBeVisible();
     await expect(page.getByText('Unauthorized', { exact: true })).toHaveCount(0);
 
+    await page.getByRole('button',{name:'Account menu',exact:true}).click();await page.getByRole('menuitem',{name:'Home',exact:true}).click();await expect(page).toHaveURL('/time-tracking/upload');
+
     // Settings and Transaction Review ARE manager/admin-gated (unlike upload/
     // history), and Employee Trackers administration is a separate top-level
     // route also gated the same way — all three should refuse an employee.
-    for (const path of ['/time-tracking/settings', '/time-tracking/billingReview', '/time-tracking/trackingAdministration']) {
+    for (const path of ['/settings/tracker', '/work/review', '/time-tracking/trackingAdministration']) {
       await page.goto(path);
       await expect(page.getByRole('heading', { name: 'Unauthorized', exact: true })).toBeVisible();
     }

@@ -24,3 +24,11 @@ test('the transaction can arrive before lookup lists without crashing or losing 
  expect(deleteChargeOrTimeTransaction).toHaveBeenLastCalledWith(expect.objectContaining({transactionID:42,customerID:17}),9001,90013);
  expect(await screen.findByRole('alert')).toHaveTextContent('Sent and locked');
 });
+
+test('recurring delete directs the user to reasoned period controls without deleting the charge',()=>{
+ deleteChargeOrTimeTransaction.mockClear();
+ render(<MemoryRouter><context.Provider value={{loggedInUser:{accountID:9001,userID:90013}}}><DeleteTimeOrCharge customerData={{}} transactionData={{transaction_id:42,customer_id:17,recurring_plan_id:9}} /></context.Provider></MemoryRouter>);
+ expect(screen.getByRole('link',{name:'Open recurring plan'})).toHaveAttribute('href','/billing/recurring/9');
+ expect(screen.queryByRole('button',{name:'Delete Transaction',exact:true})).not.toBeInTheDocument();
+ expect(deleteChargeOrTimeTransaction).not.toHaveBeenCalled();
+});

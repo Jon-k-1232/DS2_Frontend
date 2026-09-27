@@ -24,13 +24,13 @@ export default function NotificationBell() {
 
    return (
       <>
-         <IconButton onClick={handleOpen} color='inherit' size='large'>
+         <IconButton aria-label='Notifications' onClick={handleOpen} sx={{color:'text.primary'}} size='large'>
             <Badge badgeContent={unreadCount} color='error'>
                <NotificationsIcon />
             </Badge>
          </IconButton>
          <Popover open={Boolean(anchor)} anchorEl={anchor} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-            <Box sx={{ width: 380, maxHeight: 480, overflow: 'auto' }}>
+            <Box sx={{ width: 380, maxWidth: '90vw', maxHeight: 480, overflow: 'auto' }}>
                <Stack direction='row' justifyContent='space-between' alignItems='center' sx={{ p: 1.5 }}>
                   <Typography variant='subtitle1'>Notifications</Typography>
                   <Button size='small' onClick={markAllRead} disabled={!unreadCount}>Mark all read</Button>

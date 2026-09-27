@@ -1,6 +1,7 @@
+import EntityPicker from '../../../Components/BillingEntities/EntityPicker';
 import React, { useEffect, useState, useContext, useMemo } from 'react';
-import { Alert } from '@mui/material';
-import { useLocation, useNavigate, useParams, Routes, Route } from 'react-router-dom';
+import { Alert, Button } from '@mui/material';
+import { useLocation, useNavigate, useParams, Routes, Route, Link } from 'react-router-dom';
 import PageNavigationHeader from '../../../Components/PageNavigationHeader/PageNavigationHeader';
 import { fetchCustomerProfileInformation } from '../../../Services/ApiCalls/FetchCalls';
 import CustomerProfile from '../../../Pages/Customer/CustomerProfile/CustomerProfile';
@@ -16,7 +17,7 @@ import AuditRecordProtectedAccess, { canAccessAuditRecord } from '../../AuditRec
 import AuditorProtectedAccessRoute, { canAccessAccountAudit } from '../../AuditorProtectedAccess';
 import { context } from '../../../App';
 
-// CustomerProfileSubRoutes — customer_id lives in the URL (`/customers/customersList/customerProfile/:customerId/...`).
+// CustomerProfileSubRoutes — customer_id lives in the URL (`/clients/:customerId/...`).
 // This means Back/Forward navigation works "for free": the URL is the source of truth,
 // not location.state, sessionStorage, or context. Reloading or sharing a profile URL
 // also works without any extra plumbing.
@@ -31,10 +32,13 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
    // null means "no successful load yet" (either still loading, or the last
    // attempt failed) — distinct from {} which used to mean both "loading" and
    // "loaded an empty/failed response" at once, so nothing could ever gate on it.
+   const [entitySelection,setEntitySelection]=useState({});
+   const entityId=entitySelection.customerId===customerId?entitySelection.entityId:null;
+   const setEntityId=value=>setEntitySelection({customerId,entityId:value});
    const [profileData, setProfileData] = useState(null);
    const [callProfileData, setCallProfileData] = useState(new Date());
 
-   const basePath = customerID ? `/customers/customersList/customerProfile/${customerID}` : '/customers/customersList/customerProfile';
+   const basePath = customerID ? `/clients/${customerID}` : '/clients';
 
    const menuOptions = useMemo(
       () => fetchMenuOptions(navigate, canAccessAccountAudit(loggedInUser), basePath, canAccessAuditRecord(loggedInUser)),
@@ -43,7 +47,7 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
 
    useEffect(() => {
       if (!customerID || Number.isNaN(customerID)) {
-         navigate('/customers/customersList');
+         navigate('/clients');
          return;
       }
       // A customerID change (or callProfileData refresh) fires a new request
@@ -53,14 +57,14 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
       let cancelled = false;
       setProfileData(null);
       const apiCall = async () => {
-         const fetchCustomerInformation = await fetchCustomerProfileInformation(accountID, userID, customerID, token);
+         const fetchCustomerInformation = await fetchCustomerProfileInformation(accountID, userID, customerID, token, entityId);
          if (!cancelled) setProfileData(fetchCustomerInformation);
       };
       apiCall();
       return () => {
          cancelled = true;
       };
-   }, [customerID, callProfileData, accountID, userID, token, navigate]);
+   }, [customerID, callProfileData, accountID, userID, token, navigate, entityId]);
 
    if (!profileData) {
       return (
@@ -88,14 +92,16 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
       <>
          <PageNavigationHeader menuOptions={menuOptions} onClickNavigation={() => {}} currentLocation={location} />
 
-         {!location.pathname.endsWith('/editCustomerProfile') && <CustomerProfile profileData={profileData} />}
+         <EntityPicker all value={entityId} onChange={setEntityId} customerId={customerID} />
+         <Button component={Link} to={`/payments/receive?customerId=${customerID}${entityId?'&entityId='+entityId:''}`}>Receive payment for this client</Button>
+         {!location.pathname.endsWith('/edit') && <CustomerProfile profileData={profileData} entityId={entityId} />}
 
          <Routes>
-            <Route path='customerInvoices' element={<CustomerProfileInvoices profileData={profileData} />} />
-            <Route path='customerTransactions' element={<CustomerProfileTransactions profileData={profileData} />} />
-            <Route path='customerJobs' element={<CustomerProfileJobs profileData={profileData} setCustomerData={setCustomerData} />} />
-            <Route path='customerPayments' element={<CustomerProfilePayments profileData={profileData} />} />
-            <Route path='retainersAndPrePayments' element={<CustomerRetainers profileData={profileData} onChanged={() => setCallProfileData(new Date())} />} />
+            <Route path='statements' element={<CustomerProfileInvoices profileData={profileData} />} />
+            <Route path='work' element={<CustomerProfileTransactions profileData={profileData} />} />
+            <Route path='jobs' element={<CustomerProfileJobs profileData={profileData} setCustomerData={setCustomerData} />} />
+            <Route path='receipts' element={<CustomerProfilePayments entityId={entityId} profileData={profileData} />} />
+            <Route path='credits' element={<CustomerRetainers entityId={entityId} profileData={profileData} onChanged={() => setCallProfileData(new Date())} />} />
             <Route
                path='aiAudit'
                element={
@@ -105,7 +111,7 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
                }
             />
             <Route
-               path='editCustomerProfile'
+               path='edit'
                element={
                   <EditCustomerProfile
                      profileData={profileData}
@@ -116,42 +122,43 @@ export default function CustomerProfileSubRoutes({ customerData, setCustomerData
                   />
                }
             />
-            <Route path='auditRecord' element={<AuditRecordProtectedAccess><CustomerProfileAuditRecord profileData={profileData} /></AuditRecordProtectedAccess>} />
+            <Route path='auditRecord' element={<AuditRecordProtectedAccess><CustomerProfileAuditRecord profileData={profileData} entityId={entityId} /></AuditRecordProtectedAccess>} />
          </Routes>
       </>
    );
 }
 
 export const fetchMenuOptions = (navigate, showAudit, basePath, showAuditRecord = false) => [
+   {display:'Overview',value:'overview',route:basePath},
    {
-      display: 'Invoices',
-      value: 'customerInvoices',
-      route: `${basePath}/customerInvoices`,
-      onClick: () => navigate(`${basePath}/customerInvoices`)
+      display: 'Statements',
+      value: 'statements',
+      route: `${basePath}/statements`,
+      onClick: () => navigate(`${basePath}/statements`)
    },
    {
-      display: 'Transactions',
-      value: 'customerTransactions',
-      route: `${basePath}/customerTransactions`,
-      onClick: () => navigate(`${basePath}/customerTransactions`)
+      display: 'Work',
+      value: 'work',
+      route: `${basePath}/work`,
+      onClick: () => navigate(`${basePath}/work`)
    },
    {
       display: 'Jobs',
-      value: 'customerJobs',
-      route: `${basePath}/customerJobs`,
-      onClick: () => navigate(`${basePath}/customerJobs`)
+      value: 'jobs',
+      route: `${basePath}/jobs`,
+      onClick: () => navigate(`${basePath}/jobs`)
    },
    {
-      display: 'Payments',
-      value: 'customerPayments',
-      route: `${basePath}/customerPayments`,
-      onClick: () => navigate(`${basePath}/customerPayments`)
+      display: 'Receipts',
+      value: 'receipts',
+      route: `${basePath}/receipts`,
+      onClick: () => navigate(`${basePath}/receipts`)
    },
    {
-      display: 'Retainers and PrePayments',
-      value: 'retainersAndPrePayments',
-      route: `${basePath}/retainersAndPrePayments`,
-      onClick: () => navigate(`${basePath}/retainersAndPrePayments`)
+      display: 'Credits & retainers',
+      value: 'credits',
+      route: `${basePath}/credits`,
+      onClick: () => navigate(`${basePath}/credits`)
    },
    ...(showAudit
       ? [
@@ -165,9 +172,9 @@ export const fetchMenuOptions = (navigate, showAudit, basePath, showAuditRecord 
       : []),
    ...(showAuditRecord ? [{display:'Audit Record',value:'auditRecord',route:`${basePath}/auditRecord`,onClick:()=>navigate(`${basePath}/auditRecord`)}] : []),
    {
-      display: 'Edit Customer Profile',
-      value: 'editCustomerProfile',
-      route: `${basePath}/editCustomerProfile`,
-      onClick: () => navigate(`${basePath}/editCustomerProfile`)
+      display: 'Edit client',
+      value: 'edit',
+      route: `${basePath}/edit`,
+      onClick: () => navigate(`${basePath}/edit`)
    }
 ];
